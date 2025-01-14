@@ -1,0 +1,31 @@
+/* Set the background to white for the app */
+body {
+  background-color: #ffffff; /* White background */
+}
+
+/* Navbar (title and tab panels) styling */
+.navbar-default {
+  background-color: #343a40; /* Darker gray background */
+  border: none; /* Remove border */
+}
+
+.navbar-default .navbar-brand {
+  color: #ffffff; /* White text for the title */
+  font-weight: bold;
+}
+
+.navbar-default .navbar-brand:hover {
+  color: #dcdcdc; /* Lighter gray on hover for the title */
+}
+
+/* Tab panels (links) styling */
+.navbar-default .navbar-nav > li > a {
+  background-color: #343a40; /* Darker gray background */
+  color: #ffffff; /* White text */
+}
+
+.navbar-default .navbar-nav > li > a:hover,
+.navbar-default .navbar-nav > .active > a {
+  background-color: #495057; /* Slightly lighter gray for hover or active tab */
+  color: #ffffff; /* Keep text white */
+}
