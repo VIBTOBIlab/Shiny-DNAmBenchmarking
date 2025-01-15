@@ -4,7 +4,7 @@ homeTabUI <- function(id) {
   tabPanel(
     "Home",
     fluidPage(
-      h2("Welcome to DecoNFlow Benchmarking"),
+      h2(HTML("<b>Welcome to DecoNFlow Benchmarking</b>")),
       h3("Results"),
       h3("Datasets"),
       h3("Methods"),

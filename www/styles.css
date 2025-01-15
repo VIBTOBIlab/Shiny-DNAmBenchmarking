@@ -29,3 +29,8 @@ body {
   background-color: #495057; /* Slightly lighter gray for hover or active tab */
   color: #ffffff; /* Keep text white */
 }
+
+/* Paragraphs */
+p {
+  text-align: justify; 
+}

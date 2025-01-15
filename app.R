@@ -6,11 +6,25 @@
 library(shiny)
 library(ggplot2)
 library(reshape2)
-library(plotly)  
+library(plotly) 
+
+library(philentropy)
+library(LaplacesDemon)
+library(Metrics)
+library(dplyr)
+library(funkyheatmap)
+library(tidyverse)
+library(stringr)
+library(funkyheatmap)
+library(pROC)
 
 # Source the module files
 source("modules/home.R")
+source("modules/metrics.R")
 #source("modules/overview.R")
+
+# Extra settings
+options(shiny.maxRequestSize=50*1024^2) # Increase limit to 50MB
 
 # UI
 ui <- navbarPage(
@@ -23,6 +37,7 @@ ui <- navbarPage(
   ),
     
   homeTabUI("home"),  # Add Home module
+  metricsTabUI("metrics"),
   #overviewTabUI("Overview"), # Add Overview module
 
   # Panel 2
@@ -41,8 +56,11 @@ ui <- navbarPage(
 
 # Server
 server <- function(input, output, session) {
-  homeTabServer("home")  # Activate  Home tab server
-  #OverviewTabServer("Overview")  # Activate Overview tab server
+  # Activate module tab servers
+  homeTabServer("home")
+  metricsTabServer("metrics")
+  
+  #overviewTabServer("overview")  # Activate Overview tab server
 
 }
 
