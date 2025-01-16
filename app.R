@@ -1,5 +1,5 @@
 ####################################################################################
-# This is a Shiny web application for DecoNFlow
+# This is a Shiny web application for DecoNFlow Benchmarking
 # More information on the pipeline: https://github.ugent.be/DePreterLab
 ####################################################################################
 # Load necessary libraries
