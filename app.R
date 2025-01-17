@@ -18,6 +18,7 @@ library(stringr)
 library(funkyheatmap)
 library(pROC)
 
+library(spsComps)
 # Source the module files
 source("modules/home.R")
 source("modules/metrics.R")
@@ -28,6 +29,7 @@ options(shiny.maxRequestSize=50*1024^2) # Increase limit to 50MB
 
 # UI
 ui <- navbarPage(
+
   # App title
   title = "DecoNFlow Benchmarking",
   
@@ -35,10 +37,11 @@ ui <- navbarPage(
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "styles.css")
   ),
-    
-  homeTabUI("home"),  # Add Home module
+  
+  # Add modules
+  homeTabUI("home"),  
   metricsTabUI("metrics"),
-  #overviewTabUI("Overview"), # Add Overview module
+  #overviewTabUI("Overview"), 
 
   # Panel 2
   tabPanel("Overview"),
@@ -51,8 +54,9 @@ ui <- navbarPage(
   
   # Panel 5
   tabPanel("Usability"),
-
 )
+
+
 
 # Server
 server <- function(input, output, session) {

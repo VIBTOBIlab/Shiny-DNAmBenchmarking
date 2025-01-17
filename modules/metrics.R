@@ -120,7 +120,10 @@ metricsTabUI <- function(id) {
                plotOutput(ns("rmse_comparison"), height = "600px"),
                downloadButton(ns("download_rmse_comparison"), "Save Plot")
         )
-      ) # Close fluidRow
+      ), # Close fluidRow
+      # Go to top of the page
+      lapply(1: 100, function(x) br()),
+      spsGoTop("default")
       
       
     ) # Close fluidPage
