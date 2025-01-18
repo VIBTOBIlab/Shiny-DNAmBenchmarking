@@ -26,10 +26,7 @@ homeTabUI <- function(id) {
       # Wrap Contact Us and Contributors in a centered div
       div(
         style = "text-align: center; margin-top: 20px;",
-        
-        # Contact Section
-        h3("Contact Us", style = "font-weight: bold; color: #343a40;"),
-        
+
         # Social media icons or email
         tags$div(
           style = "margin-top: 10px; text-align: center",
@@ -48,31 +45,14 @@ homeTabUI <- function(id) {
             HTML("<i class='fa fa-envelope'></i> Email"),
             style = "margin-left: 10px; text-decoration: none; color: #555;"
           )
-        ),
-        
-        br(),
-        # Contributors Section
-        h3("Contributors", style = "font-weight: bold; color: #343a40;"),
-        
-        # List of contributors
-        tags$div(
-          style = "margin-top: 10px; text-align: center;",
-          tags$p(
-            style = "color: #555; text-align: center;font-size: 12px;",
-            HTML("<b>Shiny App</b><br>Sofie Van de Velde")
-          ),
-          tags$p(
-            style = "color: #555; text-align: center;font-size: 12px;",
-            HTML("<b>R Code</b><br>Edoardo Giuili<br>Maísa Renata Ferro Dos Santos")
-          )
+        )
         )
       ),
-      
+    
       # Go to top of the page
       lapply(1: 100, function(x) br()),
       spsGoTop("default")
     )
-  )
 }
 
 

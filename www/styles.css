@@ -34,3 +34,21 @@ body {
 p {
   text-align: justify; 
 }
+
+
+
+/* Footer Styling */
+.footer {
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  background-color: transparent; /* Transparent footer */
+  text-align: center; /* Center the content horizontally */
+  padding: 10px 0; /* Add some spacing around the footer */
+}
+
+.footer img {
+  height: 20px !important; /* Icon size height */
+  width: auto !important; /* Maintain aspect ratio */
+  display: inline-block; /* Ensures proper alignment */
+}

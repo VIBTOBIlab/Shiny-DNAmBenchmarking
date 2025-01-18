@@ -22,7 +22,7 @@ library(spsComps)
 # Source the module files
 source("modules/home.R")
 source("modules/metrics.R")
-#source("modules/overview.R")
+source("modules/contact.R")
 
 # Extra settings
 options(shiny.maxRequestSize=50*1024^2) # Increase limit to 50MB
@@ -41,19 +41,17 @@ ui <- navbarPage(
   # Add modules
   homeTabUI("home"),  
   metricsTabUI("metrics"),
-  #overviewTabUI("Overview"), 
-
-  # Panel 2
   tabPanel("Overview"),
-  
-  # Panel 3
   tabPanel("Datasets"),
-  
-  # Panel 4
   tabPanel("Methods"),
-  
-  # Panel 5
   tabPanel("Usability"),
+  contactTabUI("contact"),
+  
+  # tags$footer(
+  #   class = "footer",
+  #   tags$img(src = "VIB.png", alt = "Logo", title = "VIB")
+  # ) 
+  
 )
 
 
@@ -63,7 +61,7 @@ server <- function(input, output, session) {
   # Activate module tab servers
   homeTabServer("home")
   metricsTabServer("metrics")
-  
+  contactTabServer("contact")
   #overviewTabServer("overview")  # Activate Overview tab server
 
 }
