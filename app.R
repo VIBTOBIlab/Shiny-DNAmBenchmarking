@@ -7,16 +7,13 @@ library(shiny)
 library(ggplot2)
 library(reshape2)
 library(plotly) 
-
 library(philentropy)
 library(LaplacesDemon)
 library(Metrics)
-library(dplyr)
-library(funkyheatmap)
-library(tidyverse)
-library(stringr)
-library(funkyheatmap)
+library(funkyheatmap)  # Only load it once
+library(tidyverse)  # Includes dplyr, ggplot2, stringr, etc.
 library(pROC)
+library(spsComps) 
 
 library(spsComps)
 # Source the module files
@@ -26,6 +23,7 @@ source("modules/contact.R")
 
 # Extra settings
 options(shiny.maxRequestSize=50*1024^2) # Increase limit to 50MB
+conflicts_prefer(dplyr::filter) #conflict between the filter functions from the dplyr and stats packages. 
 
 # UI
 ui <- navbarPage(

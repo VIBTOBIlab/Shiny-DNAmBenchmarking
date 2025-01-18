@@ -8,127 +8,101 @@ metricsTabUI <- function(id) {
       p("Below, you can find the computed metrics and visualizations."),
       br(),
       
-      # Selection: Boxplots of the predictions for each tumoral fraction
+      # Boxplots section
       h3("Boxplots of the predictions for each tumoral fraction"),
-      fluidRow(
-        # Drop down menu for selecting a tumoral fraction
-        column(2,
-               selectInput(
-                 ns("boxplot_fraction_select"), 
-                 label = "Select Tumoral Fraction:",
-                 choices = NULL,
-                 selected = NULL
-               )
+      sidebarLayout(
+        sidebarPanel(
+          selectInput(
+            ns("boxplot_fraction_select"), 
+            label = "Select Tumoral Fraction:",
+            choices = NULL,
+            selected = NULL
+          ),
+          checkboxGroupInput(
+            ns("boxplot_tools_select"),
+            label = "Select Deconvolution Tools:",
+            choices = NULL,  
+            selected = NULL
+          ),
+          checkboxGroupInput(
+            ns("boxplot_dmrtools_select"),
+            label = "Select DMR Tools:",
+            choices = NULL,  
+            selected = NULL
+          )
         ),
-
-        # Checkbox for selecting tools to display
-        column(2,
-               checkboxGroupInput(
-                 ns("boxplot_tools_select"),
-                 label = "Select Deconvolution Tools:",
-                 choices = NULL,  
-                 inline = FALSE,
-                 selected = NULL
-               )
-        ),
-
-        # Checkbox for selecting DMRtools to display
-        column(2,
-               checkboxGroupInput(
-                 ns("boxplot_dmrtools_select"),
-                 label = "Select DMR Tools:",
-                 choices = NULL,  
-                 inline = FALSE,
-                 selected = NULL
-               )        
+        mainPanel(
+          plotOutput(ns("boxplot_TF"), height = "600px"),
+          downloadButton(ns("download_boxplot_TF"), "Save Plot"),
+          br(), br(), br()
         )
-      ), # Close fluidRow
+      ),
       
-      # Output: Boxplots of the predictions for each tumoral fraction
-      fluidRow(
-        column(8, 
-               plotOutput(ns("boxplot_TF"), height = "600px"),
-               downloadButton(ns("download_boxplot_TF"), "Save Plot")
-        ),
-
-        ), # Close fluidRow
-      br(),
+      tags$hr(), br(), br(),
       
-      # Selection: RMSE plot based on selected tool and DMRtools
+      # nRMSE section
       h3("Performance (nRMSE) per Tumoral Fractions"),
-      p("We will use the normalized RMSE (NRMSE) in order to make the score size-free: otherwise, increasing the expected value will also determine an increase in RMSE, giving a (wrong) perception that tools perform worse when increasing the tumoral fraction."),
-      fluidRow(
-        column(4, 
-               selectInput(ns("rmse_tool_select"), 
-                           label = "Select Deconvolution Tool:",
-                           choices = NULL,  
-                           selected = NULL)
+      sidebarLayout(
+        sidebarPanel(
+          selectInput(
+            ns("rmse_tool_select"), 
+            label = "Select Deconvolution Tool:",
+            choices = NULL,  
+            selected = NULL
+          ),
+          checkboxGroupInput(
+            ns("rmse_dmrtools_select"),
+            label = "Select DMR Tools:",
+            choices = NULL,  
+            selected = NULL
+          )
         ),
-        
-        column(4,
-               checkboxGroupInput(ns("rmse_dmrtools_select"),
-                                  label = "Select DMR Tools:",
-                                  choices = NULL,  
-                                  selected = NULL)
+        mainPanel(
+          plotOutput(ns("rmse_plot"), height = "600px"),
+          downloadButton(ns("download_rmse_plot"), "Save Plot"),
+          br(), br(), br()
         )
-      ), # Close FluidRow
-
-      # Output: RMSE plot based on selected tool and DMRtools
-      fluidRow(
-        column(8, 
-               plotOutput(ns("rmse_plot"), height = "600px"),
-               downloadButton(ns("download_rmse_plot"), "Save Plot")
-        )
-      ),# Close FluidRow
-      br(),
+      ),
       
-      # Selection: Tool ranks based on RMSE per tumoral fraction
+      tags$hr(), br(), br(),
+      
+      # RMSE Comparison section
       h3("Tool ranks based on RMSE per tumoral fraction"),
-      fluidRow(
-        # Drop down menu for selecting a tumoral fraction
-        column(2,
-               selectInput(
-                 ns("rmse_comparison_fraction_select"), 
-                 label = "Select Tumoral Fraction:",
-                 choices = NULL,
-                 selected = NULL
-               )
+      sidebarLayout(
+        sidebarPanel(
+          selectInput(
+            ns("rmse_comparison_fraction_select"), 
+            label = "Select Tumoral Fraction:",
+            choices = NULL,
+            selected = NULL
+          ),
+          checkboxGroupInput(
+            ns("rmse_comparison_tools_select"),
+            label = "Select Deconvolution Tools:",
+            choices = NULL,  
+            selected = NULL
+          ),
+          checkboxGroupInput(
+            ns("rmse_comparison_dmrtools_select"),
+            label = "Select DMR Tools:",
+            choices = NULL, 
+            selected = NULL
+          )
         ),
-        column(2,
-               checkboxGroupInput(
-                 ns("rmse_comparison_tools_select"),
-                 label = "Select Deconvolution Tools:",
-                 choices = NULL,  
-                 inline = FALSE,
-                 selected = NULL
-               )
-        ),
-        column(2,
-               checkboxGroupInput(
-                 ns("rmse_comparison_dmrtools_select"),
-                 label = "Select DMR Tools:",
-                 choices = NULL, 
-                 inline = FALSE,
-                 selected = NULL)
-        ),
-
-      ),# Close FluidRow
-        
-      # Output: Tool ranks based on RMSE per tumoral fraction
-      fluidRow(
-        column(8, 
-               plotOutput(ns("rmse_comparison"), height = "600px"),
-               downloadButton(ns("download_rmse_comparison"), "Save Plot")
+        mainPanel(
+          plotOutput(ns("rmse_comparison"), height = "600px"),
+          downloadButton(ns("download_rmse_comparison"), "Save Plot"),
+          br(), br(),
         )
-      ), # Close fluidRow
+      ),
+      
       # Go to top of the page
-      lapply(1: 100, function(x) br()),
+      lapply(1:100, function(x) br()),
       spsGoTop("default")
-      
-      
-    ) # Close fluidPage
-  ) # Close tabPanel
-} # close metricsTabUI
+    )
+  )
+}
+
 
 metricsTabServer <- function(id) {
   moduleServer(id, function(input, output, session) {

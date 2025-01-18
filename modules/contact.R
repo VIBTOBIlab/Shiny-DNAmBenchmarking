@@ -47,7 +47,7 @@ contactTabUI <- function(id) {
         ),
         tags$p(
           style = "color: #555; text-align: center; font-size: 12px;",
-          HTML("<b>Supervision</b><br>prof. Katleen De Preter<br> Dr. Celine Everaert")
+          HTML("<b>Supervision</b><br>Prof. Dr. Ir. Katleen De Preter<br> Prof. Dr. Celine Everaert")
         )
       )
     ),
