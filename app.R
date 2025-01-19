@@ -4,7 +4,6 @@
 ####################################################################################
 # Load necessary libraries
 library(shiny)
-library(ggplot2)
 library(reshape2)
 library(plotly) 
 library(philentropy)
@@ -14,6 +13,7 @@ library(funkyheatmap)  # Only load it once
 library(tidyverse)  # Includes dplyr, ggplot2, stringr, etc.
 library(pROC)
 library(spsComps) 
+library(conflicted)
 
 library(spsComps)
 # Source the module files
