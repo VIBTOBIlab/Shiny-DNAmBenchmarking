@@ -33,7 +33,8 @@ metricsTabUI <- function(id) {
         ),
         mainPanel(
           plotOutput(ns("boxplot_TF"), height = "600px"),
-          downloadButton(ns("download_boxplot_TF"), "Save Plot"),
+          downloadButton(ns("download_boxplot_TF_svg"), "Download as SVG"),
+          downloadButton(ns("download_boxplot_TF_pdf"), "Download as PDF"),
           br(), br(), br()
         )
       ),
@@ -59,7 +60,9 @@ metricsTabUI <- function(id) {
         ),
         mainPanel(
           plotOutput(ns("rmse_plot"), height = "600px"),
-          downloadButton(ns("download_rmse_plot"), "Save Plot"),
+          downloadButton(ns("download_rmse_plot_svg"), "Download as SVG"),
+          downloadButton(ns("download_rmse_plot_pdf"), "Download as PDF"),
+          
           br(), br(), br()
         )
       ),
@@ -91,11 +94,47 @@ metricsTabUI <- function(id) {
         ),
         mainPanel(
           plotOutput(ns("rmse_comparison"), height = "600px"),
-          downloadButton(ns("download_rmse_comparison"), "Save Plot"),
+          downloadButton(ns("download_rmse_comparison_svg"), "Download as SVG"),
+          downloadButton(ns("download_rmse_comparison_pdf"), "Download as PDF"),
           br(), br(),
         )
       ),
       
+      tags$hr(), br(), br(),
+
+      # AUC-ROC of tools at 4 low tumoral fractions
+      h3("AUC-ROC at different tumoral fractions"),
+      sidebarLayout(
+        sidebarPanel(
+          checkboxGroupInput(
+            ns("aucroc_fractions_select"),
+            label = "Select Tumoral Fraction:",
+            choices = c(0.0001, 0.001, 0.01, 0.05),
+            selected = c(0.0001, 0.001, 0.01, 0.05)
+          ),
+          selectInput(
+            ns("aucroc_tool_select"),
+            label = "Select Deconvolution Tools:",
+            choices = NULL,
+            selected = NULL
+          ),
+          selectInput(
+            ns("aucroc_dmrtool_select"),
+            label = "Select DMR Tool:",
+            choices = NULL,
+            selected = NULL
+          )
+        ),
+
+        mainPanel(
+          plotOutput(ns("aucroc"), height = "600px"),
+          downloadButton(ns("download_aucroc_svg"), "Download as SVG"),
+          downloadButton(ns("download_aucroc_png"), "Download as PNG"),
+          
+          br(), br(),
+        )
+      ),
+
       # Go to top of the page
       lapply(1:100, function(x) br()),
       spsGoTop("default")
@@ -108,7 +147,7 @@ metricsTabServer <- function(id) {
   moduleServer(id, function(input, output, session) {
     
     ## 1. Import the dataset and preprocess
-    # Load the data (code remains the same as provided)
+    # Load the data
     res_limma <- read.csv("data/Results_20M_limma.csv", row.names = 1)
     res_dmrfinder <- read.csv("data/Results_20M_DMRfinder.csv", row.names = 1)
     res_wgbstools <- read.csv("data/Results_20M_wgbstools.csv", row.names = 1)
@@ -202,6 +241,16 @@ metricsTabServer <- function(id) {
                              choices = sort(unique(bench$DMRtool)), 
                              selected = sort(unique(bench$DMRtool)))
     
+    updateSelectInput(session, "aucroc_tool_select", 
+                      choices = sort(unique(bench$tool)), 
+                      selected = sort(unique(bench$tool))[1])
+    
+    updateSelectInput(session, "aucroc_dmrtool_select", 
+                      choices = sort(unique(bench$DMRtool)), 
+                      selected = sort(unique(bench$DMRtool))[1])
+    
+    
+    
     ## 4. Boxplot predictions for each tumoral fraction
     
     # Reactive expression for filtered data boxplot
@@ -228,27 +277,21 @@ metricsTabServer <- function(id) {
       # Reorder the tools glabally
       data <- data %>%
         mutate(tool = factor(tool, levels = median_diff$tool))
-      
+
       # Barplot
-      ggplot(data, aes(x = tool, y = nbl, color = DMRtool)) +
-        geom_boxplot() +
+      ggplot(data, aes(x = tool, y = nbl, fill = DMRtool, color = DMRtool)) +
+        geom_boxplot(outlier.colour = "gray40", alpha = 0.6) +
         geom_hline(yintercept = fraction, color = "red", linetype = "dashed") +
         labs(
           title = paste("Expected Fraction:", fraction),
           x = "",
           y = "Tumoral fraction"
-        ) +
+        ) + theme_benchmarking + 
         theme(
-          axis.text.x = element_text(size = 14, angle = 45, hjust = 1),
-          axis.text.y = element_text(size = 14),
-          axis.title.x = element_text(size = 16),
-          axis.title.y = element_text(size = 16),
-          legend.title = element_text(size = 16),
-          legend.text = element_text(size = 14)
-        ) +
-        scale_color_manual(values = c("limma" = "#F8766D", "wgbs_tools" = "#00BA38", "DMRfinder" = "#619CFF"))
+          axis.text.x = element_text(angle = 45, hjust = 1)
+        )  + custom_color_manual + custom_fill_manual
+      
     }
-    
     # Render the boxplot in UI using the function
     output$boxplot_TF <- renderPlot({
       data <- filtered_data_boxplot()
@@ -257,9 +300,9 @@ metricsTabServer <- function(id) {
     })
     
     # Save boxplot using the function
-    output$download_boxplot_TF <- downloadHandler(
+    output$download_boxplot_TF_svg <- downloadHandler(
       filename = function() {
-        paste("boxplots_tools_fraction_", as.numeric(input$boxplot_fraction_select), "_", Sys.Date(), ".png", sep = "")
+        paste("boxplots_tools_fraction_", as.numeric(input$boxplot_fraction_select), "_", Sys.Date(), ".svg", sep = "")
       },
       content = function(file) {
         data <- filtered_data_boxplot()
@@ -268,6 +311,18 @@ metricsTabServer <- function(id) {
         ggsave(file, plot = plot, width = 10, height = 6, dpi = 300)
       }
     )
+    output$download_boxplot_TF_pdf <- downloadHandler(
+      filename = function() {
+        paste("boxplots_tools_fraction_", as.numeric(input$boxplot_fraction_select), "_", Sys.Date(), ".pdf", sep = "")
+      },
+      content = function(file) {
+        data <- filtered_data_boxplot()
+        req(nrow(data) > 0)
+        plot <- create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select))
+        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "pdf")
+      }
+    )
+    
     ## 6. RMSE plot
     # RMSE Data Filtering
     filtered_data_rmse <- reactive({
@@ -286,22 +341,23 @@ metricsTabServer <- function(id) {
         summarise(RMSE = nrmse(expected_fraction, nbl), .groups = "drop")
       
       # Plot 
-      ggplot(plot_data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, shape = DMRtool)) +
+      p <- ggplot(plot_data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, shape = DMRtool)) +
         geom_point(size = 3, alpha = 0.8) +
         labs(
           title = paste("nRMSE for Tool:", tool),
           x = "Expected Fraction",
-          y = "RMSE"
-        ) +
-        theme(
-          axis.text.x = element_text(size = 14, angle = 45, hjust = 1),
-          axis.text.y = element_text(size = 14),
-          axis.title.x = element_text(size = 16),
-          axis.title.y = element_text(size = 16),
-          legend.title = element_text(size = 16),
-          legend.text = element_text(size = 14)
-        ) +
-        scale_color_manual(values = c("limma" = "#F8766D", "wgbs_tools" = "#00BA38", "DMRfinder" = "#619CFF"))
+          y = "RMSE",
+          color = "DMRtool",
+          shape = "DMRtool"
+        ) + theme_benchmarking +  
+        scale_y_continuous(expand = expansion(mult = 0.05))  +
+        custom_color_manual + 
+        custom_shape_manual
+        
+
+        
+      
+      return(p)
     }
     
     # Render the RMSE plot in UI using the function
@@ -312,15 +368,27 @@ metricsTabServer <- function(id) {
     })
     
     # Save RMSE plot using the function
-    output$download_rmse_plot <- downloadHandler(
+    output$download_rmse_plot_svg <- downloadHandler(
       filename = function() {
-        paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".png", sep = "")
+        paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".svg", sep = "")
       },
       content = function(file) {
         data <- filtered_data_rmse()
         req(nrow(data) > 0)
         plot <- create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select)
         ggsave(file, plot = plot, width = 10, height = 6, dpi = 300)
+      }
+    )
+    
+    output$download_rmse_plot_pdf <- downloadHandler(
+      filename = function() {
+        paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".pdf", sep = "")
+      },
+      content = function(file) {
+        data <- filtered_data_rmse()
+        req(nrow(data) > 0)
+        plot <- create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select)
+        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "pdf")
       }
     )
     
@@ -365,17 +433,12 @@ metricsTabServer <- function(id) {
         labs(
           title = paste("RMSE vs Tool (Expected Fraction:", fraction, ")"),
           x = "RMSE",
-          y = ""
-        ) +
-        theme(
-          axis.text.x = element_text(size = 14),
-          axis.text.y = element_text(size = 14),
-          axis.title.x = element_text(size = 16),
-          axis.title.y = element_text(size = 16),
-          legend.title = element_text(size = 16),
-          legend.text = element_text(size = 14)
-        ) +
-        scale_color_manual(values = c("limma" = "#F8766D", "wgbs_tools" = "#00BA38", "DMRfinder" = "#619CFF"))
+          y = "",
+          color = "DMRtool",
+          shape = "DMRtool"
+        ) + theme_benchmarking + scale_x_continuous(expand = expansion(mult = 0.05)) + 
+        custom_color_manual + 
+        custom_shape_manual 
     }
     # Render the RMSE comparison plot in UI using the function
     output$rmse_comparison <- renderPlot({
@@ -385,9 +448,9 @@ metricsTabServer <- function(id) {
     })
     
     # Save RMSE comparison plot using the function
-    output$download_rmse_comparison <- downloadHandler(
+    output$download_rmse_comparison_svg <- downloadHandler(
       filename = function() {
-        paste("ranking_tools_fraction_",as.numeric(input$rmse_comparison_fraction_select),"_", Sys.Date(), ".png", sep = "")
+        paste("ranking_tools_fraction_",as.numeric(input$rmse_comparison_fraction_select),"_", Sys.Date(), ".svg", sep = "")
       },
       content = function(file) {
         data <- filtered_data_rmse_comparison()
@@ -395,8 +458,95 @@ metricsTabServer <- function(id) {
         plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
         ggsave(file, plot = plot, width = 10, height = 6, dpi = 300)
       }
-    )    
+    ) 
     
+    output$download_rmse_comparison_pdf <- downloadHandler(
+      filename = function() {
+        paste("ranking_tools_fraction_",as.numeric(input$rmse_comparison_fraction_select),"_", Sys.Date(), ".pdf", sep = "")
+      },
+      content = function(file) {
+        data <- filtered_data_rmse_comparison()
+        req(nrow(data) > 0)
+        plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
+        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "pdf")
+      }
+    )    
+    ## 8. AUC-ROC Plot
+    # Reactive to process AUC-ROC data
+    # aucroc_data <- reactive({
+    #   req(input$aucroc_fractions_select, input$aucroc_tool_select, input$aucroc_dmrtool_select)
+    #   
+    #   data <- data.frame()
+    #   fractions <- input$aucroc_fractions_select
+    #   dmrtool_selected <- input$aucroc_dmrtool_select
+    #   tool_selected <- input$aucroc_tool_select
+    #   
+    #   for (fraction in unique(fractions)) {
+    #     df <- bench %>%
+    #       filter(expected_fraction %in% c(0, fraction) & DMRtool == dmrtool_selected & tool == tool_selected)
+    #     
+    #     if (nrow(filt_df) > 0) {
+    #       roc_curve <- roc(filt_df$expected_fraction, filt_df$nbl)  # pROC package function
+    #       tmp <- data.frame(
+    #         fpr = 1 - rev(roc_curve$specificities),
+    #         tpr = rev(roc_curve$sensitivities),
+    #         thresholds = rev(roc_curve$thresholds),
+    #         auc = roc_curve$auc,
+    #         fraction = fraction,
+    #         tool = tool_selected
+    #       )
+    #       data <- rbind(data, tmp)
+    #     }
+    #   }
+    #   data
+    # })
+    # 
+    # # Render AUC-ROC plot
+    # output$aucroc <- renderPlot({
+    #   data <- aucroc_data()
+    #   req(nrow(data) > 0)  # Ensure data exists
+    #   
+    #   ggplot(data, aes(x = fpr, y = tpr, color = as.factor(fraction))) +
+    #     geom_line(size = 1) +
+    #     labs(
+    #       title = paste0("AUC-ROC Curve for ", input$aucroc_tool_select),
+    #       x = "False Positive Rate (FPR)",
+    #       y = "True Positive Rate (TPR)",
+    #       color = "Fraction"
+    #     ) +
+    #     theme_minimal() +
+    #     theme(
+    #       legend.position = "right",
+    #       plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+    #     )
+    # })
+    # 
+    # # Download handler for saving the plot
+    # output$download_aucroc <- downloadHandler(
+    #   filename = function() {
+    #     paste0("AUC_ROC_", input$aucroc_tool_select, ".png")
+    #   },
+    #   content = function(file) {
+    #     data <- aucroc_data()
+    #     req(nrow(data) > 0)  # Ensure data exists
+    #     
+    #     g <- ggplot(data, aes(x = fpr, y = tpr, color = as.factor(fraction))) +
+    #       geom_line(size = 1) +
+    #       labs(
+    #         title = paste0("AUC-ROC Curve for ", input$aucroc_tool_select),
+    #         x = "False Positive Rate (FPR)",
+    #         y = "True Positive Rate (TPR)",
+    #         color = "Fraction"
+    #       ) +
+    #       theme_minimal() +
+    #       theme(
+    #         legend.position = "right",
+    #         plot.title = element_text(hjust = 0.5, size = 14, face = "bold")
+    #       )
+    #     ggsave(file, g, width = 10, height = 6)
+    #   }
+    # )
+
     
   }) # Close moduleServer
 } # Close metricsTabServer    

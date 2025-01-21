@@ -16,10 +16,14 @@ library(spsComps)
 library(conflicted)
 
 library(spsComps)
+
 # Source the module files
 source("modules/home.R")
 source("modules/metrics.R")
 source("modules/contact.R")
+
+#Source other files
+source("global.R")
 
 # Extra settings
 options(shiny.maxRequestSize=50*1024^2) # Increase limit to 50MB
@@ -39,10 +43,10 @@ ui <- navbarPage(
   # Add modules
   homeTabUI("home"),  
   metricsTabUI("metrics"),
-  tabPanel("Overview"),
-  tabPanel("Datasets"),
-  tabPanel("Methods"),
-  tabPanel("Usability"),
+  # tabPanel("Overview"),
+  # tabPanel("Datasets"),
+  # tabPanel("Methods"),
+  # tabPanel("Usability"),
   contactTabUI("contact"),
   
   # tags$footer(
@@ -61,6 +65,7 @@ server <- function(input, output, session) {
   metricsTabServer("metrics")
   contactTabServer("contact")
   #overviewTabServer("overview")  # Activate Overview tab server
+  session$onSessionEnded(stopApp) # Automatically stop a Shiny app when closing the browser tab: https://github.com/daattali/advanced-shiny/tree/master/auto-kill-app
 
 }
 
