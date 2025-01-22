@@ -30,6 +30,7 @@ custom_fill_manual <- scale_fill_manual( name = "DMRtool",
                                           labels = function(x) gsub("_", " ", x)
 )
 
+
 # Specify custom shapes
 custom_shape_manual <- scale_shape_manual(
   values = c("limma" = 16,  # Circle
@@ -37,8 +38,3 @@ custom_shape_manual <- scale_shape_manual(
              "DMRfinder" = 15), # Square
   labels = function(x) gsub("_", " ", x)
 )
-
-
-
-
-#c("limma" = "#F8766D", "wgbs_tools" = "#00BA38",  "DMRfinder" = "#619CFF")

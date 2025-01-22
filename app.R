@@ -4,18 +4,20 @@
 ####################################################################################
 # Load necessary libraries
 library(shiny)
+library(bslib)
 library(reshape2)
 library(plotly) 
 library(philentropy)
 library(LaplacesDemon)
 library(Metrics)
-library(funkyheatmap)  # Only load it once
+library(funkyheatmap) 
 library(tidyverse)  # Includes dplyr, ggplot2, stringr, etc.
 library(pROC)
 library(spsComps) 
 library(conflicted)
 
-library(spsComps)
+library(htmltools)
+
 
 # Source the module files
 source("modules/home.R")
@@ -43,10 +45,6 @@ ui <- navbarPage(
   # Add modules
   homeTabUI("home"),  
   metricsTabUI("metrics"),
-  # tabPanel("Overview"),
-  # tabPanel("Datasets"),
-  # tabPanel("Methods"),
-  # tabPanel("Usability"),
   contactTabUI("contact"),
   
   # tags$footer(
@@ -64,7 +62,6 @@ server <- function(input, output, session) {
   homeTabServer("home")
   metricsTabServer("metrics")
   contactTabServer("contact")
-  #overviewTabServer("overview")  # Activate Overview tab server
   session$onSessionEnded(stopApp) # Automatically stop a Shiny app when closing the browser tab: https://github.com/daattali/advanced-shiny/tree/master/auto-kill-app
 
 }

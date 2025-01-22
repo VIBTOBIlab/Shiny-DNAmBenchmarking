@@ -21,6 +21,10 @@ homeTabUI <- function(id) {
       ),
       
       br(),
+      
+      h3("Citation"),
+      br(),br(),
+
       tags$hr(),
       
       # Wrap Contact Us and Contributors in a centered div
