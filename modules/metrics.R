@@ -132,7 +132,7 @@ metricsTabUI <- function(id) {
                       )
                     ),
                     mainPanel(
-                      plotOutput(ns("rmse_comparison"), height = "600px"),
+                      plotlyOutput(ns("rmse_comparison"), height = "600px"),
                       downloadButton(ns("download_rmse_comparison_svg"), "Download as SVG"),
                       downloadButton(ns("download_rmse_comparison_pdf"), "Download as PDF"),
                       br(), br(),
@@ -419,7 +419,7 @@ metricsTabServer <- function(id) {
         filter(tool == tool, DMRtool %in% dmrtools) %>%
         group_by(DMRtool, expected_fraction) %>%
         summarise(RMSE = nrmse(expected_fraction, nbl), .groups = "drop") %>%
-        mutate(tooltip_text = paste("DMRtool:", DMRtool, "<br>Expected Fraction:", expected_fraction, "<br>RMSE:", round(RMSE, 3)))
+        mutate(tooltip_text = paste("DMRtool:", DMRtool, "<br>Expected Fraction:", expected_fraction, "<br>nRMSE:", round(RMSE, 3)))
       
       # Plot 
       p <- ggplot(plot_data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, shape = DMRtool, text = tooltip_text)) +
@@ -427,14 +427,13 @@ metricsTabServer <- function(id) {
         labs(
           #title = paste("nRMSE for Tool:", tool),
           x = "Expected Fraction",
-          y = "RMSE",
+          y = "nRMSE",
           color = "DMRtool",
           shape = "DMRtool"
         ) + theme_benchmarking +  
         scale_y_continuous(expand = expansion(mult = 0.05))  +
         custom_color_manual + 
-        custom_shape_manual +
-        theme(legend.spacing.y = unit(0.1,"cm"))
+        custom_shape_manual
 
       return(p)
     }
@@ -508,15 +507,16 @@ metricsTabServer <- function(id) {
       
       # Reorder the tools globally
       plot_data <- plot_data %>%
-        mutate(tool = factor(tool, levels = median_diff$tool))
+        mutate(tool = factor(tool, levels = median_diff$tool)) %>%
+        mutate(tooltip_text = paste("DMRtool:", DMRtool, "<br>nRMSE:", round(RMSE, 3)))
       
       # Generate the plot
-      ggplot(plot_data, aes(x = RMSE, y = fct_reorder(tool, RMSE), color = DMRtool, shape = DMRtool)) +
+      ggplot(plot_data, aes(x = RMSE, y = fct_reorder(tool, RMSE), color = DMRtool, shape = DMRtool, text = tooltip_text)) +
         geom_point(size = 3, alpha = 0.8) +
         scale_y_discrete(labels = function(y) str_replace_all(y, "_", " ")) +
         labs(
           #title = paste("RMSE vs Tool (Expected Fraction:", fraction, ")"),
-          x = "RMSE",
+          x = "nRMSE",
           y = "",
           color = "DMRtool",
           shape = "DMRtool"
@@ -525,10 +525,11 @@ metricsTabServer <- function(id) {
         custom_shape_manual 
     }
     # Render the RMSE comparison plot in UI using the function
-    output$rmse_comparison <- renderPlot({
+    output$rmse_comparison <- renderPlotly({
       data <- filtered_data_rmse_comparison()
       req(nrow(data) > 0)
-      create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
+      p <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
+      ggplotly(p,tooltip = "text")
     })
     
     # Save RMSE comparison plot using the function
