@@ -9,8 +9,8 @@ theme_benchmarking <- theme_classic() +
         axis.text.y = element_text(size = 12, color = "gray10"),
         axis.title.x = element_text(size = 14 , color = "gray10"),
         axis.title.y = element_text(size = 14, color = "gray10"),
-        legend.title = element_text(size = 14, color = "gray10"),
-        legend.text = element_text(size = 12, color = "gray10"),
+        #legend.title = element_text(size = 14, color = "gray10"),
+        #legend.text = element_text(size = 12, color = "gray10"),
         axis.line = element_line(color = "gray50"),
         axis.ticks = element_line(color = "gray50"),
       ) 

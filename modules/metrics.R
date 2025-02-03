@@ -34,7 +34,7 @@ metricsTabUI <- function(id) {
                       )
                     ),
                     mainPanel(
-                      plotOutput(ns("boxplot_TF"), height = "600px"),
+                      plotlyOutput(ns("boxplot_TF"), height = "600px"),
                       downloadButton(ns("download_boxplot_TF_svg"), "Download as SVG"),
                       downloadButton(ns("download_boxplot_TF_pdf"), "Download as PDF"),
                       br(), br(), br()
@@ -43,7 +43,7 @@ metricsTabUI <- function(id) {
                   
                   tags$hr(), br(), br(),
                   
-                  # nRMSE section
+                  # RMSE section
                   h3("Performance (nRMSE) per Tumoral Fractions"),
                   sidebarLayout(
                     sidebarPanel(
@@ -61,7 +61,7 @@ metricsTabUI <- function(id) {
                       )
                     ),
                     mainPanel(
-                      plotOutput(ns("rmse_plot"), height = "600px"),
+                      plotlyOutput(ns("rmse_plot"), height = "600px"),
                       downloadButton(ns("download_rmse_plot_svg"), "Download as SVG"),
                       downloadButton(ns("download_rmse_plot_pdf"), "Download as PDF"),
                       
@@ -350,30 +350,34 @@ metricsTabServer <- function(id) {
         summarise(Mean = mean(Diff, na.rm = TRUE)) %>%
         arrange(Mean)
       
-      # Reorder the tools glabally
+      # Reorder the tools globally
       data <- data %>%
         mutate(tool = factor(tool, levels = median_diff$tool))
 
       # Barplot
-      ggplot(data, aes(x = tool, y = nbl, fill = DMRtool, color = DMRtool)) +
+      ggplot(data, aes(x = tool, 
+                       y = nbl, 
+                       fill = DMRtool, 
+                       color = DMRtool)) +
         geom_boxplot(outlier.colour = "gray40", alpha = 0.6) +
         geom_hline(yintercept = fraction, color = "red", linetype = "dashed") +
+        scale_x_discrete(labels = function(x) str_replace_all(x, "_", " ")) + 
         labs(
           #title = paste("Expected Fraction:", fraction),
           x = "",
           y = "Tumoral fraction"
         ) + theme_benchmarking + 
-        theme(
-          axis.text.x = element_text(angle = 45, hjust = 1)
-        )  + custom_color_manual + custom_fill_manual
-      
+        theme(axis.text.x = element_text(angle = 45, hjust = 1))  +
+        custom_color_manual + custom_fill_manual
+    
     }
     # Render the boxplot in UI using the function
-    output$boxplot_TF <- renderPlot({
+    output$boxplot_TF <- renderPlotly({
       data <- filtered_data_boxplot()
       req(nrow(data) > 0)
-      create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select))
-    })
+      p <- create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select))
+      ggplotly(p)
+      })
     
     # Save boxplot using the function
     output$download_boxplot_TF_svg <- downloadHandler(
@@ -414,10 +418,11 @@ metricsTabServer <- function(id) {
       plot_data <- data %>%
         filter(tool == tool, DMRtool %in% dmrtools) %>%
         group_by(DMRtool, expected_fraction) %>%
-        summarise(RMSE = nrmse(expected_fraction, nbl), .groups = "drop")
+        summarise(RMSE = nrmse(expected_fraction, nbl), .groups = "drop") %>%
+        mutate(tooltip_text = paste("DMRtool:", DMRtool, "<br>Expected Fraction:", expected_fraction, "<br>RMSE:", round(RMSE, 3)))
       
       # Plot 
-      p <- ggplot(plot_data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, shape = DMRtool)) +
+      p <- ggplot(plot_data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, shape = DMRtool, text = tooltip_text)) +
         geom_point(size = 3, alpha = 0.8) +
         labs(
           #title = paste("nRMSE for Tool:", tool),
@@ -428,16 +433,21 @@ metricsTabServer <- function(id) {
         ) + theme_benchmarking +  
         scale_y_continuous(expand = expansion(mult = 0.05))  +
         custom_color_manual + 
-        custom_shape_manual
+        custom_shape_manual +
+        theme(legend.spacing.y = unit(0.1,"cm"))
 
       return(p)
     }
     
     # Render the RMSE plot in UI using the function
-    output$rmse_plot <- renderPlot({
+    output$rmse_plot <- renderPlotly({
       data <- filtered_data_rmse()
       req(nrow(data) > 0)
-      create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select)
+      
+      p <- create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select)
+      
+      # Convert ggplot to an interactive plotly object
+      ggplotly(p, tooltip = "text") 
     })
     
     # Save RMSE plot using the function
@@ -503,6 +513,7 @@ metricsTabServer <- function(id) {
       # Generate the plot
       ggplot(plot_data, aes(x = RMSE, y = fct_reorder(tool, RMSE), color = DMRtool, shape = DMRtool)) +
         geom_point(size = 3, alpha = 0.8) +
+        scale_y_discrete(labels = function(y) str_replace_all(y, "_", " ")) +
         labs(
           #title = paste("RMSE vs Tool (Expected Fraction:", fraction, ")"),
           x = "RMSE",
@@ -735,6 +746,7 @@ metricsTabServer <- function(id) {
         geom_tile() +
         geom_text(aes(label = round(RMSE, 4)), color = "white", size = 4) +
         scale_fill_viridis_c(end = 0.6) +
+        scale_x_discrete(labels = function(x) str_replace_all(x, "_", " "))+
         labs(
           x = "",
           y = "Tumoral Fraction"
