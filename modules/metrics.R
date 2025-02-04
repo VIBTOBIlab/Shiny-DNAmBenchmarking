@@ -13,7 +13,7 @@ metricsTabUI <- function(id) {
                   # Boxplots section
                   h3("Boxplots of the predictions for each tumoral fraction"),
                   sidebarLayout(
-                    sidebarPanel(
+                    sidebarPanel( width = 3,
                       selectInput(
                         ns("boxplot_fraction_select"), 
                         label = "Select Tumoral Fraction:",
@@ -33,7 +33,7 @@ metricsTabUI <- function(id) {
                         selected = NULL
                       )
                     ),
-                    mainPanel(
+                    mainPanel( width = 8,
                       plotlyOutput(ns("boxplot_TF"), height = "600px"),
                       downloadButton(ns("download_boxplot_TF_svg"), "Download as SVG"),
                       downloadButton(ns("download_boxplot_TF_pdf"), "Download as PDF"),
@@ -46,7 +46,7 @@ metricsTabUI <- function(id) {
                   # RMSE section
                   h3("Performance (nRMSE) per Tumoral Fractions"),
                   sidebarLayout(
-                    sidebarPanel(
+                    sidebarPanel(width = 3,
                       selectInput(
                         ns("rmse_tool_select"), 
                         label = "Select Deconvolution Tool:",
@@ -60,7 +60,7 @@ metricsTabUI <- function(id) {
                         selected = NULL
                       )
                     ),
-                    mainPanel(
+                    mainPanel(width = 8,
                       plotlyOutput(ns("rmse_plot"), height = "600px"),
                       downloadButton(ns("download_rmse_plot_svg"), "Download as SVG"),
                       downloadButton(ns("download_rmse_plot_pdf"), "Download as PDF"),
@@ -76,7 +76,7 @@ metricsTabUI <- function(id) {
                   # AUC-ROC of tools at 4 low tumoral fractions
                   h3("AUC-ROC at different tumoral fractions"),
                   sidebarLayout(
-                    sidebarPanel(
+                    sidebarPanel(width = 3,
                       checkboxGroupInput(
                         ns("aucroc_fractions_select"),
                         label = "Select Tumoral Fraction:",
@@ -97,7 +97,7 @@ metricsTabUI <- function(id) {
                       )
                     ),
                     
-                    mainPanel(
+                    mainPanel(width = 8,
                       plotOutput(ns("aucroc"), height = "600px"),
                       downloadButton(ns("download_aucroc_svg"), "Download as SVG"),
                       downloadButton(ns("download_aucroc_png"), "Download as PNG"),
@@ -111,7 +111,7 @@ metricsTabUI <- function(id) {
                   # RMSE Comparison section
                   h3("Tool ranks based on RMSE per tumoral fraction"),
                   sidebarLayout(
-                    sidebarPanel(
+                    sidebarPanel(width = 3,
                       selectInput(
                         ns("rmse_comparison_fraction_select"), 
                         label = "Select Tumoral Fraction:",
@@ -131,7 +131,7 @@ metricsTabUI <- function(id) {
                         selected = NULL
                       )
                     ),
-                    mainPanel(
+                    mainPanel(width = 8,
                       plotlyOutput(ns("rmse_comparison"), height = "600px"),
                       downloadButton(ns("download_rmse_comparison_svg"), "Download as SVG"),
                       downloadButton(ns("download_rmse_comparison_pdf"), "Download as PDF"),
@@ -141,7 +141,7 @@ metricsTabUI <- function(id) {
                  tags$hr(), br(), br(),
                  h3("General ranking of the tools"),
                  sidebarLayout(
-                   sidebarPanel(
+                   sidebarPanel(width = 3,
                      checkboxGroupInput(
                        ns("rank_tools_select"),
                        label = "Select Deconvolution Tools:",
@@ -161,7 +161,7 @@ metricsTabUI <- function(id) {
                        selected = "normAUC"
                      )
                    ),
-                   mainPanel(
+                   mainPanel(width = 8,
                      plotOutput(ns("rank"), height = "600px"),
                      downloadButton(ns("download_rank_svg"), "Download as SVG"),
                      downloadButton(ns("download_rank_pdf"), "Download as PDF"),
@@ -173,7 +173,7 @@ metricsTabUI <- function(id) {
                  # Heatmap section
                  h3("Heatmap of Tumoral Fraction vs Tools"),
                  sidebarLayout(
-                   sidebarPanel(
+                   sidebarPanel(width = 3,
                      checkboxGroupInput(
                        ns("heatmap_tools_select"),
                        label = "Select Deconvolution Tools:",
@@ -187,7 +187,7 @@ metricsTabUI <- function(id) {
                        selected = NULL
                      )
                    ),
-                   mainPanel(
+                   mainPanel(width = 8,
                      plotOutput(ns("heatmap"), height = "600px"),
                      downloadButton(ns("download_heatmap_svg"), "Download as SVG"),
                      downloadButton(ns("download_heatmap_pdf"), "Download as PDF"),
@@ -274,8 +274,7 @@ metricsTabServer <- function(id) {
       roc_obj <- roc(true_labels, predicted_scores)
       return(roc_obj)
     }
-    
-    
+
     
     # 3. Populate dropdowns and checkboxes
     updateSelectInput(session, "boxplot_fraction_select", 
@@ -353,22 +352,22 @@ metricsTabServer <- function(id) {
       # Reorder the tools globally
       data <- data %>%
         mutate(tool = factor(tool, levels = median_diff$tool))
-
+      
+      # Ensure DMRtool is a factor
+      data$DMRtool <- as.factor(data$DMRtool)
+      
       # Barplot
-      ggplot(data, aes(x = tool, 
-                       y = nbl, 
-                       fill = DMRtool, 
-                       color = DMRtool)) +
-        geom_boxplot(outlier.colour = "gray40", alpha = 0.6) +
+      ggplot(data, aes(x = tool, y = nbl, fill = DMRtool, color = DMRtool)) +
+        geom_boxplot(position = position_dodge(width = 0.75), outlier.color = "gray40", alpha = 0.6) +
+        geom_jitter(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.75), size = 0.8, alpha = 0.5) +
         geom_hline(yintercept = fraction, color = "red", linetype = "dashed") +
         scale_x_discrete(labels = function(x) str_replace_all(x, "_", " ")) + 
         labs(
-          #title = paste("Expected Fraction:", fraction),
           x = "",
           y = "Tumoral fraction"
         ) + theme_benchmarking + 
-        theme(axis.text.x = element_text(angle = 45, hjust = 1))  +
-        custom_color_manual + custom_fill_manual
+        theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+        custom_color_manual + custom_fill_manual 
     
     }
     # Render the boxplot in UI using the function
@@ -376,7 +375,8 @@ metricsTabServer <- function(id) {
       data <- filtered_data_boxplot()
       req(nrow(data) > 0)
       p <- create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select))
-      ggplotly(p)
+      ggplotly(p) %>% 
+        layout(boxmode= "group")
       })
     
     # Save boxplot using the function

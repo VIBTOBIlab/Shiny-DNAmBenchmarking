@@ -2,6 +2,16 @@
 # This is a Shiny web application for DecoNFlow Benchmarking
 # More information on the pipeline: https://github.ugent.be/DePreterLab
 ####################################################################################
+
+# Install packages
+# install.packages(c(
+#   "tidyverse", "plotly", "shiny", "lubridate", "dplyr", "pROC", 
+#   "philentropy", "Metrics", "reshape2", "htmltools", "bslib",
+#   "stringr", "funkyheatmap", "spsComps", "conflicted", "LaplacesDemon",
+#   "shinytoastr", "cowplot"
+# ))
+
+
 # Load necessary libraries
 library(shiny)
 library(bslib)
@@ -15,7 +25,6 @@ library(tidyverse)  # Includes dplyr, ggplot2, stringr, etc.
 library(pROC)
 library(spsComps) 
 library(conflicted)
-library(plotly)
 library(htmltools)
 
 
@@ -29,7 +38,8 @@ source("global.R")
 
 # Extra settings
 options(shiny.maxRequestSize=50*1024^2) # Increase limit to 50MB
-conflicts_prefer(dplyr::filter) #conflict between the filter functions from the dplyr and stats packages. 
+conflict_prefer("filter", "dplyr")   # Prefers dplyr::filter() over stats::filter()
+conflict_prefer("auc", "pROC")       # Prefers pROC::auc() over Metrics::auc()  
 
 # UI
 ui <- navbarPage(
