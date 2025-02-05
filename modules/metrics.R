@@ -742,11 +742,39 @@ metricsTabServer <- function(id) {
       plot_data <- plot_data %>%
         mutate(tool = factor(tool, levels = median_diff$tool))
       
+      
+      
+      # Define a function to determine text color based on RMSE value
+      get_text_color <- function(rmse_value) {
+        # Handle NA values: default to black text for missing values
+        if (is.na(rmse_value)) {
+          return("black")  # You can change this to "white" if preferred
+        }
+        
+        # If RMSE is low, the tile is dark and should have white text
+        if (rmse_value < 0.5) {
+          return("black")
+        } else {
+          return("white")  # For higher RMSE, tile is light, so black text
+        }
+      }
+      
+      # Create a new column for the labels, where NA values are converted to the string 'NA'
+      plot_data$label <- ifelse(is.na(plot_data$RMSE), "NA", round(plot_data$RMSE, 4))
+      
+      # Precompute text colors for each RMSE value
+      plot_data$text_color <- sapply(plot_data$RMSE, get_text_color)
+      
+      
       # Create and return the heatmap plot
       ggplot(plot_data, aes(x = tool, y = factor(expected_fraction), fill = RMSE)) +
         geom_tile() +
-        geom_text(aes(label = round(RMSE, 4)), color = "white", size = 4) +
-        scale_fill_viridis_c(end = 0.6) +
+        geom_text(aes(
+          label = label, 
+          color = text_color  # Apply dynamic text color based on tile fill
+        ), size = 4) +
+        scale_fill_gradient(low = "white", high = "gray10") + # Greyscale color scale
+        scale_color_identity() + 
         scale_x_discrete(labels = function(x) str_replace_all(x, "_", " "))+
         labs(
           x = "",

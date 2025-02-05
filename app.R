@@ -40,6 +40,7 @@ source("global.R")
 options(shiny.maxRequestSize=50*1024^2) # Increase limit to 50MB
 conflict_prefer("filter", "dplyr")   # Prefers dplyr::filter() over stats::filter()
 conflict_prefer("auc", "pROC")       # Prefers pROC::auc() over Metrics::auc()  
+conflict_prefer("layout","plotly") # Prefers plotly::layout() over graphics::layout()
 
 # UI
 ui <- navbarPage(
