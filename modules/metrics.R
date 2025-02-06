@@ -100,9 +100,12 @@ metricsTabUI <- function(id) {
                     
                     mainPanel(width = 8,
                       plotOutput(ns("aucroc"), height = "600px"),
+                      br(),
                       downloadButton(ns("download_aucroc_svg"), "Download as SVG"),
                       downloadButton(ns("download_aucroc_png"), "Download as PNG"),
-                      br(), br(),
+                      downloadButton(ns("download_aucroc_df"), "Download data"),
+                      
+                      br(), br(), br()
                     )
                   )
                   ), # close 'General' tab 
@@ -281,23 +284,6 @@ metricsTabServer <- function(id) {
       roc_obj <- roc(true_labels, predicted_scores)
       return(roc_obj)
     }
-
-    
-    # Populate dropdowns and checkboxes
-    updateSelectInput(session, "aucroc_tool_select", 
-                      choices = sort(unique(bench$tool)), 
-                      selected = sort(unique(bench$tool))[1])
-    
-    updateSelectInput(session, "aucroc_dmrtool_select", 
-                      choices = sort(unique(bench$DMRtool)), 
-                      selected = sort(unique(bench$DMRtool))[1])
-    
-    updateCheckboxGroupInput(session, "rank_tools_select", 
-                             choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))
-    updateCheckboxGroupInput(session, "rank_dmrtools_select", 
-                             choices = sort(unique(bench$DMRtool)), 
-                             selected = sort(unique(bench$DMRtool)))
 
         ## 3. Visualisations
     ############################################################################
@@ -574,7 +560,6 @@ metricsTabServer <- function(id) {
       }
     )
     
-
     ############################################################################ 
     ## Heatmap
     # Dropdowns and checkboxes heatmap
@@ -692,6 +677,79 @@ metricsTabServer <- function(id) {
       }
     )
 
+    
+    ############################################################################ 
+    ## AUCROC plot
+    # Dropdowns and checkboxes AUCROC
+    updateSelectInput(session, "aucroc_tool_select", 
+                      choices = sort(unique(bench$tool)), 
+                      selected = sort(unique(bench$tool))[1])
+    
+    updateSelectInput(session, "aucroc_dmrtool_select", 
+                      choices = sort(unique(bench$DMRtool)), 
+                      selected = sort(unique(bench$DMRtool))[1])
+
+    output$aucroc <- renderPlot({
+      req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
+      
+      aucroc_data <- data.frame()
+      fractions <- c(0.0001, 0.001, 0.01, 0.05)
+      for (fraction in unique(fractions)) {
+        df <- bench %>%
+          filter(expected_fraction %in% c(0, fraction) & DMRtool == input$aucroc_dmrtool_select & tool == input$aucroc_tool_select)
+        filt_df <- df %>% filter(tool == input$aucroc_tool_select)
+        roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
+        tmp <- data.frame(
+          fpr = 1 - rev(roc_curve$specificities),
+          tpr = rev(roc_curve$sensitivities),
+          thresholds = rev(roc_curve$thresholds),
+          auc = rev(roc_curve$auc),
+          fraction = fraction,
+          tool = input$aucroc_tool_select
+        )
+        aucroc_data <- rbind(aucroc_data, tmp)
+      }
+      
+      ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction))) +
+        geom_line(size = 1) +
+        geom_point(aes(x = 0, y = auc, color = as.factor(fraction)), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
+        labs(
+          #title = paste("AUC-ROC at different tumoral fractions for", input$aucroc_tool_select, "(", input$aucroc_dmrtool_select, ")"),
+          x = "FPR",
+          y = "TPR",
+          color = "Tumoral fraction"
+        ) +
+        theme(
+          text = element_text(size = 12),
+          legend.position = "bottom"
+        )
+    })
+    
+    output$download_aucroc_svg <- downloadHandler(
+      filename = function() { "aucroc_plot.svg" },
+      content = function(file) {
+        ggsave(file, plot = last_plot(), device = "svg", width = 8, height = 6)
+      }
+    )
+    
+    output$download_aucroc_png <- downloadHandler(
+      filename = function() { "aucroc_plot.png" },
+      content = function(file) {
+        ggsave(file, plot = last_plot(), device = "png", width = 8, height = 6)
+      }
+    )
+    
+    ############################################################################ 
+    ## Rank tools 
+    # Dropdowns and checkboxes Rank tools
+    updateCheckboxGroupInput(session, "rank_tools_select", 
+                             choices = sort(unique(bench$tool)), 
+                             selected = sort(unique(bench$tool)))
+    updateCheckboxGroupInput(session, "rank_dmrtools_select", 
+                             choices = sort(unique(bench$DMRtool)), 
+                             selected = sort(unique(bench$DMRtool)))
+    
+    
   }) # Close moduleServer
 } # Close metricsTabServer    
     
