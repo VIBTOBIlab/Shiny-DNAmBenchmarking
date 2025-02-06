@@ -1,0 +1,1898 @@
+---
+title: "Benchmarking of artificial mixtures - Preprocessing parameters"
+author: "Maisa Renata Ferro dos Santos"
+date: "2024-09-01"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    code_download: yes
+    code_folding: hide
+    df_print: paged
+    fig_caption: yes
+    out_width: 100%
+    out_height: 100%
+    highlight: kate
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_float: yes
+editor_options:
+  markdown:
+    wrap: sentence
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(cache = TRUE)
+```
+
+```{=html}
+<style type="text/css">
+.main-container {
+  max-width: 100% !important;
+  margin: auto;
+}
+</style>
+```
+
+```{=html}
+<style>
+    pre {
+        border: 0;
+    }
+</style>
+```
+
+```{=html}
+<style type="text/css">
+
+body, td {
+   font-size: 16px;
+}
+code.r{
+  font-size: 16px;
+}
+pre {
+  font-size: 16px
+}
+</style>
+```
+
+# Set-up {.tabset}
+
+## Imports {.tabset}
+
+### Libraries
+
+```{r libs}
+#, warning = FALSE, message = FALSE, include = FALSE
+library(funkyheatmap)
+library(kableExtra)
+library(Rmisc)
+library(tidyverse)
+library(TSrepr)
+library(Metrics)
+library(ggfortify)
+library(reshape2)
+library(plotly)
+library(RColorBrewer)
+library(ggradar) #remotes::install_github("ricardo-bion/ggradar")
+library(ggpubr)
+library(geomtextpath)
+library(ggbreak)
+library(plotrix)
+library(gg.layers) #remotes::install_github("rpkgs/gg.layers")
+library(paletteer)
+library(report)
+library(stringr)
+library(greekLetters)
+library(pROC)
+library(PRROC)
+```
+
+### R session information
+
+```{r infoSession}
+sessionInfo()
+```
+
+### Data & Metadata
+
+```{r data, warning = FALSE, message = FALSE}
+# data files
+# deconv_results_ref_limma <- "data/Results_20M_limma.csv"
+# deconv_results_ref_DMRf <- "data/Results_20M_DMRfinder.csv"
+# deconv_results_ref_wgbs <- "data/Results_20M_wgbstools.csv"
+# decon_results_ref_DMRf_CBS < "data/Results_20M_DMRfinder_cibersort.csv"
+# 
+# deconv_results_reffree <- "data/ResultsRefree.csv"
+# 
+# samples_meta <- "data/SamplesMetadata.csv"
+# computationalInfo <- "data/mem&timeInfo/execution_trace_20241021-050453.txt"
+
+
+# read data
+deconv_results_ref_limma <-  read.csv("C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/data/Results_20M_limma.csv", row.names = 1)
+deconv_results_ref_DMRf <- read.csv("C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/data/Results_20M_DMRfinder.csv", row.names = 1)
+deconv_results_ref_wgbs <- read.csv("C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/data/Results_20M_wgbstools.csv", row.names = 1)
+decon_results_ref_DMRf_CBS <- read.csv("C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/data/Results_20M_DMRfinder_cibersort.csv", row.names = 1)
+
+deconv_results_reffree <- read.csv("C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/data/ResultsRefree.csv")
+
+samples_meta <- read.csv("C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/data/SamplesMetadata.csv", sep = "\t")
+
+#computationalInfo <- read.csv2(computationalInfo, header = TRUE, sep = "\t", quote = "", dec = ".")
+```
+
+## Preprocessing {.tabset}
+
+### Include missing information and combine the data
+
+```{r data1, warning = FALSE, message = FALSE}
+
+samples_meta$Type[samples_meta$Type==""] <- "in Silico"
+
+deconv_results_ref <- rbind(deconv_results_ref_limma, deconv_results_ref_DMRf, deconv_results_ref_wgbs, decon_results_ref_DMRf_CBS)
+
+# combine data
+## reference-based
+df_results_ref <- samples_meta %>%
+  inner_join(deconv_results_ref,by = c("Sample"="sample")) %>%
+  filter(Type=="in Silico") %>%
+  mutate(method = case_when(tool == "EpiDISH_RPC" ~ "RPC",
+                          tool == "EpiDISH_CP_eq" ~ "Houseman's CP/QP w/equality",
+                          tool == "EpiDISH_CP_ineq" ~ "Houseman's CP/QP w/inequality",
+                          tool == "meth_atlas" ~ "MethAtlas",
+                          tool == "Methyl_Resolver" ~ "MethylResolver",
+                          tool == "PRMeth" ~ "NMF",
+                          TRUE ~ tool),
+         regionfiltering = case_when(is.na(top) & is.na(direction) ~ "all",
+                                     TRUE ~ paste(top,direction, sep = " ")),
+         referenceset = case_when(reference == "reference_11healthy_10nbl" ~ "all available cell lines",
+                               reference == "reference_11healthy_1nbl" ~ "matched cell line",
+                               reference == "reference_11healthy_9nbl" ~ "all cell lines except matched",
+                               reference == "reference_11healthy_4nbl" ~ "all adrenergic cell lines except matched"),
+         unknown = case_when(tool == "PRMeth" ~ as.numeric(unknown),
+                             tool == "EpiDISH_CP_ineq" ~ 1 - (as.numeric(healthy) + as.numeric(nbl)),
+                             TRUE ~ unknown)) %>%
+  mutate(Preprocessing = paste(regionfiltering, DMRtool, "regions :", collapse_approach, "collapse :", min_counts, ":", min_cpgs, sep = " "),
+         ref.prep = paste(referenceset, ":", regionfiltering, DMRtool, "regions :", collapse_approach, "collapse :", min_counts, ":", min_cpgs, sep = " "),
+         method = as.factor(method), referenceset = as.factor(referenceset)) %>%
+  mutate(Preprocessing = as.factor(Preprocessing)) %>%
+   dplyr::select(!c("Input.material","Fraction.tp.perc","Fraction.tp","Fraction.ddPCR","Subsampling","tool","reference", "X"))
+
+write_csv2(df_results_ref, "Results/Tables/fullRefBasedTable.csv")
+
+## reference-free
+df_results_reffree <- samples_meta %>%
+  inner_join(deconv_results_reffree,by = c("Sample"="sample")) %>%
+  filter(Type=="in Silico") %>%
+  mutate(method = case_when(tool == " PRMeth_RF" ~ "RefFreeCellMix",
+                            TRUE ~ tool),
+         Preprocessing = paste(min_counts, min_cpgs, sep = " : ")) %>%
+  mutate(method = as.factor(method)) %>%
+  dplyr::select(!c("Input.material","Fraction.tp.perc","Fraction.tp","Fraction.ddPCR","Subsampling","tool"))
+
+write_csv2(df_results_reffree, "Results/Tables/fullRefFreeTable.csv")
+
+fractions <- c(0.0000, 0.0001, 0.0010, 0.0100, 0.0250, 0.0500, 0.1000, 0.2500, 0.5000, 1.0000)
+
+computationalInfo <- computationalInfo %>%
+  mutate(taskTypeName = gsub("RUN_DNAmDeconv:DNAmDeconv:", "", gsub(' \\s*\\([^\\)]+\\)', '', name))) %>%
+  mutate(taskType = case_when(str_detect(taskTypeName, regex("PREPROCESSING", ignore_case = TRUE)) ~ "PREPROCESSING",
+                              str_detect(taskTypeName, regex("inHousePrep", ignore_case = TRUE)) ~ "PREPROCESSING",
+                              str_detect(taskTypeName, regex("MERGE", ignore_case = TRUE)) ~ "OTHER",
+                              str_detect(taskTypeName, regex("^(?=.*Deconv)(?:(?!PREPROCESSING).)*$", ignore_case = TRUE)) ~ "DECONVOLUTION"),
+         duration = as.duration(gsub("m ","min",duration)),
+         realtime = as.duration(gsub("m ","min",realtime)),
+         peak_rss_mb = ifelse(sub(".*(MB|GB)", "\\1", peak_rss) == "GB", as.numeric(sub("([0-9.]+).*", "\\1", peak_rss)) * 1024, as.numeric(sub("([0-9.]+).*", "\\1", peak_rss))),
+         peak_vmem_mb = ifelse(sub(".*(MB|GB)", "\\1", peak_vmem) == "GB", as.numeric(sub("([0-9.]+).*", "\\1", peak_vmem)) * 1024, as.numeric(sub("([0-9.]+).*", "\\1", peak_vmem))),
+         rchar_mb = ifelse(sub(".*(MB|GB)", "\\1", rchar) == "GB", as.numeric(sub("([0-9.]+).*", "\\1", rchar)) * 1024, as.numeric(sub("([0-9.]+).*", "\\1", rchar))),
+         wchar_mb = ifelse(sub(".*(MB|GB)", "\\1", wchar) == "GB", as.numeric(sub("([0-9.]+).*", "\\1", wchar)) * 1024, as.numeric(sub("([0-9.]+).*", "\\1", wchar)))) %>%
+  dplyr::select(-c(peak_rss, peak_vmem, rchar, wchar))
+
+write_csv2(computationalInfo, "Results/Tables/fullCompResourcesTable.csv")
+```
+
+### Explore data {.tabset}
+
+#### Missing samples
+
+```{r}
+samples <- unique(df_results_ref$Sample)
+tot.missing <- 0
+missing.table <- data.frame(Sample=character(),
+                 Method=character(), 
+                 Preprocessing=character(),
+                 Referenceset=character(),
+                 stringsAsFactors=FALSE) 
+
+for(m in unique(df_results_ref$method)){
+  for(p in unique(df_results_ref$Preprocessing)){
+    for(r in unique(df_results_ref$referenceset)){
+      missing <- c()
+      check <- df_results_ref %>%
+        filter(method == m, Preprocessing == p, referenceset == r)
+      
+      missing <- setdiff(samples, check$Sample)
+      
+      if(length(missing) != 0){
+        cat(paste0("- Missing samples from ", m, " with ", p, " and ", r, ": \n"))
+        cat(paste0(length(missing),"\n"))
+        
+      tot.missing <- tot.missing + length(missing)
+      missing.table <- rbind(missing.table,
+                             data.frame(Sample=missing,
+                                        Method=m,
+                                        Preprocessing=p,
+                                        Referenceset=r))
+      }
+    }
+  }
+}
+
+if (tot.missing != 0){
+  cat(paste0("Total number of missing samples: ", tot.missing))
+  write_csv2(missing.table, "Results/Tables/missingSamples.csv")
+}
+```
+
+#### Samples that reported NA values for nbl / healthy
+
+```{r}
+tot.NAs <- 0
+NAs.table <- data.frame(Sample=character(),
+                 Method=character(), 
+                 Preprocessing=character(),
+                 Referenceset=character(),
+                 stringsAsFactors=FALSE) 
+
+for(m in unique(df_results_ref$method)){
+  for(p in unique(df_results_ref$Preprocessing)){
+    for(r in unique(df_results_ref$referenceset)){
+      NAs <- c()
+      check <- df_results_ref[is.na(df_results_ref$nbl),] %>%
+        filter(method == m, Preprocessing == p, referenceset == r)
+      
+      NAs <- check$Sample
+      
+      if(length(NAs) != 0){
+        cat(paste0("- Samples with missing nbl values from ", m, " with ", p, " and ", r, ":\n"))
+        cat(paste0(length(NAs),"\n"))
+        
+      tot.NAs <- tot.NAs + length(NAs)
+      NAs.table <- rbind(NAs.table,
+                             data.frame(Sample=NAs,
+                                        Method=m,
+                                        Preprocessing=p,
+                                        Referenceset=r))
+      }
+    }
+  }
+}
+
+if (tot.NAs != 0){
+  cat(paste0("Total number of samples with missing nbl predictions: ", tot.NAs))
+  write_csv2(NAs.table, "Results/Tables/NASamples.csv")
+}
+
+# removing NA rows
+df_results_ref <- df_results_ref[!is.na(df_results_ref$nbl),]
+```
+
+### Set custom colors for groups
+
+```{r data2, warning = FALSE, message = FALSE}
+# reference-based
+## methods
+toolref.id.colours <- palette.colors(n = length(levels(df_results_ref$method)), palette = "Set3")
+names(toolref.id.colours) <- levels(df_results_ref$method)
+
+## references
+reference.id.colours <- c("#1B9E77","#D95F02","#7570B3","#666666")
+names(reference.id.colours) <- levels(df_results_ref$referenceset)
+
+## preprocessing
+preprocessing.id.colours <- palette.colors(n = length(levels(df_results_ref$Preprocessing)), palette = "Okabe-Ito")
+names(preprocessing.id.colours) <- levels(df_results_ref$Preprocessing)
+
+## reference + preprocessing (adjust acording to the number of preprocessings)
+levels.ref.prep <- c()
+for (p in levels(df_results_ref$Preprocessing)) {
+  for (r in levels(df_results_ref$referenceset)) {
+    levels.ref.prep <- append(levels.ref.prep, paste(r, p, sep = " : "))
+  }
+}
+ref.prep.id.colours <- paletteer_d("colorBlindness::SteppedSequential5Steps")
+ref.prep.id.colours <- ref.prep.id.colours[! ref.prep.id.colours %in% c('#FFB2B2FF', '#FFD8B2FF', '#E5FFB2FF', '#B2E5FFFF')]
+ref.prep.id.colours <- as.vector(ref.prep.id.colours[1:length(levels.ref.prep)])
+names(ref.prep.id.colours) <- levels.ref.prep
+
+
+# reference-free
+## methods
+toolreffree.id.colours <- palette.colors(n = length(levels(df_results_reffree$method)), palette = "Set3")
+names(toolreffree.id.colours) <- levels(df_results_reffree$method)
+
+## preprocessing
+preprocessing.id.colours.free <- palette.colors(n = length(levels(df_results_reffree$Preprocessing)), palette = "R4")
+names(preprocessing.id.colours.free) <- levels(df_results_reffree$Preprocessing)
+```
+
+### Functions
+
+```{r MetricFuncFunky}
+RMSE <- function(actual, predicted) {
+  round(sqrt(mean((actual - predicted)^2)),4)
+}
+
+# Normalized RMSE (NRMSE)
+nrmse <- function(actual, predicted) {
+    round(sqrt(mean((actual - predicted))^2)/mean(actual),4)
+}
+
+# MCC
+mcc <- function(y_true,y_pred) {
+  TP <- as.numeric(sum(y_true > 0 & y_pred > 0 ))
+  TN <- as.numeric(sum(y_true == 0 & y_pred == 0))
+  FP <- as.numeric(sum(y_true == 0 & y_pred > 0))
+  FN <- as.numeric(sum(y_true > 0 & y_pred == 0))
+  
+  numerator <- (TP * TN) - (FP * FN)
+  denominator <- sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))
+  if (denominator == 0) return(0)
+  return(numerator / denominator)
+}
+
+aupr.obj <- function(true_labels, predicted_scores) {
+  true_labels[true_labels>0] <- 1
+
+  # Calculate precision-recall curve and AUPR
+  pr <- pr.curve(scores.class0 = predicted_scores, weights.class0 = true_labels, curve = T)
+  
+  return(pr)
+}
+
+roc.obj <- function(true_labels, predicted_scores) {
+  true_labels[true_labels>0] <- 1
+  roc_obj <- roc(true_labels, predicted_scores)
+  return(roc_obj)
+}
+```
+
+## Metrics
+
+1.  **Bias**
+
+-   *What it is:* In statistics, bias measures how far off, on average, your predictions are from the true values. It's like asking if a prediction model consistently guesses too high or too low.
+-   *How it works:* If a model always predicts a value that's too high or too low, it has bias. Bias is the average difference between the actual value and what the model predicts.
+-   *Example:* Imagine you're predicting test scores. If the real scores are 80, 90, and 85, but your model predicts 88, 95, and 90, the bias is the average of the differences: $(88 - 80) + (95 - 90) + (90 - 85) = 8 + 5 + 5 = 18$ . Divide by 3 (the number of predictions), and the bias is 6. This means the model, on average, overestimates scores by 6 points.
+-   *Interpretation:* A positive bias means the model predicts too low, and a negative bias means it predicts too high Ideally, we want bias close to zero, meaning the model's predictions aren't consistently off in one direction.
+
+2.  **Mean Absolute Error (MAE)**
+
+-   *What it is:* It tells us, on average, how far off our predictions are from the actual values.
+-   *How it works:* We look at the absolute difference between the predicted and actual values (ignoring whether it's too high or too low) and then find the average of all those differences.
+-   *Example:* If a model predicts test scores as 80, 90, and 85, but the actual scores are 78, 92, and 84, the absolute differences are 2, 2, and 1. The MAE would be the average of those: $\frac{(2 + 2 + 1)}{3} = 1.67$.
+-   *Interpretation:* Lower MAE means better predictions. If $MAE = 0$, the predictions are perfect.
+
+3.  **Median Absolute Error (MDAE)**
+
+-   *What it is:* Similar to MAE, but instead of finding the average difference, it looks at the median (the middle value when differences are sorted in order).
+-   *How it works:* You find the absolute differences like before, but instead of averaging them, you arrange them in order and pick the middle one.
+-   *Example:* If the absolute differences are 1, 2, and 5, the MDAE would be 2 because it's the middle value.
+-   *Interpretation:* MDAE is less affected by extreme errors or outliers than MAE. It's useful when some predictions are very far off, but most are close to correct.
+
+4.  **Root Mean Square Error (RMSE)**
+
+-   *What it is:* Like MAE, but it penalizes larger errors more heavily. It tells us how much, on average, the predictions are off in a way that emphasizes larger errors.
+-   *How it works:* You find the difference between predictions and actual values, square each difference (so bigger mistakes count more), then find the average of the squared differences, and finally take the square root of that.
+-   *Example:* If the differences are 1, 2, and 5, first square them (1, 4, and 25), find the average $\frac{(1 + 4 + 25)}{3} = 10$, and then take the square root: $\sqrt{10} \approx 3.16$ .
+-   *Interpretation:* RMSE highlights larger errors more than MAE does. Lower RMSE means better predictions.
+
+5.  **Mean Absolute Scaled Error (MASE)**
+
+-   *What it is:* It compares how well your model predicts compared to a simple "naive" model (for example, one that just predicts the previous value as the next one).
+-   *How it works:* You calculate the absolute errors for both your model and the naive model. Then you divide the error of your model by the error of the naive model and take the average.
+-   *Example:* If your model's error is 10 on average and the naive model's error is 8 on average, the MASE would be $\frac{10}{8} = 1.25$.
+-   *Interpretation:* If MASE is greater than 1, your model is worse than the naive model. If it's less than 1, your model is better.
+
+6.  **Mean Arctangent Absolute Percentage Error (MAAPE)**
+
+-   *What it is:* A variation of percentage error that helps avoid problems when the actual value is very small (where regular percentage errors can become huge or unstable).
+-   *How it works:* Instead of using regular division, MAAPE uses the arctangent (a trigonometric function) to calculate the error. This smooths out extreme values.
+-   *Example:* If the actual values are very close to 0, MAAPE avoids giving extremely high error values, unlike traditional percentage-based measures.
+-   *Interpretation:* It gives a more balanced view of prediction errors when the actual values are close to 0.
+
+7.  **Pearson correlation**
+
+-   *What it is:* Pearson correlation measures the strength and direction of the linear relationship between two sets of data. It tells us how closely two variables move together in a straight line.
+-   *How it works:* Pearson correlation gives you a number between -1 and 1:
+-   1 means a perfect positive linear relationship (as one value increases, the other does too, in a straight line).
+-   -1 means a perfect negative linear relationship (as one value increases, the other decreases in a straight line).
+-   0 means no linear relationship at all.
+-   *Example:* Let's say you're comparing hours studied and test scores. If the more someone studies, the higher their test score (and this relationship is very consistent), the Pearson correlation will be close to 1. If more studying actually leads to worse scores (which would be strange), the correlation would be close to -1.
+-   *Interpretation:*
+-   A positive Pearson correlation means as one variable goes up, the other tends to go up too.
+-   A negative Pearson correlation means as one variable goes up, the other tends to go down.
+-   The closer the value is to 1 or -1, the stronger the relationship. Values near 0 suggest little to no linear relationship.
+
+8.  **Spearman Correlation**
+
+-   *What it is:* Spearman correlation also measures the strength and direction of a relationship between two variables, but instead of focusing on a linear relationship (like Pearson), it focuses on whether the variables rank similarly. It's used when the relationship isn't necessarily a straight line but when we still want to know if higher values of one variable are associated with higher (or lower) values of another.
+-   *How it works:* Like Pearson, Spearman correlation gives a number between -1 and 1:
+-   1 means the ranks of the two variables are perfectly correlated (if one is ranked highest, the other is also ranked highest, and so on).
+-   -1 means one variable's ranking is perfectly opposite to the other (if one is ranked highest, the other is ranked lowest).
+-   0 means no consistent relationship in ranking between the two variables.
+-   *Example:* If you're ranking students by hours studied and ranking them again by test scores, Spearman correlation checks how similar these rankings are. Even if the relationship isn't a straight line, if students who study the most tend to get the highest scores, the Spearman correlation will be high.
+-   *Interpretation:*
+-   A positive Spearman correlation means as the rank of one variable increases, the rank of the other tends to increase too (they're ranked similarly).
+-   A negative Spearman correlation means as the rank of one variable increases, the rank of the other tends to decrease.
+-   A value near 0 suggests there's no consistent ranking relationship between the two variables.
+
+***Summary:*** - **Bias:** Tells if a model is consistently over- or under-predicting the true values.
+- **MAE:** Average absolute difference between prediction and actual values (simpler).
+- **MDAE:** The median (middle) absolute difference (helps with outliers).
+- **RMSE:** Like MAE but penalizes larger errors more (squares differences).
+- **MASE:** Compares the model's errors to a simple model (is the model really better?).
+- **MAAPE:** A version of percentage error that handles small actual values better.
+- **Pearson:** Measures the strength and direction of a linear relationship between two variables (how well they move together in a straight line).
+- **Spearman:** Measures how well the rankings of two variables match, even if the relationship isn't linear (like Pearson).
+
+```{r}
+df_results_ref_metrics <- df_results_ref %>%
+  group_by(Preprocessing, Depth, method, referenceset, ref.prep, DMRtool, collapse_approach) %>%
+  summarize(Bias = bias(as.numeric(Exp.nbl), as.numeric(nbl)), 
+         MAE = mae(as.numeric(Exp.nbl), as.numeric(nbl)), 
+         MDAE = mdae(as.numeric(Exp.nbl), as.numeric(nbl)), 
+         RMSE = rmse(as.numeric(Exp.nbl), as.numeric(nbl)),
+         MASE = mase(as.numeric(Exp.nbl), as.numeric(nbl), step_size = 1),
+         MAAPE = maape(as.numeric(Exp.nbl), as.numeric(nbl)),
+         Pearson.p.value = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="pearson")$p.value, 
+         Pearson.R = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="pearson")$estimate, 
+         Pearson.t.test = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="pearson")$statistic, 
+         Spearman.p.value = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="spearman")$p.value, 
+         Spearman.rho = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="spearman")$estimate, 
+         Spearman.S.test = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="spearman")$statistic)
+
+write_csv2(df_results_ref_metrics, "Results/Tables/MetricsRefBaseTable.csv")
+
+df_results_ref_metrics_fraction <- df_results_ref %>%
+  group_by(Preprocessing, Depth, method, referenceset, Exp.nbl, ref.prep, DMRtool, collapse_approach) %>%
+  summarize(Bias = bias(as.numeric(Exp.nbl), as.numeric(nbl)), 
+         MAE = mae(as.numeric(Exp.nbl), as.numeric(nbl)), 
+         MDAE = mdae(as.numeric(Exp.nbl), as.numeric(nbl)), 
+         RMSE = rmse(as.numeric(Exp.nbl), as.numeric(nbl)),
+         norm.RMSE = case_when(Exp.nbl != 0 ~ rmse(as.numeric(Exp.nbl), as.numeric(nbl))/mean(nbl),
+                               TRUE ~ 0),
+         #stand.RMSE = rmse(as.numeric(Exp.nbl), as.numeric(nbl))/sd(as.numeric(nbl)),
+         MAAPE = maape(as.numeric(Exp.nbl), as.numeric(nbl)),
+         CIup = as.numeric(CI(as.numeric(nbl), ci = 0.95)[1]),
+         CIme = as.numeric(CI(as.numeric(nbl), ci = 0.95)[2]),
+         CIlow = as.numeric(CI(as.numeric(nbl), ci = 0.95)[3])) 
+
+write_csv2(df_results_ref_metrics_fraction, "Results/Tables/MetricsPerFractionRefBaseTable.csv")
+
+aucroc_data <- data.frame()
+fractions_auc <- unique(df_results_ref[df_results_ref$Exp.nbl!=0,"Exp.nbl"])
+for (fraction in fractions_auc) {
+  df <- df_results_ref %>%
+    filter(Exp.nbl %in% c(0,fraction))
+  for (deconv in unique(df$method)) {
+    filt_df <- df %>%
+      filter(method==deconv)
+    for (dmrtool in unique(filt_df$DMRtool)) {
+      fin_df <- filt_df %>%
+        filter(DMRtool==dmrtool)
+      roc_curve <- roc.obj(fin_df$Exp.nbl,fin_df$nbl)
+      tmp <- data.frame(
+        fpr = 1-rev(roc_curve$specificities),  # False Positive Rate
+        tpr = rev(roc_curve$sensitivities),  # True Positive Rate
+        thresholds = rev(roc_curve$thresholds),
+        auc = rev(roc_curve$auc),
+        fraction = fraction,
+        method = deconv,
+        DMRtool = dmrtool)
+      aucroc_data <- rbind(aucroc_data,tmp)
+    }
+  }
+}
+```
+
+# Statistical tests for parameter influence
+
+parameters to consider: Reference set DMR method regions extracted collapse methods
+
+Minimum count Minimum CpGs
+
+## Collapse (mean vs median)
+
+```{r}
+FTest.collapse <- var.test(
+  RMSE ~ collapse_approach,
+  data = df_results_ref_metrics
+  )
+FTest.collapse
+```
+
+**Hypothesis:** The F-test compares the variances of two groups to check if they are equal.\
+- Null hypothesis (H~0~): The variances of the two groups are equal ($\text{ratio of variances} = 1$).\
+- Alternative hypothesis (H~1~): The variances of the two groups are not equal ($\text{ratio of variances} ≠ 1$).\
+
+**Interpretation:**\
+- The p-value (`r FTest.collapse$p.value`) is less than the typical significance level (0.05), suggesting evidence to reject the null hypothesis, meaning that the two groups are statistically significantly different.\
+- However, the difference in variances is very small, as the ratio of variances (`r FTest.collapse$statistic`) is close to 1.\
+
+```{r}
+tTest.collapse <- t.test(
+  RMSE ~ collapse_approach,
+  data = df_results_ref_metrics)
+tTest.collapse
+```
+
+**Hypothesis:** The t-test compares the means of two groups to check if they are equal.\
+- Null hypothesis (H~0~): The means of the two groups are equal ($\mu_{1} - \mu_{2} = 0$).\
+- Alternative hypothesis (H~1~): The means of the two groups are not equal ($\mu_{1} - \mu_{2} ≠ 0$).\
+
+**Group means:**\
+- Mean of Group “mean”: `r unname(tTest.collapse$estimate[1])`.\
+- Mean of Group “median”: `r unname(tTest.collapse$estimate[2])`.\
+
+**Interpretation:**\
+- The p-value (`r unname(tTest.collapse$p.value)`) is much larger than 0.05, so we fail to reject the null hypothesis.\
+- This indicates no statistically significant difference in the means of the two groups.\
+- The confidence interval includes 0, reinforcing that the difference in means is not significant.\
+- The group means are nearly identical, confirming this result.\
+
+***From the combination of F and t-test:***\
+1.
+*Variance:* There is a small but statistically significant difference in variances between the two groups, as indicated by the F-test.\
+2.
+*Mean:* There is no statistically significant difference in the means of the two groups, as indicated by the t-test.\
+
+This suggests that while the groups have slightly different variances, their means are effectively the same.
+The difference in variance may or may not be practically significant given its small magnitude.
+
+```{r}
+kruskal.test(
+  RMSE ~ referenceset,
+    data = df_results_ref_metrics
+)
+```
+
+```{r}
+anova.col <-
+  aov(
+    RMSE ~ collapse_approach,
+    data = df_results_ref_metrics_fraction
+  )
+
+summary(anova.col)
+report(anova.col)
+
+anova.Ref <-
+  aov(
+    RMSE ~ referenceset,
+    data = df_results_ref_metrics_fraction
+  )
+
+summary(anova.Ref)
+report(anova.Ref)
+
+anova.DMR <-
+  aov(
+    RMSE ~ DMRtool,
+    data = df_results_ref_metrics_fraction
+  )
+
+summary(anova.DMR)
+report(anova.DMR)
+
+anova.ref.prep <-
+  aov(
+    RMSE ~ ref.prep,
+    data = df_results_ref_metrics_fraction
+  )
+
+summary(anova.ref.prep)
+report(anova.ref.prep)
+
+anova.method <-
+  aov(
+    RMSE ~ method,
+    data = df_results_ref_metrics_fraction
+  )
+
+summary(anova.method)
+report(anova.method)
+
+```
+
+```{r}
+df_results_ref %>%
+  #group_by(referenceset, top, direction, DMRtool, collapse_approach, min_counts, min_cpgs, method) %>%
+  group_by(referenceset, DMRtool, collapse_approach, method) %>%
+  summarise(
+    p = shapiro.test(nbl)$p.value,
+    statistic = shapiro.test(nbl)$statistic
+  )
+```
+
+# Visualisations
+
+## Functions
+
+```{r RadarFuncs}
+radarplottingmetrics <- function(data, metricsdata, title){
+  data %>%
+    #select(-Preprocessing) %>%
+    #as_tibble(rownames = "referenceset") %>%
+    #select(-referenceset) %>%
+    #as_tibble(rownames = "Preprocessing") %>%
+    dplyr::select(-c(referenceset, Preprocessing, DMRtool)) %>%
+    as_tibble(rownames = "ref.prep") %>%
+    ggradar(
+        values.radar = c(round(1/min(metricsdata[[title]]),4),
+                         "",
+                         round(1/max(metricsdata[[title]]),4)),
+        grid.min = min(metricsdata[[title]]),
+        grid.mid = mean(metricsdata[[title]]),
+        grid.max = max(metricsdata[[title]]),
+        axis.label.size = 3,
+        group.line.width = 1,
+        group.point.size = 2,
+        group.colours = ref.prep.id.colours,
+        #group.colours = c("#1B9E77","#E7298A","#7570B3","#E6AB02"),
+        #group.colours = c("#1B9E77","#E7298A"),
+        background.circle.colour = "white",
+        gridline.mid.colour = "grey",
+        gridline.max.colour = "grey",
+        legend.title = "Reference",
+        legend.text.size = 10) +
+    theme(legend.position = "none") +
+    labs(title = title)
+}
+```
+
+```{r LoDFunc, warning = FALSE, message = FALSE}
+limDetectData <- function(ref = c("all available cell lines", "matched cell line", "all adrenergic cell lines except matched", "all cell lines except matched"),
+                          tool = c("UXM", "CelFiE", "MetDecode", "MethAtlas", "CIBERSORT", "RPC", "MethylResolver", "EpiSCORE", "NMF", "Houseman's CP/QP w/inequality", "Houseman's CP/QP w/equality"), depth = "20000000") {
+  df_results_ref %>%
+  filter(Exp.nbl == 0, referenceset %in% ref, method %in% tool, Depth %in% depth) %>%
+  group_by(referenceset,Preprocessing,method, Depth) %>%
+  summarise(mean = mean(as.numeric(nbl)),
+            median = median(as.numeric(nbl)),
+            sd = sd(as.numeric(nbl)),
+            LoD = mean(as.numeric(nbl)) + 3 * sd(as.numeric(nbl))) %>%
+  mutate(LoD = case_when(median + 3 * sd > 1 ~ 1,
+                          TRUE ~ LoD))
+}
+```
+
+```{r 0tControlFuncs}
+boxjitterlayout <- function(ref = c("all available cell lines", "matched cell line", "all adrenergic cell lines except matched", "all cell lines except matched")) {
+  df_results_ref %>%
+  group_by(Depth, method, referenceset, DMRtool, collapse_approach, min_counts, min_cpgs, Exp.nbl) %>%
+  filter(Exp.nbl == 0, referenceset == ref) %>%
+  ggplot(aes(x=method, y=as.numeric(nbl), color = method)) + 
+    geom_boxplot(width = 0.8) +
+    geom_jitter(position = position_jitter(width = .4), alpha=0.5, color = "gray", size = 0.1) +
+    scale_colour_manual(values = toolref.id.colours) +
+    #xlab("0% tumour") + ylab("Predicted fraction") +
+    labs(title = ref) +
+    xlab("") + ylab("") +
+    #facet_wrap(~referenceset) +
+    facet_wrap(~Preprocessing, 
+                   labeller = label_wrap_gen(multi_line = TRUE)) +
+    #facet_grid(referenceset ~ Preprocessing) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") #+
+    #geom_segment(data = limDetectData(ref), aes(x = method, xend = method , y = LoD, yend = LoD), inherit.aes = FALSE, color = "black", linetype = "dashed", size = 0.5) +
+    #geom_text(data = limDetectData(ref), aes(x = method, y = limDetectData(ref)$LoD, label = round(limDetectData(ref)$LoD, 5)), color = "black", hjust = 0.4, size = 3)
+  }
+
+violinlayout <- function(ref = c("all available cell lines", "matched cell line", "all adrenergic cell lines except matched", "all cell lines except matched")) {
+  df_results_ref %>%
+  group_by(Depth, method, referenceset, DMRtool, collapse_approach, min_counts, min_cpgs, Exp.nbl) %>%
+  filter(Exp.nbl == 0, referenceset == ref) %>%
+  ggplot(aes(x=method, y=as.numeric(nbl), color = method)) + 
+    geom_violin() +
+    #geom_jitter(position = position_jitter(width = .3), alpha=0.5) +
+    scale_colour_manual(values = toolref.id.colours) +
+    #xlab("0% tumour") + ylab("Predicted fraction") +
+    labs(title = ref) +
+    xlab("") + ylab("") +
+    #facet_wrap(~referenceset) +
+    facet_wrap(~Preprocessing, 
+                   labeller = label_wrap_gen(multi_line = TRUE)) +
+    #facet_grid(referenceset ~ Preprocessing) +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") #+
+    #geom_segment(data = limDetectData(ref), aes(x = method, xend = method , y = LoD, yend = LoD), inherit.aes = FALSE, color = "black", linetype = "dashed", size = 0.5) +
+    #geom_text(data = limDetectData(ref), aes(x = method, y = limDetectData(ref)$LoD, label = round(limDetectData(ref)$LoD, 5)), color = "black", hjust = 0.4, size = 3)
+  }
+```
+
+```{r logDilutionsFuncs}
+pointlayouttools <- function(ref = c("all available cell lines", "matched cell line", "all adrenergic cell lines except matched", "all cell lines except matched"), tool) {
+  df_results_ref_limit %>%
+    group_by(Depth, method, referenceset, Preprocessing, Exp.nbl) %>%
+    filter(method == tool, referenceset %in% ref) %>%
+    ggplot(aes(x=as.numeric(Exp.nbl)+0.0001, y=as.numeric(nbl)+0.0001, color = color)) + 
+      #geom_violin(aes(group = cut_number(Exp.nbl, 15)), scale = "width") +
+      #geom_boxplot2(aes(group = cut_number(Exp.nbl, 15), color = reference), width = 0.1, width.errorbar = 0.1) +
+      #geom_jitter(position = position_jitter(width = .1), alpha=0.7) +
+      geom_point(alpha = 0.5) +
+      xlab("Expected tumour fraction") + ylab("Predicted tumour fraction") +
+      geom_abline(slope = 1, intercept = 0.0001) +
+      geom_texthline(data= limDetectData(ref, tool), aes(yintercept = LoD+0.0001, label = round(LoD, 5)), color = "darkred", linetype="dashed", size = 3, hjust = 0.8) +
+    #geom_vline(data= limDetectData(ref, tool), aes(xintercept = LoD+0.0001), color = "darkgray", linetype="dashed", size = 3, hjust = 0.8) +
+      scale_x_continuous(breaks = fractions+0.0001, labels = fractions, transform = "log10") +
+      scale_y_continuous(limits= c(0.00002,1.0002), breaks = fractions+0.0001, labels = fractions, transform = "log10") +
+      theme_classic() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") +
+      facet_grid(referenceset~Preprocessing, 
+                   labeller = label_wrap_gen(multi_line = TRUE)) +
+      scale_color_identity() +
+      #facet_wrap(~referenceset) +
+    ggtitle(tool)
+}
+
+pointlayouttoolsCI <- function(ref = c("all available cell lines", "matched cell line", "all adrenergic cell lines except matched", "all cell lines except matched"), tool) {
+  df_results_ref_limitCI %>%
+    group_by(Depth, method, referenceset, Preprocessing, Exp.nbl) %>%
+    filter(method == tool, referenceset %in% ref) %>%
+    ggplot(aes(x=as.numeric(Exp.nbl)+0.0001, y=as.numeric(nbl)+0.0001, color = color)) + 
+      #geom_violin(aes(group = cut_number(Exp.nbl, 15)), scale = "width") +
+      #geom_boxplot2(aes(group = cut_number(Exp.nbl, 15), color = reference), width = 0.1, width.errorbar = 0.1) +
+      #geom_jitter(position = position_jitter(width = .1), alpha=0.7) +
+      geom_point(alpha = 0.5) +
+      xlab("Expected tumour fraction") + ylab("Predicted tumour fraction") +
+      geom_abline(slope = 1, intercept = 0.0001) +
+      #geom_point(aes(x= as.numeric(Exp.nbl)+0.0001, y = CIme+0.0001), color = "red", size = 0.4) +
+      geom_errorbar(aes(x = as.numeric(Exp.nbl)+0.0001, ymin = CIlow+0.0001, ymax = CIup+0.0001), color = "red") +
+      geom_texthline(data= limDetectData(ref, tool), aes(yintercept = LoD+0.0001, label = round(LoD, 5)), color = "darkred", linetype="dashed", size = 3, hjust = 0.8) +
+      scale_x_continuous(breaks = fractions+0.0001, labels = fractions, transform = "log10") +
+      scale_y_continuous(limits= c(0.00002,1.0002), breaks = fractions+0.0001, labels = fractions, transform = "log10") +
+      theme_classic() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "none") +
+      facet_grid(referenceset~Preprocessing, 
+                   labeller = label_wrap_gen(multi_line = TRUE)) +
+      scale_color_identity() +
+      #facet_wrap(~referenceset) +
+    ggtitle(tool)
+  }
+```
+
+```{r DotMetrics}
+metricsvis <- function(data,
+                       ref = c("all available cell lines", "matched cell line", "all adrenergic cell lines except matched", "all cell lines except matched"),
+                       tool = c("UXM", "CelFiE", "MetDecode", "MethAtlas", "CIBERSORT", "RPC", "MethylResolver", "EpiSCORE", "NMF", "Houseman's CP/QP w/inequality", "Houseman's CP/QP w/equality"),
+                       mod, xaxis = NULL, xlab = NULL, metric = NULL, correlation = NULL) {
+  if(mod == "fraction") {
+    data %>%
+      filter(referenceset %in% ref, method %in% tool) %>%
+      ggplot(aes(x=Exp.nbl+0.0001, y=method)) + 
+      geom_point(aes(size = 1/RMSE, colour = MAAPE)) +
+      scale_colour_gradientn(colours = rev(brewer.pal(9,"Blues"))) +
+      labs(title = "Impact of the reference set on the results (per dilution series)") +
+      xlab("Expected tumour fraction") + ylab("Tool") +
+      scale_x_continuous(breaks = fractions+0.0001, labels = fractions, transform = "log10") +
+      theme_classic() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+      facet_grid(Preprocessing ~ referenceset, 
+                   labeller = label_wrap_gen(multi_line = TRUE))
+      #facet_wrap(~referenceset)
+  } else{
+    data %>%
+      filter(referenceset %in% ref, method %in% tool) %>%
+      ggplot(aes(x=xaxis, y=method)) + 
+      geom_point(aes(size = 1/metric, colour = correlation)) +
+      scale_colour_gradientn(colours = brewer.pal(9,"Blues")) +
+      labs(title = "Impact of the reference set on the results (per dilution series)") +
+      xlab(xlab) + ylab("Tool") +
+      theme_classic() +
+      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+      facet_grid(collapse_approach ~ referenceset, 
+                   labeller = label_wrap_gen(multi_line = TRUE))
+  }
+}
+```
+
+## Limit of Detection (LoD)
+
+```{r detect, warning = FALSE, message = FALSE}
+limDetectData()
+```
+
+### Prediction at tumour fraction 0
+
+#### Jitter plot
+
+```{r, fig.width=10, fig.height=5, fig.fullwidth=TRUE, echo=FALSE}
+boxjitter10nbl <- boxjitterlayout("all available cell lines") +
+    scale_y_break(c(0.016,0.48), space = 0.2, scales = "free")
+boxjitter10nbl
+
+#boxjitter1nbl <- boxjitterlayout("matched cell line") +
+#    scale_y_break(c(0.005,0.99), space = 0.2, scales = "free") 
+#boxjitter1nbl
+
+boxjitter4nbl <- boxjitterlayout("all adrenergic cell lines except matched") +
+    scale_y_break(c(0.02,0.99), space = 0.2, scales = "free") 
+boxjitter4nbl
+
+boxjitter9nbl <- boxjitterlayout("all cell lines except matched") +
+    scale_y_break(c(0.02,0.48), space = 0.2, scales = "free") 
+boxjitter9nbl
+```
+
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE, echo=FALSE}
+ggarrange(#print(boxjitter1nbl),
+          print(boxjitter10nbl),
+          print(boxjitter9nbl),
+          print(boxjitter4nbl),
+          nrow = 2, ncol = 2, common.legend = TRUE, legend="bottom")
+```
+
+#### Violin
+
+```{r, fig.width=10, fig.height=5, fig.fullwidth=TRUE, echo=FALSE}
+violin10nbl <- violinlayout("all available cell lines") +
+    scale_y_break(c(0.016,0.48), space = 0.2, scales = "free")
+violin10nbl
+
+#violin1nbl <- violinlayout("matched cell line") +
+#    scale_y_break(c(0.005,0.99), space = 0.2, scales = "free") 
+#violin1nbl
+
+violin4nbl <- violinlayout("all adrenergic cell lines except matched") +
+    scale_y_break(c(0.02,0.99), space = 0.2, scales = "free")
+violin4nbl
+
+violin9nbl <- violinlayout("all cell lines except matched") +
+    scale_y_break(c(0.02,0.48), space = 0.2, scales = "free")
+violin9nbl
+```
+
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE, echo=FALSE}
+ggarrange(#print(violin1nbl), 
+          print(violin10nbl), 
+          print(violin9nbl), 
+          print(violin4nbl), 
+          nrow = 2, ncol = 2, common.legend = TRUE, legend="bottom")
+```
+
+### Dilution series prediction for natural scale
+
+```{r, fig.width=10, fig.height=5, fig.fullwidth=TRUE, echo=FALSE}
+HousemanCPIndata <- df_results_ref %>%
+  filter(method == "Houseman's CP/QP w/inequality") %>%
+  #mutate(color = reference.id.colours[match(referenceset, names(reference.id.colours))])
+  mutate(color = case_when(collapse_approach == "mean" ~ "lightgreen",
+                           collapse_approach == "median" ~ "darkgreen"))
+
+zoomInPlot(HousemanCPIndata$Exp.nbl, HousemanCPIndata$nbl,
+           xlim = c(0,1), ylim = c(0,1),
+           rxlim = c(0,0.0100), rylim = c(0,0.017),
+           zoomtitle = "Zoom In for lower fractions", titlepos=-1.5,
+           col = HousemanCPIndata$color,
+           xlab = "Expected tumour fraction", ylab = "Predicted tumour fraction",
+           main = "Houseman's CP/QP w/inequality")
+```
+
+### Dilution series prediction for log-transformed data (log10)
+
+#### Per fraction
+
+```{r dilution, fig.width=10, fig.height=17, fig.fullwidth=TRUE, echo=FALSE}
+df_results_ref %>%
+  group_by(Depth, method, referenceset, DMRtool, collapse_approach, min_counts, min_cpgs) %>%
+  #filter(referenceset %in% c("all available cell lines", "matched cell line", "all adrenergic cell lines except matched", "all cell lines except matched")) %>%
+  mutate(Exp.nbl.factor = factor(Exp.nbl, level = c("0","1e-04","0.001","0.0011","0.003","0.007","0.01","0.018","0.025","0.04","0.05","0.1","0.25","0.5","1"))) %>%
+  ggplot(aes(x=method, y=as.numeric(nbl)+0.0001, color = method, shape = Preprocessing, group=referenceset)) + 
+    geom_jitter(position=position_dodge(0.8), alpha=0.5) +
+    scale_colour_manual(values = toolref.id.colours) +
+    labs(title = "Stripchart for the deconvolution results for the neuroblastoma fraction\n with normalization") +
+    xlab("Tool") + ylab("Predicted fraction") +
+    geom_hline(aes(yintercept = as.numeric(Exp.nbl)+0.0001), linetype="dashed", color = "red") +
+    scale_y_continuous(breaks = fractions+0.0001, labels = fractions, transform = "log10") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
+    facet_wrap(~ Exp.nbl.factor, scales = "free_y", , 
+                   labeller = label_wrap_gen(multi_line = TRUE)) +
+  guides(color=guide_legend(title.position = "top", ncol=4,bycol=TRUE),
+         shape=guide_legend(title.position = "top", ncol=1, bycol=TRUE))
+```
+
+#### Point plot with LoD
+
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE, echo=FALSE}
+df_results_ref_limit <- df_results_ref %>%
+    inner_join(limDetectData(), by = c("Preprocessing", "method", "referenceset","Depth")) %>%
+    mutate(color = ifelse(as.numeric(nbl) >= LoD, "green", "lightgray"),
+           nbl = as.numeric(nbl)) %>%
+    dplyr::select(Preprocessing,referenceset,method,LoD,nbl,color,everything())
+
+
+pointlayouttools(tool = "UXM")
+pointlayouttools(tool = "CelFiE")
+pointlayouttools(tool = "MetDecode")
+pointlayouttools(tool = "MethAtlas")
+pointlayouttools(tool = "CIBERSORT")
+pointlayouttools(tool = "RPC")
+pointlayouttools(tool = "MethylResolver")
+pointlayouttools(tool = "EpiSCORE")
+pointlayouttools(tool = "NMF")
+pointlayouttools(tool = "Houseman's CP/QP w/inequality")
+pointlayouttools(tool = "Houseman's CP/QP w/equality")
+
+```
+
+#### Point plot with LoD and CI
+
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE, echo=FALSE}
+df_results_ref_limitCI <- df_results_ref %>%
+    inner_join(limDetectData(), by = c("Preprocessing", "method", "referenceset","Depth")) %>%
+    inner_join(df_results_ref_metrics_fraction, by = c("Preprocessing", "method", "referenceset","Depth", "Exp.nbl")) %>%
+    mutate(nbl = as.numeric(nbl),
+           color = ifelse(as.numeric(nbl) >= CIlow & as.numeric(nbl) <= CIup & as.numeric(nbl) >= LoD, "green", "lightgray")) %>%
+  dplyr::select(Preprocessing,referenceset,method,LoD,CIup, CIme, CIlow ,Exp.nbl,color,everything())
+
+counts <- df_results_ref_limitCI %>%
+  group_by(Depth, method, referenceset, Preprocessing, Exp.nbl, color) %>%
+  count(color) %>%
+  filter(color == "green")
+
+pointlayouttoolsCI(tool = "UXM")
+pointlayouttoolsCI(tool = "CelFiE")
+pointlayouttoolsCI(tool = "MetDecode")
+pointlayouttoolsCI(tool = "MethAtlas")
+pointlayouttoolsCI(tool = "CIBERSORT")
+pointlayouttoolsCI(tool = "RPC")
+pointlayouttoolsCI(tool = "MethylResolver")
+pointlayouttoolsCI(tool = "EpiSCORE")
+pointlayouttoolsCI(tool = "NMF")
+pointlayouttoolsCI(tool = "Houseman's CP/QP w/inequality")
+pointlayouttoolsCI(tool = "Houseman's CP/QP w/equality")
+```
+
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE, echo=FALSE}
+df_results_ref %>%
+  group_by(referenceset,Preprocessing,method, Depth, Exp.nbl) %>%
+  summarise(mean = mean(as.numeric(nbl)),
+            median = median(as.numeric(nbl)),
+            sd = sd(as.numeric(nbl)),
+            ymin=mean(as.numeric(nbl))-sd(as.numeric(nbl)),
+            ymax=mean(as.numeric(nbl))+sd(as.numeric(nbl))) %>%
+  mutate(ymin = case_when(mean - sd + 0.0001 <= 0 ~ 0,
+                          TRUE ~ ymin)) %>%
+  ggplot(aes(x=Exp.nbl+0.0001, y=mean+0.0001, group=method, color = method)) + 
+    scale_colour_manual(values = toolref.id.colours) +
+    geom_line() +
+    geom_point()+
+    geom_errorbar(aes(ymin=ymin+0.0001, ymax=ymax+0.0001), width=.2,
+                 position=position_dodge(0.05)) +
+    geom_abline(slope = 1, intercept = 0.0001) +
+    labs(title = "Stripchart for the deconvolution results for the neuroblastoma fraction\n with log10 normalization") +
+    xlab("Expected fraction") + ylab("Predicted fraction") +
+    scale_x_continuous(breaks = fractions+0.0001, labels = fractions, transform = "log10") +
+    scale_y_continuous(limits= c(0.00005,1.106), breaks = fractions+0.0001, labels = fractions, transform = "log10") +
+    #xlim((min(df_log$Exp.nbl)-0.05),(max(df_log$Exp.nbl)+0.05)) +
+    #ylim((min(df_log$Mean.nbl)-0.05),(max(df_log$Mean.nbl)+0.05)) +
+    theme_classic() +
+    #geom_dotplot(binaxis='y', stackdir='center') +
+    #stat_summary(fun.data="mean_sdl", fun.args = list(mult=1), geom="crossbar", width=0.5) +
+    facet_grid(Preprocessing ~ referenceset, , 
+                   labeller = label_wrap_gen(multi_line = TRUE)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
+    guides(color = guide_legend(nrow = 2))
+
+df_results_ref %>%
+  group_by(referenceset,Preprocessing,method, Depth, Exp.nbl) %>%
+  summarise(mean = mean(as.numeric(nbl)),
+            median = median(as.numeric(nbl)),
+            sd = sd(as.numeric(nbl)),
+            ymin=mean(as.numeric(nbl))-sd(as.numeric(nbl)),
+            ymax=mean(as.numeric(nbl))+sd(as.numeric(nbl))) %>%
+  mutate(ymin = case_when(mean - sd + 0.0001 <= 0 ~ 0,
+                          TRUE ~ ymin)) %>%
+  filter(Exp.nbl<0.01) %>%
+  ggplot(aes(x=Exp.nbl+0.0001, y=mean+0.0001, group=method, color = method)) + 
+    scale_colour_manual(values = toolref.id.colours) +
+    geom_line() +
+    geom_point()+
+    geom_errorbar(aes(ymin=ymin+0.0001, ymax=ymax+0.0001), width=.2,
+                 position=position_dodge(0.05)) +
+    geom_abline(slope = 1, intercept = 0.0001) +
+    labs(title = "Stripchart for the deconvolution results for the neuroblastoma fraction\n with log10 normalization") +
+    xlab("Expected fraction") + ylab("Predicted fraction") +
+    scale_x_continuous(breaks = fractions+0.0001, labels = fractions, transform = "log10") +
+    scale_y_continuous(limits= c(0.00005,1.106), breaks = fractions+0.0001, labels = fractions, transform = "log10") +
+    #xlim((min(df_log$Exp.nbl)-0.05),(max(df_log$Exp.nbl)+0.05)) +
+    #ylim((min(df_log$Mean.nbl)-0.05),(max(df_log$Mean.nbl)+0.05)) +
+    theme_classic() +
+    #geom_dotplot(binaxis='y', stackdir='center') +
+    #stat_summary(fun.data="mean_sdl", fun.args = list(mult=1), geom="crossbar", width=0.5) +
+    facet_grid(Preprocessing ~ referenceset, 
+                   labeller = label_wrap_gen(multi_line = TRUE)) +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
+    guides(color = guide_legend(nrow = 2))
+
+```
+
+## Metrics
+
+### Radar plots
+
+```{r radarformetrics, fig.width=10, fig.height=8, fig.fullwidth=TRUE, echo=FALSE}
+#MAE
+radar_tool_data_mae <- df_results_ref_metrics %>%
+  mutate(MAE = 1/MAE) %>%
+  dplyr::select(method,referenceset,Preprocessing, ref.prep, MAE) %>%
+  distinct()
+
+radar_tool_data.mae <- radar_tool_data_mae %>%
+  #group_by(referenceset) %>%
+  #group_by(Preprocessing) %>%
+  group_by(ref.prep) %>%
+  spread(method,MAE) %>%
+  dplyr::select(-Depth) %>%
+  dplyr::select(-CIBERSORT)
+
+radarMAE <- radarplottingmetrics(radar_tool_data.mae, radar_tool_data_mae, "MAE") +
+    guides(color = guide_legend(ncol = 2))
+
+#MDAE
+radar_tool_data_mdae <- df_results_ref_metrics %>%
+  mutate(MDAE = 1/MDAE) %>%
+  dplyr::select(method,referenceset,Preprocessing, ref.prep, MDAE) %>%
+  distinct()
+
+radar_tool_data.mdae <- radar_tool_data_mdae %>%
+  #group_by(referenceset) %>%
+  #group_by(Preprocessing) %>%
+  group_by(ref.prep) %>%
+  spread(method,MDAE) %>%
+  dplyr::select(-Depth) %>%
+  dplyr::select(-CIBERSORT)
+
+radarMDAE <- radarplottingmetrics(radar_tool_data.mdae, radar_tool_data_mdae, "MDAE")
+
+#RMSE
+radar_tool_data_rmse <- df_results_ref_metrics %>%
+  mutate(RMSE = 1/RMSE) %>%
+  dplyr::select(method,referenceset,Preprocessing, ref.prep, RMSE) %>%
+  distinct()
+
+radar_tool_data.rmse <- radar_tool_data_rmse %>%
+  #group_by(referenceset) %>%
+  #group_by(Preprocessing) %>%
+  group_by(ref.prep) %>%
+  spread(method,RMSE) %>%
+  dplyr::select(-Depth) %>%
+  dplyr::select(-CIBERSORT)
+
+radarRMSE <- radarplottingmetrics(radar_tool_data.rmse, radar_tool_data_rmse, "RMSE")
+
+#MASE
+radar_tool_data_mase <- df_results_ref_metrics %>%
+  mutate(MASE = 1/MASE) %>%
+  dplyr::select(method,referenceset,Preprocessing, ref.prep, MASE) %>%
+  distinct()
+
+radar_tool_data.mase <- radar_tool_data_mase %>%
+  #group_by(referenceset) %>%
+  #group_by(Preprocessing) %>%
+  group_by(ref.prep) %>%
+  spread(method,MASE) %>%
+  dplyr::select(-Depth) %>%
+  dplyr::select(-CIBERSORT)
+
+radarMASE <- radarplottingmetrics(radar_tool_data.mase, radar_tool_data_mase, "MASE")
+
+#MAAPE
+radar_tool_data_maape <- df_results_ref_metrics %>%
+  mutate(MAAPE = 1/MAAPE) %>%
+  dplyr::select(method,referenceset,Preprocessing, ref.prep, MAAPE) %>%
+  distinct()
+
+radar_tool_data.maape <- radar_tool_data_maape %>%
+  #group_by(referenceset) %>%
+  #group_by(Preprocessing) %>%
+  group_by(ref.prep) %>%
+  spread(method,MAAPE) %>%
+  dplyr::select(-Depth) %>%
+  dplyr::select(-CIBERSORT)
+
+radarMAAPE <- radarplottingmetrics(radar_tool_data.maape, radar_tool_data_maape, "MAAPE")
+
+ggarrange(radarMAE, radarMDAE, radarRMSE, radarMASE, radarMAAPE,
+          nrow = 2, ncol = 3,
+          widths = c(5.5, 5.5, 5.5, 5.5, 5.5),
+          common.legend = TRUE, legend="bottom") ## add title
+```
+
+```{r}
+df_results_ref_metrics_adj <- inner_join(df_results_ref %>%
+                                           filter(Depth == "20000000"),
+                                         limDetectData(),
+                                         by=c("Preprocessing","referenceset","method","Depth"))
+
+df_results_ref_metrics_adj <- df_results_ref_metrics_adj %>%
+  group_by(Preprocessing,referenceset,method,Depth,DMRtool) %>%
+  filter(Exp.nbl >= LoD) %>%
+  mutate(Bias = bias(as.numeric(Exp.nbl), as.numeric(nbl)), 
+         MAE = mae(as.numeric(Exp.nbl), as.numeric(nbl)), 
+         MDAE = mdae(as.numeric(Exp.nbl), as.numeric(nbl)), 
+         RMSE = rmse(as.numeric(Exp.nbl), as.numeric(nbl)),
+         MASE = mase(as.numeric(Exp.nbl), as.numeric(nbl), step_size = 1),
+         MAAPE = maape(as.numeric(Exp.nbl), as.numeric(nbl)),
+         Pearson.p.value = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="pearson")$p.value, 
+         Pearson.R = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="pearson")$estimate, 
+         Pearson.t.test = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="pearson")$statistic, 
+         Spearman.p.value = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="spearman")$p.value, 
+         Spearman.rho = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="spearman")$estimate, 
+         Spearman.S.test = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="spearman")$statistic)
+```
+
+```{r radarfortools_, fig.width=10, fig.height=8, fig.fullwidth=TRUE, echo=FALSE}
+#MAE
+radar_tool_data_mae_adj <- df_results_ref_metrics_adj %>%
+  mutate(MAE = 1/MAE) %>%
+  dplyr::select(method,referenceset,Preprocessing, ref.prep, MAE) %>%
+  distinct()
+
+radar_tool_data.mae.adj <- radar_tool_data_mae_adj %>%
+  #group_by(referenceset) %>%
+  #group_by(Preprocessing) %>%
+  group_by(ref.prep) %>%
+  spread(method,MAE) %>%
+  dplyr::select(-Depth) %>%
+  dplyr::select(-CIBERSORT)
+
+radarMAE.adj <- radarplottingmetrics(radar_tool_data.mae.adj, radar_tool_data_mae_adj, "MAE") +
+    guides(color = guide_legend(nrow = 3))
+
+#MDAE
+radar_tool_data_mdae_adj <- df_results_ref_metrics_adj %>%
+  mutate(MDAE = 1/MDAE) %>%
+  dplyr::select(method,referenceset,Preprocessing, ref.prep, MDAE) %>%
+  distinct()
+
+radar_tool_data.mdae.adj <- radar_tool_data_mdae_adj %>%
+  #group_by(referenceset) %>%
+  #group_by(Preprocessing) %>%
+  group_by(ref.prep) %>%
+  spread(method,MDAE) %>%
+  dplyr::select(-Depth) %>%
+  dplyr::select(-CIBERSORT)
+
+radarMDAE.adj <- radarplottingmetrics(radar_tool_data.mdae.adj, radar_tool_data_mdae_adj, "MDAE")
+
+#RMSE
+radar_tool_data_rmse_adj <- df_results_ref_metrics_adj %>%
+  mutate(RMSE = 1/RMSE) %>%
+  dplyr::select(method,referenceset,Preprocessing, ref.prep, RMSE) %>%
+  distinct()
+
+radar_tool_data.rmse.adj <- radar_tool_data_rmse_adj %>%
+  #group_by(referenceset) %>%
+  #group_by(Preprocessing) %>%
+  group_by(ref.prep) %>%
+  spread(method,RMSE) %>%
+  dplyr::select(-Depth) %>%
+  dplyr::select(-CIBERSORT)
+
+radarRMSE.adj <- radarplottingmetrics(radar_tool_data.rmse.adj, radar_tool_data_rmse_adj, "RMSE")
+
+#MASE
+radar_tool_data_mase_adj <- df_results_ref_metrics_adj %>%
+  mutate(MASE = 1/MASE) %>%
+  dplyr::select(method,referenceset,Preprocessing, ref.prep, MASE) %>%
+  distinct()
+
+radar_tool_data.mase.adj <- radar_tool_data_mase_adj %>%
+  #group_by(referenceset) %>%
+  #group_by(Preprocessing) %>%
+  group_by(ref.prep) %>%
+  spread(method,MASE) %>%
+  dplyr::select(-Depth) %>%
+  dplyr::select(-CIBERSORT)
+
+radarMASE.adj <- radarplottingmetrics(radar_tool_data.mase.adj, radar_tool_data_mase_adj, "MASE")
+
+#MAAPE
+radar_tool_data_maape_adj <- df_results_ref_metrics_adj %>%
+  mutate(MAAPE = 1/MAAPE) %>%
+  dplyr::select(method,referenceset,Preprocessing, ref.prep, MAAPE) %>%
+  distinct()
+
+radar_tool_data.maape.adj <- radar_tool_data_maape_adj %>%
+  #group_by(referenceset) %>%
+  #group_by(Preprocessing) %>%
+  group_by(ref.prep) %>%
+  spread(method,MAAPE) %>%
+  dplyr::select(-Depth) %>%
+  dplyr::select(-CIBERSORT)
+
+radarMAAPE.adj <- radarplottingmetrics(radar_tool_data.maape.adj, radar_tool_data_maape_adj, "MAAPE")
+
+ggarrange(radarMAE.adj, radarMDAE.adj, radarRMSE.adj, radarMASE.adj, radarMAAPE.adj,
+          nrow = 2, ncol = 3,
+          widths = c(5.5, 5.5, 5.5, 5.5, 5.5),
+          common.legend = TRUE, legend="bottom") ## add title
+```
+
+### Dot
+
+```{r, fig.width=10, fig.height=5, fig.fullwidth=TRUE, echo=FALSE}
+df_results_ref_metrics %>%
+  ggplot(aes(x=referenceset, y=method)) + 
+    geom_point(aes(size = 1/RMSE, colour = Pearson.R)) +
+    scale_colour_gradientn(colours = brewer.pal(9,"Blues")) +
+    labs(title = "Impact of the reference set on the results (per dilution series)", colour = "Pearson") +
+    xlab("CpG filter") + ylab("Tool") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+    facet_wrap(~ Preprocessing,, 
+                   labeller = label_wrap_gen(multi_line = TRUE))
+```
+
+```{r, fig.width=10, fig.height=8, fig.fullwidth=TRUE, echo=FALSE}
+metricsvis(data = df_results_ref_metrics_fraction, mod = "fraction")
+```
+
+```{r, fig.width=10, fig.height=5, fig.fullwidth=TRUE, echo=FALSE}
+# per dilution series
+sorted.rmse <- df_results_ref_metrics %>%
+  mutate(ref.fac = factor(referenceset, levels=c("all cell lines except matched", "all cell lines", "all adrenergic cell lines except matched"))) %>%
+  arrange(ref.fac, RMSE)
+
+order <- unique(sorted.rmse$method)
+
+RMSE.series <- sorted.rmse %>%
+  mutate(method.fac = factor(method, levels = order)) %>%
+  ggplot(aes(x=RMSE, y=method.fac, color = referenceset, shape = Preprocessing)) + 
+    geom_point(size = 2.5) +
+    labs(title = "RMSE", colour = "Reference") +
+    xlab("") + ylab("Tool") +
+    theme_classic() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) #+#, legend.position = "bottom") +
+  #scale_x_break(c(0.33,0.84), space = 0.2, scales = "free") #+
+  #guides(color=guide_legend(title.position = "top", ncol=2,bycol=TRUE),
+  #       shape=guide_legend(title.position = "top", ncol=1, bycol=TRUE))
+RMSE.series
+    
+
+sorted.spearman <- df_results_ref_metrics %>%
+  #group_by(referenceset, Preprocessing, method) %>%
+  mutate(ref.fac = factor(referenceset, levels=c("all cell lines except matched", "all cell lines", "all adrenergic cell lines except matched"))) %>%#,
+         # standardize
+         #z.score.spearman = (Spearman.rho - mean(Spearman.rho)) / sd(Spearman.rho)) %>%
+  # normalize / scale
+  #mutate(norm.spearman = (z.score.spearman - min(z.score.spearman)) / (max(z.score.spearman) - min(z.score.spearman))) %>%
+  #mutate(norm.spearman = (Spearman.rho - min(Spearman.rho)) / (max(Spearman.rho) - min(Spearman.rho))) %>%
+  arrange(ref.fac, Spearman.rho)
+
+order <- unique(sorted.spearman$method)
+
+Spearman.series <- sorted.spearman %>%
+  mutate(method.fac = factor(method, levels = rev(order))) %>%
+  ggplot(aes(x=Spearman.rho, y=method.fac, color = referenceset, shape = Preprocessing)) + 
+    geom_point(size = 2.5) +
+    labs(title = "Spearman", colour = "Reference") +
+    xlab("") + ylab("Tool") +
+    theme_classic() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) #, legend.position = "bottom") +
+  #guides(color=guide_legend(title.position = "top", ncol=2,bycol=TRUE),
+  #       shape=guide_legend(title.position = "top", ncol=1, bycol=TRUE)) #+
+  #scale_x_break(c(-0.6,0), space = 0.2, scales = "free")
+Spearman.series
+
+sorted.bias <- df_results_ref_metrics %>%
+  mutate(ref.fac = factor(referenceset, levels=c("all cell lines except matched", "all cell lines", "all adrenergic cell lines except matched")),
+         abs.bias = abs(Bias)) %>%
+  arrange(ref.fac, abs.bias)
+
+order <- unique(sorted.bias$method)
+
+Bias.series <- sorted.bias %>%
+  mutate(method.fac = factor(method, levels = order)) %>%
+  ggplot(aes(x=Bias, y=method.fac, color = referenceset, shape = Preprocessing)) + 
+    geom_point(size = 2.5) +
+    geom_vline(xintercept = 0, colour = "gray", linetype="dashed") +
+    labs(title = "Bias", colour = "Reference") +
+    xlab("") + ylab("Tool") +
+    theme_classic() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) #+#, legend.position = "bottom") +
+  #scale_x_break(c(-0.64,-0.05), space = 0.2, scales = "free") #+
+  #guides(color=guide_legend(title.position = "top", ncol=2,bycol=TRUE),
+  #       shape=guide_legend(title.position = "top", ncol=1, bycol=TRUE))
+Bias.series
+
+ggarrange(RMSE.series, Spearman.series, Bias.series,
+          nrow = 1,
+          common.legend = TRUE, legend = "bottom")
+
+# per fraction
+
+sorted.rmse <- df_results_ref_metrics_fraction %>%
+  mutate(ref.fac = factor(referenceset, levels=c("all cell lines except matched", "all cell lines", "all adrenergic cell lines except matched"))) %>%
+  arrange(ref.fac, RMSE)
+
+order <- unique(sorted.rmse$method)
+
+sorted.rmse %>%
+  mutate(method.fac = factor(method, levels = order)) %>%
+  ggplot(aes(x=RMSE, y=method.fac, color = referenceset, shape = Preprocessing)) + 
+    geom_point(size = 2.5) +
+    labs(title = "RMSE", colour = "Reference") +
+    xlab("") + ylab("Tool") +
+    theme_classic() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) #+
+  #scale_x_break(c(0.33,0.84), space = 0.2, scales = "free")
+
+sorted.bias <- df_results_ref_metrics_fraction %>%
+  mutate(ref.fac = factor(referenceset, levels=c("all cell lines except matched", "all cell lines", "all adrenergic cell lines except matched")),
+         abs.bias = abs(Bias)) %>%
+  arrange(ref.fac, abs.bias)
+
+order <- unique(sorted.bias$method)
+
+sorted.bias %>%
+  mutate(method.fac = factor(method, levels = order)) %>%
+  ggplot(aes(x=Bias, y=method.fac, color = referenceset, shape = Preprocessing)) + 
+    geom_point(size = 2.5) +
+    geom_vline(xintercept = 0, colour = "gray", linetype="dashed") +
+    labs(title = "Bias", colour = "Reference") +
+    xlab("") + ylab("Tool") +
+    theme_classic() +
+    theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) #+
+  #scale_x_break(c(-0.64,-0.05), space = 0.2, scales = "free")
+```
+
+### Heatmap
+
+```{r, fig.width=10, fig.height=10, fig.fullwidth=TRUE, echo=FALSE}
+df_results_ref_metrics %>%
+  ggplot(aes(x=referenceset, y=Preprocessing, fill=Pearson.R)) + 
+    geom_tile(color = "black") +
+    geom_text(aes(color=Pearson.R, label = round(Pearson.R,4)), size=3) +
+    scale_fill_distiller(direction = 1) +
+    coord_fixed() +
+    labs(title = "Pearson Correlation") +
+    xlab("reference set") + ylab("Preprocessing") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 90, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none") +
+    facet_wrap(~ method, 
+                   labeller = label_wrap_gen(multi_line = TRUE))
+```
+
+```{r, fig.width=10, fig.height=5, fig.fullwidth=TRUE, echo=FALSE}
+df_results_ref_metrics %>%
+  ggplot(aes(x=method, y=Preprocessing, fill=Pearson.R)) + 
+    geom_tile(color = "black") +
+    geom_text(aes(color=Pearson.R, label = round(Pearson.R,4)), size=3) +
+    scale_fill_distiller(direction = 1) +
+    coord_fixed() +
+    labs(title = "Pearson Correlation") +
+    xlab("method") + ylab("Preprocessing") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none") +
+    facet_wrap(~ referenceset, nrow = 2,
+                   labeller = label_wrap_gen(multi_line = TRUE))
+```
+
+```{r, fig.width=10, fig.height=5, fig.fullwidth=TRUE, echo=FALSE}
+for (d in unique(df_results_ref_metrics_fraction$DMRtool)){
+  
+  svg(paste0("PreliminaryResults/DMRtool",d,"_reference",gsub(" ", "", str_to_title("all cell lines except matched")),"_RMSE.svg"),
+      width = 15, height = 7)
+  
+heatmap.DMR.Nobias <- df_results_ref_metrics_fraction %>%
+  filter(referenceset == "all cell lines except matched", collapse_approach == "median", DMRtool == d, Exp.nbl %in% fractions) %>%
+  mutate(Exp.nbl.factor = factor(Exp.nbl, level = as.character(fractions))) %>%
+  ggplot(aes(x=Exp.nbl.factor, y=method, fill=,norm.RMSE)) + 
+    geom_tile(color = "black") +
+    geom_text(aes(color=RMSE, label = round(RMSE,4)), size=3) +
+    scale_fill_distiller(direction = 1) +
+    coord_fixed() +
+    labs(title = paste0("RMSE - ",d)) +
+    xlab("Expected tumour fraction") + ylab("method") +
+    theme_classic() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "none")
+
+print(heatmap.DMR.Nobias)  
+
+dev.off()
+}
+```
+
+## Combination plots
+
+```{r}
+for (r in unique(df_results_ref$referenceset)){
+for (i in unique(df_results_ref$Exp.nbl)[1:11]){
+
+  svg(paste0("PreliminaryResults/fraction",i,"_reference",gsub(" ", "", str_to_title(r)),"_RMSE.svg"),
+      width = 15, height = 7)
+  
+  results.sorted <- df_results_ref %>%
+    group_by(method, DMRtool) %>%
+    filter(referenceset == r, Exp.nbl == i, collapse_approach == "median") %>%
+    mutate(variance = abs(Exp.nbl - mean(nbl))) %>%
+    arrange(DMRtool, variance)
+  
+  order.frac <- unique(results.sorted$method)
+    
+  exp.nbl.box <- results.sorted %>%
+    #group_by(Depth, method, referenceset, Preprocessing) %>%
+    mutate(method.fac = factor(method, levels = order.frac)) %>%
+    ggplot(aes(x=method.fac, y=as.numeric(nbl), color = DMRtool)) +
+      #geom_jitter(position=position_dodge(0.8), alpha=0.5) +
+      geom_boxplot(width = 0.5, outliers = FALSE) +
+      #scale_colour_manual(values = reference.id.colours) +
+      labs(title = r) +
+      xlab("Tool") + ylab("Predicted fraction") +
+      geom_hline(aes(yintercept = as.numeric(i)), linetype="dashed", color = "red") +
+      scale_y_continuous(breaks = fractions, labels = fractions) +
+      theme_classic() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
+      guides(color=guide_legend(title.position = "top", ncol=4,bycol=TRUE),
+             shape=guide_legend(title.position = "top", ncol=1, bycol=TRUE)) 
+  
+#  sorted.rmse <- df_results_ref_metrics_fraction %>%
+#    group_by(method) %>%
+#    filter(Exp.nbl == i, collapse_approach == "median") %>%
+#    mutate(ref.fac = factor(referenceset, levels=c("all cell lines except matched", "all cell lines", "all adrenergic cell lines except matched")),
+#           mean.methods = mean(RMSE)) %>%
+#    arrange(ref.fac, mean.methods)
+  
+#  order <- unique(sorted.rmse$method)
+  
+#  RMSE.series <- sorted.rmse %>%
+  RMSE.series <- df_results_ref_metrics_fraction %>%
+    group_by(method) %>%
+    filter(referenceset == r, Exp.nbl == i, collapse_approach == "median") %>%
+    #mutate(method.frac = factor(method, levels = order)) %>%
+    mutate(method.frac = factor(method, levels = order.frac)) %>%
+    ggplot(aes(x=RMSE, y=method.frac, color = DMRtool)) +
+      geom_point(size = 2.5, alpha = 0.5) +
+      labs(title = "RMSE", colour = "DMR tool") +
+      #scale_colour_manual(values = reference.id.colours) +
+      xlab("") + ylab("Tool") +
+      theme_classic() +
+      theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), legend.position = "bottom") +
+    guides(color=guide_legend(title.position = "top", ncol=2,bycol=TRUE),
+           shape=guide_legend(title.position = "top", ncol=1, bycol=TRUE))
+
+  print(ggarrange(exp.nbl.box, RMSE.series,
+          nrow = 1,
+          common.legend = TRUE, legend = "bottom"))
+    
+  dev.off()
+
+}
+}
+```
+
+## Benchmarking evaluation
+
+-   accuracy --- how well the method can correctly estimate the cell type proportions
+-   scalability --- how well the method can scale to an increasing number of bulk samples
+-   consistency --- how robust the method is against noise and random factors
+-   stability --- how often the method crashes or returns errors
+-   usability --- how easy it is to install the software and to analyze the data
+
+![image](m_gkae267fig3.jpeg)
+
+```{r computerResources, warning = FALSE, message = FALSE, fig.width=10, fig.height=5, fig.fullwidth=TRUE}
+# Time/Memory usage
+computationalInfo %>%
+  filter(taskType != "OTHER") %>%
+  dplyr::select(taskTypeName, taskType, realtime, peak_rss_mb, peak_vmem_mb) %>%
+  melt(id.vars = c("taskType", "taskTypeName")) %>%
+  mutate_at(vars(value), list(~ parse_number(as.character(.)))) %>%
+ggplot(aes(x = taskTypeName, y = value, fill = variable)) +
+  geom_boxplot() +
+  facet_grid(variable ~ taskType, scales = "free") +
+  labs(title = "Computer Resources Usage Across Tools",
+       x = "Task",
+       y = "Resource Usage",
+       fill = "Resource Type") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
+
+# Time usage
+computationalInfo %>%
+  filter(taskType == "DECONVOLUTION") %>%
+  dplyr::select(taskTypeName, taskType, realtime) %>%
+ggplot(aes(y = taskTypeName, x = realtime)) +
+  geom_boxplot() +
+  #geom_jitter(aes(color=Preprocessing,shape=refrenceset), position = position_jitter(width = .4), alpha=0.5, size = 0.1) +
+  labs(title = "Computer Resources Usage Across Tools",
+       y = "Task",
+       x = "Time Usage (s)") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
+
+computationalInfo %>%
+  filter(taskType == "DECONVOLUTION") %>%
+  dplyr::select(taskTypeName, taskType, peak_rss_mb) %>%
+ggplot(aes(y = taskTypeName, x = peak_rss_mb)) +
+  geom_boxplot() +
+  #geom_jitter(aes(color=Preprocessing,shape=refrenceset), position = position_jitter(width = .4), alpha=0.5, size = 0.1) +
+  labs(title = "Computer Resources Usage Across Tools",
+       y = "Task",
+       x = "Memory Usage (MB)") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1), panel.grid.major = element_blank(), panel.grid.minor = element_blank()) 
+
+# Example data frame for qualitative comparison
+qualitative_data <- tibble(
+  Tool = rep(c("Tool1", "Tool2", "Tool3"), each = 5),
+  Metric = rep(c("Accuracy", "Scalability", "Consistency", "Stability", "Usability"), times = 3),
+  Score = c(4, 3, 5, 4, 5, 5, 4, 4, 5, 4, 3, 4, 4, 3, 4)  # Example scores
+)
+
+# Normalize data for radar chart (scores typically between 0 and 1)
+qualitative_data <- qualitative_data %>%
+  group_by(Tool) %>%
+  mutate(Score = Score / max(Score))
+
+# Radar chart using the `ggradar` package
+# Prepare data for radar plot
+radar_data <- qualitative_data %>%
+  spread(Metric, Score)
+
+# Plot radar chart
+radar_data %>%
+  as_tibble(rownames = "Tool") %>% 
+  ggradar(#aes(group = Tool),
+        grid.min = 0, grid.mid = 0.5, grid.max = 1,
+        axis.label.size = 3,
+        group.line.width = 1,
+        group.point.size = 2,
+        background.circle.colour = "white",
+        gridline.mid.colour = "grey",
+        gridline.max.colour = "grey",
+        legend.title = "Tool") +
+  labs(title = "Comparison of Qualitative Metrics Across Tools")
+
+# Example data for performance vs. resources
+perf_vs_resources_data <- tibble(
+  Tool = rep(c("Tool1", "Tool2", "Tool3"), each = 20),
+  Runtime = runif(60, 1, 100),
+  Memory_Usage = runif(60, 100, 1000),
+  Accuracy = rnorm(60, 0.8, 0.05)
+)
+
+# Scatter plot of performance vs. resources
+ggplot(perf_vs_resources_data, aes(x = Runtime, y = Accuracy, color = Tool, size = Memory_Usage)) +
+  geom_point() +
+  labs(title = "Performance vs. Computational Resources",
+       x = "Runtime (seconds)",
+       y = "Accuracy",
+       size = "Memory Usage (MB)",
+       color = "Tool") +
+  theme_classic()
+```
+
+## Resume - funkyheatmap
+
+### Prepare data
+
+```{r}
+df_results_rmse_perfraction_resume <- df_results_ref %>%
+  filter(Exp.nbl!=0) %>%
+  group_by(method,Exp.nbl,DMRtool) %>%
+  summarize(RMSE=RMSE(Exp.nbl,nbl)) %>%
+  mutate(
+    fraction_class = cut(
+      Exp.nbl,
+      breaks = c(-Inf, 0.001, 0.01, 0.1, 0.5, 1), # Define your breakpoints
+      labels = c("<=0.001","<=0.01", "<=0.1", "<=0.5","1"), # Define labels for the classes
+      right = TRUE # Interval includes the lower bound but not the upper
+    )
+  ) %>%
+  group_by(fraction_class,method) %>%
+  summarize(RMSE_class=1-mean(RMSE),.groups = "drop") %>%
+  pivot_wider(
+    names_from = c(fraction_class),
+    names_sep = "_",
+    values_from = RMSE_class
+  ) %>%
+  mutate(id_code = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM"),
+         across(where(is.numeric), 
+                ~ (.-min(., na.rm = TRUE)) / (max(., na.rm = TRUE) - min(., na.rm = TRUE)))) %>%
+  add_row(df_results_reffree %>%
+            mutate(pseudo.nbl = case_when(method == "MeDeCom" ~ LMC1,
+                                          method == "RefFreeCellMix" ~ V2)) %>% #variable with 0 value for Exp.nbl = 0
+            filter(Exp.nbl!=0) %>%
+            group_by(method,Exp.nbl) %>%
+            summarize(RMSE=RMSE(Exp.nbl,pseudo.nbl)) %>%
+            mutate(
+              fraction_class = cut(
+                Exp.nbl,
+                breaks = c(-Inf, 0.001, 0.01, 0.1, 0.5, 1), # Define your breakpoints
+                labels = c("<=0.001","<=0.01", "<=0.1", "<=0.5","1"), # Define labels for the classes
+                right = TRUE # Interval includes the lower bound but not the upper
+                )
+              ) %>%
+            group_by(fraction_class,method) %>%
+            summarize(RMSE_class=1-mean(RMSE),.groups = "drop") %>%
+            pivot_wider(
+              names_from = c(fraction_class),
+              names_sep = "_",
+              values_from = RMSE_class
+              ) %>%
+            mutate(id_code = c("MeDeCom", "RefFreeCellMix"),
+                   across(where(is.numeric),
+                          ~ (.-min(., na.rm = TRUE)) / (max(., na.rm = TRUE) - min(., na.rm = TRUE)))))
+          
+
+df_results_permetric_resume <- df_results_ref %>%
+  group_by(method) %>%
+  summarize(one_minus_rmse = 1 - RMSE(as.numeric(Exp.nbl)[Exp.nbl != 0], as.numeric(nbl)[Exp.nbl != 0]),
+            scc = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="spearman")$estimate,
+            MCC = mcc(as.numeric(Exp.nbl), as.numeric(nbl)),
+            AUC = aupr.obj(as.numeric(Exp.nbl), as.numeric(nbl))$auc.integral) %>%
+  mutate(id_code = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM")) %>%
+  dplyr::select(method, id_code, everything()) %>%
+  #add_row(method = c("CelFiE ", "MetDecode "), id_code = c("CelFiE w/unknown", "MetDecode w/unknown")) %>%
+  add_row(df_results_reffree %>%
+            mutate(pseudo.nbl = case_when(method == "MeDeCom" ~ LMC1,
+                                          method == "RefFreeCellMix" ~ V2)) %>%
+            group_by(method) %>%
+            summarize(one_minus_rmse = 1 - RMSE(as.numeric(Exp.nbl)[Exp.nbl != 0], as.numeric(pseudo.nbl)[Exp.nbl != 0]),
+                      scc = cor.test(as.numeric(Exp.nbl), as.numeric(pseudo.nbl), method="spearman")$estimate,
+                      MCC = mcc(as.numeric(Exp.nbl), as.numeric(pseudo.nbl)),
+                      AUC = aupr.obj(as.numeric(Exp.nbl), as.numeric(pseudo.nbl))$auc.integral) %>%
+            mutate(id_code = c("MeDeCom", "RefFreeCellMix")) %>%
+            dplyr::select(method, id_code, everything()))
+
+
+df_results_perdmr_resume <- df_results_ref %>%
+  group_by(method) %>%
+  summarize(dmrf = 1 - rmse(as.numeric(Exp.nbl)[DMRtool == "DMRfinder"], as.numeric(nbl)[DMRtool == "DMRfinder"]),
+            limma = 1 - rmse(as.numeric(Exp.nbl)[DMRtool == "limma"], as.numeric(nbl)[DMRtool == "limma"]),
+            wgbstools = 1 - rmse(as.numeric(Exp.nbl)[DMRtool == "wgbs_tools"], as.numeric(nbl)[DMRtool == "wgbs_tools"])) %>%
+  mutate(id_code = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM")) %>%
+  dplyr::select(method, id_code, everything()) %>%
+  add_row(method = c("MeDeCom", "RefFreeCellMix"), id_code = c("MeDeCom", "RefFreeCellMix"))
+
+df_results_perref_resume <- df_results_ref %>%
+  group_by(method) %>%
+  summarize(allcells = 1 - rmse(as.numeric(Exp.nbl)[referenceset == "all available cell lines"], as.numeric(nbl)[referenceset == "all available cell lines"]),
+            allMinusCLBGA = 1 - rmse(as.numeric(Exp.nbl)[referenceset == "all cell lines except matched"], as.numeric(nbl)[referenceset == "all cell lines except matched"]),
+            CLBGA = 1 - rmse(as.numeric(Exp.nbl)[referenceset == "matched cell line"], as.numeric(nbl)[referenceset == "matched cell line"]),
+            adrenergic = 1 - rmse(as.numeric(Exp.nbl)[referenceset == "all adrenergic cell lines except matched"], as.numeric(nbl)[referenceset == "all adrenergic cell lines except matched"]),
+            array = 1 - rmse(as.numeric(Exp.nbl)[referenceset == "array"], as.numeric(nbl)[referenceset == "array"])) %>%
+  mutate(id_code = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM")) %>%
+  dplyr::select(method, id_code, everything()) %>%
+  add_row(method = c("MeDeCom", "RefFreeCellMix"), id_code = c("MeDeCom", "RefFreeCellMix"))
+```
+
+### Row and column info
+
+```{r}
+row_info <- tibble(
+  id = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP\nw/equality", "Houseman's CP/QP\nw/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM", "MeDeCom", "RefFreeCellMix"),
+  group = factor(c(rep("reference", 4), "partial", rep("reference", 3), "partial", rep("reference", 2), rep("free", 2)), levels = c("reference", "free", "partial"))
+) %>%
+  arrange(group)
+
+row_groups <- tibble(
+  group = factor(c("reference", "free", "partial"), levels = c("reference", "free", "partial")),
+  Group = c("Reference-based", "Reference-free", "Partial reference-based")
+)
+```
+
+```{r}
+column_info <- tibble(
+  id = c("id", "approach", "platform", 
+         "sum_overall", "perf_overall", "scal_overall", "stab_overall", "qc_overall", "control_lab",
+         "one_minus_rmse", "scc", "mcc", #"auc",
+         "dmrf", "limma", "wgbstools",
+         "<=0.001","<=0.01", "<=0.1", "<=0.5","1",
+         "InSilico", "InVitro", "WGBS",
+         "allcells", "allMinusCLBGA", "CLBGA", "adrenergic", "array",
+         rep(c("scal_time_2", "scal_time_10", "scal_time_50", "scal_time_100"),each=2),
+         rep(c("scal_mem_2", "scal_mem_10", "scal_mem_50", "scal_mem_100"),each=2)
+  ),
+  group = c(NA, rep("overall", 2), rep("sum_scores", 6),
+            rep("perf_metric", 3), rep("perf_dmr", 3), rep("perf_fraction", 5), 
+            rep("perf_data", 3), rep("perf_ref", 5),
+            rep("scal_time", 8), rep("scal_mem", 8)),
+  name = c("", "Statistical Method", "Availability",
+           "Overall", "Performance", "Scalability", "Stability", "Usability", "",
+           "1 - RMSE", "SCC", "MCC",
+           "DMRfinder", "limma", "WGBS tools",
+           "[0;0.001]", "[0.001;0.01]", "[0.01;0.1]", "[0.1;0.5]", "[0.5;1]",
+           "In Silico", "In Vitro", "TCGA",
+           "all cell lines", "all except matched", "matched cell line", "adrenergic except matched", "array from tumours",
+           rep(c("cov x 2 samples", "", "cov x 10 samples", "", "cov x 50 samples", "", "cov x 100 samples", ""), times = 2)),
+  geom = c("text", "text", "image",
+           rep("bar", 5), "text",
+           rep("circle", 19),
+           rep(c("rect","text"), times = 8)),
+  palette = c(rep(NA, 3),
+              "overall", "benchmark", "scaling", "stability", "qc", NA,
+              rep("benchmark", 19),
+              rep(c("scaling", "white6black4"), times = 8)),
+  options = list(list(hjust = 0, width = 8), list(width = 4), list(width = 2),
+                 list(width = 5, legend = FALSE), list(width = 5, legend = FALSE), list(width = 5, legend = FALSE), list(width = 5, legend = FALSE), list(width = 5, legend = FALSE), list(overlay = TRUE),
+                 list(), list(), list(), list(), list(), list(), list(), list(), 
+                 list(), list(), list(), list(), list(), list(), list(), list(), list(), list(), list(),
+                 list(scale = 1), list(label = "scal_time_2", overlay = TRUE, size = 3), 
+                 list(scale = 1), list(label = "scal_time_10", overlay = TRUE, size = 3),
+                 list(scale = 1), list(label = "scal_time_50", overlay = TRUE, size = 3),
+                 list(scale = 1), list(label = "scal_time_100", overlay = TRUE, size = 3),
+                 list(scale = 1), list(label = "scal_mem_2", overlay = TRUE, size = 3),
+                 list(scale = 1), list(label = "scal_mem_10", overlay = TRUE, size = 3),
+                 list(scale = 1), list(label = "scal_mem_50", overlay = TRUE, size = 3),
+                 list(scale = 1), list(label = "scal_mem_100", overlay = TRUE, size = 3))
+)
+
+column_groups <- tibble(
+  Experiment = c("Method", "Summary", 
+                 rep("Accuracy", 5), 
+                 rep("Scalability",2)),
+  Category = c("", "Aggregated scores across all experiments", "Per metric", "Per DMR tool", "Per fraction", 
+               "Per dataset", "Per reference", 
+               "Predicted time", "Predicted memory"),
+  group = c("overall", "sum_scores", "perf_metric", "perf_dmr", "perf_fraction", 
+            "perf_data", "perf_ref", 
+            "scal_time", "scal_mem"),
+  palette = c("overall", "overall", 
+              rep("benchmark",5),
+              rep("scaling", 2))
+) 
+```
+
+```{r}
+palettes <- tibble(
+  palette = c("overall", "benchmark", "scaling", "stability", "qc", "white6black4"), #, "error_reasons"),
+  colours = list(c("#000000","#020202","#050505","#070707","#0A0A0A","#0C0C0C","#0F0F0F","#121212","#141414","#171717","#191919","#1C1C1C","#1F1F1F","#212121","#242424","#272727","#2A2A2A","#2D2D2D","#303030","#333333","#373737","#3A3A3A","#3D3D3D","#404040","#434343","#464646","#494949","#4D4D4D","#505050","#525252","#555555","#575757","#595959","#5C5C5C","#5E5E5E","#606060","#636363","#656565","#676767","#6A6A6A","#6C6C6C","#6E6E6E","#717171","#737373","#757575","#787878","#7A7A7A","#7D7D7D","#7F7F7F","#828282","#848484","#868686","#898989","#8B8B8B","#8E8E8E","#909090","#939393","#959595","#989898","#9B9B9B","#9D9D9D","#A0A0A0","#A3A3A3","#A5A5A5","#A8A8A8","#ABABAB","#AEAEAE","#B0B0B0","#B3B3B3","#B6B6B6","#B9B9B9","#BBBBBB","#BEBEBE","#C0C0C0","#C2C2C2","#C4C4C4","#C5C5C5","#C7C7C7","#C9C9C9","#CBCBCB","#CDCDCD","#CFCFCF","#D1D1D1","#D3D3D3","#D5D5D5","#D7D7D7","#D9D9D9","#DBDBDB","#DCDCDC","#DEDEDE","#DFDFDF","#E1E1E1","#E3E3E3","#E4E4E4","#E6E6E6","#E7E7E7","#E9E9E9","#EBEBEB","#ECECEC","#EEEEEE","#F0F0F0"),
+                 c("#011636","#01183A","#021A3F","#021D44","#031F49","#04214D","#042452","#052657","#06285C","#062B60","#072D65","#072F6A","#08326E","#083573","#083877","#083B7C","#083E80","#084184","#084489","#08478D","#084A92","#084D96","#08509B","#09539D","#0C56A0","#0E59A2","#105BA4","#125EA6","#1561A9","#1764AB","#1967AD","#1B6AAF","#1E6DB2","#2070B4","#2272B6","#2575B7","#2878B9","#2B7BBA","#2E7EBC","#3181BD","#3484BF","#3787C0","#3A8AC2","#3D8DC3","#4090C5","#4493C6","#4795C8","#4B98C9","#4F9ACB","#529DCC","#56A0CE","#5AA2CF","#5DA5D0","#61A7D2","#65AAD3","#68ACD5","#6DAFD6","#71B1D7","#76B4D8","#7AB6D9","#7FB9DA","#83BBDB","#88BEDC","#8DC0DD","#91C3DE","#96C5DF","#9AC8E0","#9FCAE1","#A2CCE2","#A6CDE3","#AACFE5","#ADD0E6","#B1D2E7","#B4D3E8","#B8D5EA","#BCD6EB","#BFD8EC","#C3D9EE","#C6DBEF","#C8DCEF","#CADEF0","#CCDFF1","#CFE1F2","#D1E2F2","#D3E3F3","#D5E5F4","#D7E6F4","#D9E8F5","#DCE9F6","#DEEBF7","#E0ECF7","#E2EEF8","#E5EFF9","#E7F0F9","#E9F2FA","#EBF3FB","#EEF5FC","#F0F6FC","#F2F8FD","#F4F9FE","#F7FBFF"),
+                 c("#CB181D","#CD1A1D","#CF1C1E","#D11E1F","#D32020","#D52221","#D72422","#DA2623","#DC2824","#DE2A25","#E02D26","#E22F26","#E43127","#E73328","#E93529","#EB372A","#ED392B","#EF3B2C","#EF3E2E","#F04130","#F14432","#F24733","#F24A35","#F34C37","#F44F39","#F5523B","#F5553C","#F6583E","#F75A40","#F75D42","#F86044","#F96345","#FA6647","#FA6949","#FB6B4B","#FB6E4E","#FB7050","#FB7252","#FB7555","#FB7757","#FB7A5A","#FB7C5C","#FB7E5E","#FB8161","#FB8363","#FB8666","#FB8868","#FB8A6A","#FB8D6D","#FB8F6F","#FC9272","#FC9474","#FC9677","#FC997A","#FC9B7D","#FC9E80","#FCA082","#FCA385","#FCA588","#FCA88B","#FCAA8E","#FCAD91","#FCAF93","#FCB196","#FCB499","#FCB69C","#FCB99F","#FCBBA1","#FCBDA4","#FCC0A7","#FCC2AA","#FCC4AD","#FCC6B0","#FCC9B3","#FCCBB6","#FDCDB9","#FDCFBC","#FDD1BF","#FDD4C2","#FDD6C5","#FDD8C8","#FDDACB","#FDDDCE","#FDDFD1","#FEE0D3","#FEE2D5","#FEE3D6","#FEE4D8","#FEE5DA","#FEE7DC","#FEE8DE","#FEE9DF","#FEEAE1","#FEECE3","#FEEDE5","#FEEEE7","#FEEFE8","#FEF1EA","#FEF2EC","#FEF3EE","#FFF5F0"),
+                 c("#EC7014","#EC7215","#ED7416","#EE7617","#EF7818","#F07A19","#F17C1A","#F27E1B","#F3801C","#F4821D","#F5841E","#F5861F","#F68820","#F78A21","#F88C22","#F98E23","#FA9024","#FB9225","#FC9426","#FD9627","#FE9929","#FE9B2A","#FE9D2C","#FE9F2E","#FEA130","#FEA332","#FEA534","#FEA836","#FEAA38","#FEAC3A","#FEAE3C","#FEB03D","#FEB23F","#FEB441","#FEB743","#FEB945","#FEBB47","#FEBD49","#FEBF4B","#FEC14D","#FEC44F","#FEC552","#FEC755","#FEC858","#FECA5C","#FECB5F","#FECD62","#FECE66","#FED069","#FED16C","#FED36F","#FED573","#FED676","#FED879","#FED97D","#FEDB80","#FEDC83","#FEDE87","#FEDF8A","#FEE18D","#FEE290","#FEE393","#FEE495","#FEE597","#FEE699","#FEE89B","#FEE99D","#FEEAA0","#FEEBA2","#FEEBA4","#FEEDA6","#FEEDA8","#FEEFAA","#FEF0AC","#FEF1AF","#FEF2B1","#FEF3B3","#FEF3B5","#FEF5B7","#FEF6B9","#FFF7BC","#FFF7BE","#FFF7C0","#FFF8C2","#FFF8C4","#FFF9C6","#FFF9C8","#FFF9CA","#FFFACC","#FFFACE","#FFFBD0","#FFFBD2","#FFFBD4","#FFFCD6","#FFFCD8","#FFFDDA","#FFFDDC","#FFFDDE","#FFFEE0","#FFFEE2","#FFFFE5"),
+                 c("#00250F","#00270F","#002910","#002C11","#002E12","#003113","#003314","#003615","#003816","#003B17","#003D18","#004019","#00421A","#00451B","#00481D","#004C1E","#004F1F","#005221","#005622","#005923","#005C25","#005F26","#006327","#006629","#00692A","#006D2C","#026F2E","#057130","#087432","#0B7633","#0D7935","#107B38","#137D3A","#16803C","#19823E","#1C8540","#1E8741","#218944","#248C45","#268E47","#299149","#2B934B","#2D964D","#30994F","#329B51","#359E53","#37A055","#39A357","#3CA559","#3EA85B","#41AB5D","#45AC5F","#49AF61","#4DB163","#51B365","#55B567","#59B769","#5DB96B","#61BB6D","#65BD6F","#69BF71","#6DC173","#71C375","#75C477","#79C67A","#7DC87D","#80C980","#84CB83","#87CD86","#8BCE89","#8FD08C","#92D28F","#96D392","#99D595","#9DD798","#A1D99B","#A4DA9D","#A7DBA0","#AADCA3","#ADDEA6","#B0DFA9","#B3E0AC","#B6E1AF","#B9E3B2","#BCE4B5","#BFE5B8","#C2E7BB","#C5E8BE","#C8E9C1","#CAEAC3","#CDEBC6","#CFECC8","#D1EDCB","#D4EECE","#D6EFD0","#D9F0D3","#DBF1D5","#DDF2D8","#E0F3DA","#E2F4DD","#E5F5E0"),
+                 c("white","white","white","black","black","black","black","black","black","black")#,
+                 #list(MemoryLimitExceeded = "#8DD3C7", TimeLimitExceeded = "#FFFFB3", ExecutionError = "#BEBADA", MethodError = "#FB8072")
+                 )
+  )
+```
+
+```{r}
+df_results_permetric_resume <- df_results_ref %>%
+  group_by(method) %>%
+  summarize(one_minus_rmse = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl != 0], as.numeric(nbl)[Exp.nbl != 0]),
+            scc = cor.test(as.numeric(Exp.nbl), as.numeric(nbl), method="spearman")$estimate) %>%
+  mutate(id_code = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM")) %>%
+  dplyr::select(method, id_code, one_minus_rmse, scc) %>%
+  #add_row(method = c("CelFiE ", "MetDecode "), id_code = c("CelFiE w/unknown", "MetDecode w/unknown")) %>%
+  add_row(df_results_reffree %>%
+            mutate(pseudo.nbl = case_when(method == "MeDeCom" ~ LMC1,
+                                          method == "RefFreeCellMix" ~ V2)) %>%
+            group_by(method) %>%
+            summarize(one_minus_rmse = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl != 0], as.numeric(pseudo.nbl)[Exp.nbl != 0]),
+                      scc = cor.test(as.numeric(Exp.nbl), as.numeric(pseudo.nbl), method="spearman")$estimate) %>%
+            mutate(id_code = c("MeDeCom", "RefFreeCellMix")) %>%
+            dplyr::select(method, id_code, one_minus_rmse, scc))
+
+df_results_perfraction_resume <- df_results_ref %>%
+  group_by(method) %>%
+  summarize(f0_f0001 = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl > 0 & Exp.nbl <= 0.001], as.numeric(nbl)[Exp.nbl > 0 & Exp.nbl <= 0.001]),
+            f0001_f001 = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl >= 0.001 & Exp.nbl <= 0.01], as.numeric(nbl)[Exp.nbl >= 0.001 & Exp.nbl <= 0.01]),
+            f001_f01 = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl >= 0.01 & Exp.nbl <= 0.1], as.numeric(nbl)[Exp.nbl >= 0.01 & Exp.nbl <= 0.1]),
+            f01_f05 = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl >= 0.1 & Exp.nbl <= 0.5], as.numeric(nbl)[Exp.nbl >= 0.1 & Exp.nbl <= 0.5]),
+            f05_f1 = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl >= 0.5 & Exp.nbl <= 1], as.numeric(nbl)[Exp.nbl >= 0.5 & Exp.nbl <= 1])) %>%
+  mutate(id_code = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM")) %>%
+  dplyr::select(method, id_code, everything()) %>%
+  add_row(df_results_reffree %>%
+            group_by(method) %>%
+            mutate(pseudo.nbl = case_when(method == "MeDeCom" ~ LMC1,
+                                          method == "RefFreeCellMix" ~ V2)) %>%
+            summarize(f0_f0001 = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl > 0 & Exp.nbl <= 0.001], as.numeric(pseudo.nbl)[Exp.nbl > 0 & Exp.nbl <= 0.001]),
+                      f0001_f001 = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl >= 0.001 & Exp.nbl <= 0.01], as.numeric(pseudo.nbl)[Exp.nbl >= 0.001 & Exp.nbl <= 0.01]),
+                      f001_f01 = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl >= 0.01 & Exp.nbl <= 0.1], as.numeric(pseudo.nbl)[Exp.nbl >= 0.01 & Exp.nbl <= 0.1]),
+                      f01_f05 = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl >= 0.1 & Exp.nbl <= 0.5], as.numeric(pseudo.nbl)[Exp.nbl >= 0.1 & Exp.nbl <= 0.5]),
+                      f05_f1 = 1 - rmse(as.numeric(Exp.nbl)[Exp.nbl >= 0.5 & Exp.nbl <= 1], as.numeric(pseudo.nbl)[Exp.nbl >= 0.5 & Exp.nbl <= 1])) %>%
+            mutate(id_code = c("MeDeCom", "RefFreeCellMix")) %>%
+            dplyr::select(method, id_code, everything()))
+
+df_results_perdmr_resume <- df_results_ref %>%
+  group_by(method) %>%
+  summarize(dmrf = 1 - rmse(as.numeric(Exp.nbl)[DMRtool == "DMRfinder"], as.numeric(nbl)[DMRtool == "DMRfinder"]),
+            limma = 1 - rmse(as.numeric(Exp.nbl)[DMRtool == "limma"], as.numeric(nbl)[DMRtool == "limma"]),
+            wgbstools = 1 - rmse(as.numeric(Exp.nbl)[DMRtool == "wgbs_tools"], as.numeric(nbl)[DMRtool == "wgbs_tools"])) %>%
+  mutate(id_code = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM")) %>%
+  dplyr::select(method, id_code, everything()) %>%
+  add_row(method = c("MeDeCom", "RefFreeCellMix"), id_code = c("MeDeCom", "RefFreeCellMix"))
+
+df_results_perref_resume <- df_results_ref %>%
+  group_by(method) %>%
+  summarize(allcells = 1 - rmse(as.numeric(Exp.nbl)[referenceset == "all available cell lines"], as.numeric(nbl)[referenceset == "all available cell lines"]),
+            allMinusCLBGA = 1 - rmse(as.numeric(Exp.nbl)[referenceset == "all cell lines except matched"], as.numeric(nbl)[referenceset == "all cell lines except matched"]),
+            CLBGA = 1 - rmse(as.numeric(Exp.nbl)[referenceset == "matched cell line"], as.numeric(nbl)[referenceset == "matched cell line"]),
+            adrenergic = 1 - rmse(as.numeric(Exp.nbl)[referenceset == "all adrenergic cell lines except matched"], as.numeric(nbl)[referenceset == "all adrenergic cell lines except matched"]),
+            array = 1 - rmse(as.numeric(Exp.nbl)[referenceset == "array"], as.numeric(nbl)[referenceset == "array"])) %>%
+  mutate(id_code = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM")) %>%
+  dplyr::select(method, id_code, everything()) %>%
+  add_row(method = c("MeDeCom", "RefFreeCellMix"), id_code = c("MeDeCom", "RefFreeCellMix"))
+```
+
+```{r}
+data <- tibble(
+  id = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP\nw/equality", "Houseman's CP/QP\nw/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM", "MeDeCom", "RefFreeCellMix"),
+  method = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM", "MeDeCom", "RefFreeCellMix"),
+  method_source = c(rep("tool", 6), "offshelf", rep("tool", 6)),
+  id_code = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM", "MeDeCom", "RefFreeCellMix"),
+  tool = c("CelFiE", "CIBERSORT", "EpiSCORE", rep("EpiDISH", 2), "MetDecode", "MethAtlas", "MethylResolver", "PRMeth", "EpiDISH", "UXM", "MeDeCom", "PRMeth"),
+  approach = c("EM", paste0(greeks("nu"),"-SVR"), "RPC", rep("CP/QP",2), rep("NNLS", 2), "LTS", "NMF", "RPC", "NNLS", rep("NMF", 2)),
+  platform = c("/Users/mferrodo/Downloads/python.png",
+               "/Users/mferrodo/Downloads/web_java_R.png",
+               "/Users/mferrodo/Downloads/R.png",
+               "/Users/mferrodo/Downloads/python_R.png",
+               "/Users/mferrodo/Downloads/python_R.png",
+               "/Users/mferrodo/Downloads/python.png",
+               "/Users/mferrodo/Downloads/python.png",
+               "/Users/mferrodo/Downloads/R.png",
+               "/Users/mferrodo/Downloads/R.png",
+               "/Users/mferrodo/Downloads/R.png",
+               "/Users/mferrodo/Downloads/python.png",
+               "/Users/mferrodo/Downloads/R.png",
+               "/Users/mferrodo/Downloads/R.png"))
+
+resume <- tibble(
+  id_code = c("CelFiE", "CIBERSORT", "EpiSCORE", "Houseman's CP/QP w/equality", "Houseman's CP/QP w/inequality", "MetDecode", "MethAtlas", "MethylResolver", "NMF", "RPC", "UXM", "MeDeCom", "RefFreeCellMix"),
+  sum_overall = NA,#c(0.7040900, 0.4832365, 0.4384703, 0.7185572, 0.7152952, 0.6600179, 0.6419344, 0.5910702, 0.5910647, 0.5849427, 0.5818382, 0.5725471, 0.5701563),
+  perf_overall = NA,#c(0.64472287, 0.45024546, 0.23828290, 0.70138830, 0.69012631, 0.66286179, 0.61907879, 0.62353258, 0.63246435, 0.59056046, 0.51324773, 0.54973791, 0.59698330),
+  scal_overall = NA,#c(0.7442956, 0.2850089, 0.5913925, 0.4557165, 0.7265490, 0.3802521, 0.6340065, 0.3242384, 0.3151306, 0.3794900, 0.4896308, 0.4539984, 0.3270069),
+  stab_overall = NA,#c(0.78116062, 0.64466704, NA, 0.86502151, 0.75578040, 0.75891468, 0.65955893, NA, NA, 0.67147357, NA, 0.65627187, NA),
+  qc_overall = NA,#c(0.7159933, 0.7074671, 0.6433950, 0.9877975, 0.7159933, 0.9877975, NA, 0.3114103, 0.5166149, 0.7523345, 0.3660157, 0.6479943, 0.8281128),
+  control_lab = list(tool = "", tool = "", tool = "", tool = "", tool = "", tool = "", offshelf = "Off-the-shelf", tool = "", tool = "", tool = "", tool = "", tool = "", tool = ""),
+  InSilico = NA,
+  InVitro = NA,
+  WGBS = NA,
+  scal_time_2 = NA,
+  scal_time_10 = NA,
+  scal_time_50 = NA,
+  scal_time_100 = NA,
+  scal_mem_2 = NA,
+  scal_mem_10 = NA,
+  scal_mem_50 = NA,
+  scal_mem_100 = NA
+)
+```
+
+```{r}
+data <- data %>%
+  inner_join(df_results_permetric_resume, by = c("method", "id_code")) %>%
+  add_column(mcc = NA) %>%
+  inner_join(df_results_perdmr_resume, by = c("method", "id_code")) %>%
+  inner_join(df_results_perfraction_resume, by = c("method", "id_code")) %>%
+  inner_join(df_results_perref_resume, by = c("method", "id_code")) %>%
+  inner_join(resume, by = "id_code")
+
+#g <- funky_heatmap(
+#  data = data,
+#  column_info = column_info,
+#  column_groups = column_groups,
+#  row_info = row_info,
+#  row_groups = row_groups,
+#  palettes = palettes,
+#  position_args = position_arguments(
+#    row_height = 2,
+#    row_bigspace = 2,
+#    col_bigspace = 0.8,
+#    expand_xmax = 4,
+#    col_annot_offset = 4
+#    ),
+#  add_abc = FALSE
+#  )
+
+```

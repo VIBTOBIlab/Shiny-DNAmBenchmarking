@@ -1,0 +1,636 @@
+---
+title: "benchmarking_metrics"
+output: html_document
+date: "2024-10-31"
+---
+
+## Benchmarking metrics
+
+We considered 3 different key metrics: the root-mean-squared error (RMSE), the Jensen--Shannon divergence (JSD) and the Spearman's rank correlation coefficient (ρ {\displaystyle \rho }). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores.
+
+## Import the libraries
+
+```{r}
+library(philentropy)
+library(LaplacesDemon)
+library(Metrics)
+library(dplyr)
+library(funkyheatmap)
+library(tidyverse)
+library(stringr)
+library(funkyheatmap)
+library(pROC)
+```
+
+## Import the dataset and filter it
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_benchmarking")
+```
+
+
+```{r}
+# Combined all the results together
+res_limma <- read.csv("data/Results_20M_limma.csv",row.names = 1)
+res_dmrfinder <- read.csv("data/Results_20M_DMRfinder.csv",row.names = 1)
+res_wgbstools <- read.csv("data/Results_20M_wgbstools.csv",row.names = 1)
+res_cibersort_dmrfinder <- read.csv("data/Results_20M_DMRfinder_cibersort.csv",row.names = 1)
+bench <- rbind(res_dmrfinder,res_limma,res_wgbstools,res_cibersort_dmrfinder)
+
+# Combined results file with samples metadata for the expected tumoral fraction
+metadata <- read.csv("data/SamplesMetadata.csv",sep = "\t")[,c("Sample","Exp.nbl")]
+colnames(metadata) <- c("sample","expected_fraction")
+bench <- as.data.frame(merge(bench,metadata,by="sample"))
+# Use only the unbiased dataset
+bench <- subset(bench,bench$reference=="reference_11healthy_9nbl" &
+                bench$expected_fraction %in% c(0,0.0001,0.001,0.003,0.007,0.01,0.025,0.05,0.1,0.25,0.5))
+bench$nbl <- round(bench$nbl,4)
+```
+
+
+```{r}
+# Remove spaces at the beginning and end of the strings
+bench$sample <- str_trim(bench$sample, side = c("both", "left", "right"))
+bench$tool <- str_trim(bench$tool, side = c("both", "left", "right"))
+# Remove the string due to the bam file format
+bench$sample <- bench$sample %>% str_replace("_R1_001_val_1_bismark_bt2_pe", "")
+bench <- as.data.frame(unique(bench))
+```
+
+## Plot the results
+
+### Specify the metrics to use
+
+For the 0% expected tumoral fraction, using RMSE can be problematic if you want to normalize it to make comparison per different tumor fractions possible. It's not possible to use MAPE either, since dividing by zero generates Inf values. That's the reason why we will use three different metrics: Matthew's correlation coefficient (MCC) for 0% fraction (we will treat this more as a "classification" problem), RMSE for fractions >0% and Spearman's rank correlation coefficient for all the fractions. We will therefore have 3 metrics that can be combined with a weighted linear combination, where the weights are represented by the proportion of samples used to compute each metric.
+
+```{r}
+# RMSE
+rmse <- function(actual, predicted) {
+  round(sqrt(mean((actual - predicted)^2)),4)
+}
+# Normalized RMSE (NRMSE)
+nrmse <- function(actual, predicted) {
+    round(sqrt(mean((actual - predicted))^2)/mean(actual),4)
+}
+# Spearman's rank correlation coefficient (SCC)
+scc <- function(actual, predicted) {
+  cor(actual, predicted, method = "spearman")
+}
+# MCC
+mcc <- function(y_true,y_pred) {
+  TP <- as.numeric(sum(y_true > 0 & y_pred > 0 ))
+  TN <- as.numeric(sum(y_true == 0 & y_pred == 0))
+  FP <- as.numeric(sum(y_true == 0 & y_pred > 0))
+  FN <- as.numeric(sum(y_true > 0 & y_pred == 0))
+  
+  numerator <- (TP * TN) - (FP * FN)
+  denominator <- sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))
+  if (denominator == 0) return(0)
+  return(numerator / denominator)
+}
+aupr.obj <- function(true_labels, predicted_scores) {
+  true_labels[true_labels>0] <- 1
+
+  # Calculate precision-recall curve and AUPR
+  pr <- pr.curve(scores.class0 = predicted_scores, weights.class0 = true_labels, curve = T)
+  
+  return(pr)
+}
+roc.obj <- function(true_labels, predicted_scores) {
+  true_labels[true_labels>0] <- 1
+  roc_obj <- roc(true_labels, predicted_scores)
+  return(roc_obj)
+}
+``` 
+
+### Specify the output path
+
+```{r}
+path <- "C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_benchmarking/plots/"
+```
+
+### Plot boxplots of the predictions for each tumoral fraction > 0%
+
+```{r}
+# Create a directory to save the plots (optional)
+output_dir <- paste0(path,"boxplots_tools_rmse")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get unique values of expected_fraction and remove the 0%
+unique_fractions <- unique(bench$expected_fraction)
+unique_fractions <- subset(unique_fractions,unique_fractions!=0)
+
+# Loop over each expected_fraction and create/save the plot
+for (fraction in unique_fractions) {
+  
+  # Filter for the specific fraction
+  plot_data <- bench %>%
+    filter(expected_fraction == fraction & tool!="Methyl_Resolver") %>%
+    group_by(DMRtool)
+  
+  # Rank the tools by median difference
+  median_diff <- bench %>% 
+    filter(bench$expected_fraction==fraction) %>%
+    group_by(tool,DMRtool) %>% 
+    summarise(Diff=abs(median(expected_fraction)-median(nbl))) %>%
+    group_by(tool) %>%
+    summarise(Mean=mean(Diff, na.rm = T)) %>%
+    arrange(Mean)
+  
+  # Step 2: Reorder the tools globally
+  plot_data <- plot_data %>%
+    mutate(tool = factor(tool, levels = median_diff$tool))
+  
+  p <- plot_data %>%
+        group_by(tool) %>%
+        ggplot(aes(x=tool,y=nbl,color=DMRtool)) +
+        geom_boxplot() +
+        geom_hline(yintercept = fraction,color = "red", linetype = "dashed") +
+        labs(
+          title = paste("Expected Fraction:", fraction),
+          x = "",
+          y = "Tumoral fraction"
+        ) +
+        theme(
+          axis.text.x = element_text(angle = 45, hjust = 1)
+          )
+
+  # Save the plot as an image
+  output_file <- file.path(output_dir, paste0("boxplots_tools_nomethylresolv_fraction_", fraction, ".png"))
+  ggsave(output_file, plot = p, width = 8, height = 6)
+}
+1
+```
+
+
+### Plot each tool performance (NRMSE) per tumoral fractions >0%
+
+We will use the normalized RMSE (NRMSE) in order to make the score size-free: otherwise, increasing the expected value will also determine an increase in RMSE, giving a (wrong) perception that tools perform worse when increasing the tumoral fraction.
+
+```{r}
+
+# Create a directory to save the plots (optional)
+output_dir <- paste0(path,"tools_vs_fractions_nrmse")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+for (dec_tool in unique(bench$tool)) {
+  
+    # Filter for the specific DMR selection tool
+    plot_data <- bench %>%
+      filter(bench$tool==dec_tool & bench$expected_fraction!=0) %>%
+      group_by(DMRtool,expected_fraction) %>%  # Group by tool and tumoral fraction
+      summarize(RMSE = nrmse(expected_fraction,nbl), .groups = "drop")  # Calculate mean RMSE
+    
+    # Plot the heatmap
+    p <- ggplot(plot_data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, shape = DMRtool)) +
+      geom_point(size = 3, alpha = 0.8) +
+      labs(
+          title = paste("RMSE:", dec_tool),
+          x = "Expected fraction",
+          y = "RMSE"
+      ) +
+      theme(
+          axis.text.x = element_text(angle = 45, hjust = 1)
+      ) +
+      scale_color_manual(values=c("limma"="#F8766D","wgbs_tools"="#00BA38","DMRfinder"="#619CFF"))
+    
+      # Save the plot as an image
+      output_file <- file.path(output_dir, paste0(dec_tool,"_vs_fractions_rmse", ".png"))
+      ggsave(output_file, plot = p, width = 8, height = 6)
+}
+
+
+```
+
+### Plot tool ranks based on RMSE per tumoral fraction
+
+```{r}
+# Create a directory to save the plots
+output_dir <- paste0(path,"ranked_tools_rmse")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get unique values of expected_fraction and exclude the 0
+unique_fractions <- unique(bench$expected_fraction)
+unique_fractions <- subset(unique_fractions,unique_fractions!=0)
+
+# Loop over each expected_fraction and create/save the plot
+for (fraction in unique_fractions) {
+  # Filter for the specific fraction
+  plot_data <- bench %>%
+    filter(expected_fraction == fraction & tool!="Methyl_Resolver" ) %>%
+    group_by(tool,DMRtool) %>% 
+    summarise(RMSE = rmse(expected_fraction,nbl))
+  
+  # Rank the tools by mean RMSE across DMR tools
+  median_diff <- bench %>% 
+    filter(bench$expected_fraction==fraction) %>%
+    group_by(tool,DMRtool) %>% 
+    summarise(RMSE=rmse(expected_fraction,nbl)) %>%
+    group_by(tool) %>%
+    summarise(Mean=mean(RMSE, na.rm = T)) %>%
+    arrange(Mean)
+  
+  # Reorder the tools globally
+  plot_data <- plot_data %>%
+    mutate(tool = factor(tool, levels = median_diff$tool))
+  
+  p <- plot_data %>%
+        ggplot(aes(x=RMSE,y=fct_reorder(tool, RMSE),color=DMRtool, shape = DMRtool)) +
+        geom_point(size = 3,alpha=0.8) +
+        labs(
+          title = paste("RMSE vs Tool (Expected Fraction:", fraction, ")"),
+          x = "RMSE",
+          y = ""
+        )
+  # Save the plot as an image
+  output_file <- file.path(output_dir, paste0("ranking_tools_fraction_nomethylresolver_", fraction, ".png"))
+  ggsave(output_file, plot = p, width = 8, height = 6)
+}
+```
+
+
+### Plot AUC-ROC of tools at 4 low tumoral fractions
+
+```{r}
+# Create a directory to save the plots (optional)
+output_dir <- paste0(path,"aucroc_tumoral_fractions")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get 4 fractions: 0.0001, 0.001, 0.01, 0.05
+aucroc_data <- data.frame()
+fractions <- c(0.0001,0.001,0.01,0.05)
+for (fraction in unique(fractions)) {
+  df <- bench %>%
+    filter(expected_fraction %in% c(0,fraction) & DMRtool == "DMRfinder")
+  for (deconv in unique(df$tool)) {
+    filt_df <- df %>%
+      filter(tool==deconv)
+    roc_curve <- roc.obj(filt_df$expected_fraction,filt_df$nbl)
+    tmp <- data.frame(
+      fpr = 1-rev(roc_curve$specificities),  # False Positive Rate
+      tpr = rev(roc_curve$sensitivities),  # True Positive Rate
+      thresholds = rev(roc_curve$thresholds),
+      auc = rev(roc_curve$auc),
+      fraction = fraction,
+      tool = deconv)  # Thresholds
+    aucroc_data <- rbind(aucroc_data,tmp)
+  }
+}
+```
+
+
+```{r}
+p <- ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction))) +
+  geom_line(size = 1) +
+  facet_wrap(~ tool, scales = "free", ncol = 5) +
+  geom_point(aes(x = 0, y = auc, color = as.factor(fraction)),shape = 1,stroke=1.5,size=2,show.legend = F) +
+  labs(
+    title = "AUC-ROC at different tumoral fractions",
+    x = "FPR",
+    y = "TPR",
+    color = "Tumoral fraction"
+  ) +
+  theme(
+    text = element_text(size = 12),
+    strip.text = element_text(size = 10),
+    legend.position = "bottom"
+  )
+
+# Save the plot as an image
+output_file <- file.path(output_dir, paste0("aucroc_tumor_fractions_dmrfinder.png"))
+ggsave(output_file, plot = p, width = 8, height = 6)
+```
+
+
+### Plot final ranks
+
+Use the MCC to evaluate how the tools perform when predicting presence/absence of tumor fraction. Then use the RMSE on the tumoral fractions >0% and the SCC on all tumoral fractions. Normalize all the metrics and integrate them using a linear, wighted combination. 
+
+#### MCC to evaluate tools performance in presence/absence of tumor
+
+```{r}
+# Create a directory to save the plots (optional)
+output_dir <- paste0(path,"final_ranks")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get unique values of expected_fraction and exclude the 0
+unique_fractions <- unique(bench$expected_fraction)
+# Compute the metrics
+classif_performance <- bench %>%
+  group_by(tool,DMRtool) %>%
+  filter(!is.na(nbl)) %>%
+  summarize(MCC=mcc(expected_fraction,nbl))
+```
+
+#### AUC-ROC to evaluate tools performance in presence/absence of tumor
+
+```{r}
+# Create a directory to save the plots (optional)
+output_dir <- paste0(path,"final_ranks")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+aucroc_data <- data.frame()
+fractions_auc <- unique(bench[bench$expected_fraction!=0,"expected_fraction"])
+for (fraction in fractions_auc) {
+  df <- bench %>%
+    filter(expected_fraction %in% c(0,fraction))
+  for (deconv in unique(df$tool)) {
+    filt_df <- df %>%
+      filter(tool==deconv)
+    for (dmrtool in unique(filt_df$DMRtool)) {
+      fin_df <- filt_df %>%
+        filter(DMRtool==dmrtool)
+      
+      # Check input before calling `roc.obj`
+      print(paste("Processing: Fraction =", fraction, 
+                  ", Tool =", deconv, 
+                  ", DMR Tool =", dmrtool))
+      print("Unique values in expected_fraction (true labels):")
+      print(unique(fin_df$expected_fraction))
+      
+      print("Checking nbl (predicted scores):")
+      print(range(fin_df$nbl, na.rm = TRUE))
+      
+      roc_curve <- roc.obj(fin_df$expected_fraction,fin_df$nbl)
+      tmp <- data.frame(
+        fpr = 1-rev(roc_curve$specificities),  # False Positive Rate
+        tpr = rev(roc_curve$sensitivities),  # True Positive Rate
+        thresholds = rev(roc_curve$thresholds),
+        auc = rev(roc_curve$auc),
+        fraction = fraction,
+        tool = deconv,
+        DMRtool = dmrtool)
+      aucroc_data <- rbind(aucroc_data,tmp)
+    }
+  }
+}
+
+classif_performance_auc <- aucroc_data %>%
+  group_by(fraction,tool,DMRtool) %>%
+  summarize(AUC=mean(auc)) %>%
+  group_by(tool,DMRtool) %>%
+  summarize(meanAUC=mean(AUC))
+
+```
+
+#### RMSE of tools on fractions > 0%
+
+```{r}
+# Create a directory to save the plots (optional)
+output_dir <- paste0(path,"final_ranks")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get unique values of expected_fraction and exclude the 0
+unique_fractions <- unique(bench$expected_fraction)
+
+# Compute the metrics
+nonzero_fraction <- bench %>%
+  filter(expected_fraction!=0) %>%
+  group_by(tool,DMRtool) %>%
+  summarize(RMSE=rmse(expected_fraction,nbl))
+```
+
+#### Spearman's rank Correlation Coefficient on all the fractions
+
+```{r}
+# Create a directory to save the plots (optional)
+output_dir <- paste0(path,"final_ranks")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get unique values of expected_fraction 
+unique_fractions <- unique(bench$expected_fraction)
+
+# Compute the metrics
+all_fractions <- bench %>%
+  group_by(tool,DMRtool) %>%
+  summarize(SCC=scc(expected_fraction,nbl))
+```
+
+#### Plot general ranking of the tools based on RMSE, MCC, SCC, AUC and combined score
+
+```{r}
+# Create a directory to save the plots (optional)
+output_dir <- paste0(path,"final_ranks")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get unique values of expected_fraction and exclude the 0
+unique_fractions <- unique(bench$expected_fraction)
+
+# Merge the metrics
+merged_metrics <- merge(all_fractions,nonzero_fraction,by = c("tool","DMRtool"))
+#merged_metrics <- merge(merged_metrics,classif_performance,by = c("tool","DMRtool"))
+merged_metrics <- merge(merged_metrics,classif_performance_auc,by = c("tool","DMRtool"))
+
+# Normalize all the metrics
+normalized_list <- list()
+for (selection in unique(merged_metrics$DMRtool)) {
+  tmp <- na.omit(merged_metrics[merged_metrics$DMRtool==selection,])
+  tmp$normSCC <- (tmp$SCC - min(tmp$SCC)) / (max(tmp$SCC)-min(tmp$SCC))
+  tmp$normRMSE <- 1-(tmp$RMSE - min(tmp$RMSE)) / (max(tmp$RMSE) - min(tmp$RMSE))
+  #tmp$normMCC <- (tmp$MCC - min(tmp$MCC)) / (max(tmp$MCC) - min(tmp$MCC))
+  tmp$normAUC <- (tmp$meanAUC - min(tmp$meanAUC)) / (max(tmp$meanAUC)-min(tmp$meanAUC))
+  # Append the normalized subset to the list
+  normalized_list[[selection]] <- tmp[, c("tool", "DMRtool", "normSCC", "normRMSE","normAUC")]
+}
+# Combine all normalized subsets into a single data frame
+normalized_df <- do.call(rbind, normalized_list)
+
+# Create a combined metrics
+nzeros <- nrow(bench[bench$expected_fraction==0,])
+nnonzeros <- nrow(bench[bench$expected_fraction!=0,])
+tot <- nzeros + nnonzeros
+normalized_df$Score <- 
+  normalized_df$normAUC +
+  #normalized_df$normMCC +
+  (nnonzeros/tot)*(normalized_df$normRMSE) + 
+  normalized_df$normSCC
+
+  
+for (metric in c("normSCC","normRMSE","Score","normAUC")) {
+    # Rank the tools by combined metric
+    mean_score <- normalized_df %>% 
+      group_by(tool) %>% 
+      summarise(Mean=mean(.data[[metric]],na.rm = T)) %>%
+      arrange(desc(Mean))
+    # Reorder the tools globally
+    normalized_df <- normalized_df %>%
+      mutate(tool = factor(tool, levels = mean_score$tool))
+    
+    p <- ggplot(normalized_df, aes(y = tool, x = .data[[metric]], color = DMRtool, shape = DMRtool)) +
+        geom_point(size = 3, alpha = 0.8) +
+        labs(
+            title = paste0("Tools ranked by mean ",metric),
+            x = metric,
+            y = ""
+        ) +
+        theme(
+            axis.text.x = element_text(angle = 45, hjust = 1)
+        ) +
+        scale_color_manual(values=c("limma"="#F8766D","wgbs_tools"="#00BA38","DMRfinder"="#619CFF"))
+      
+  # Save the plot as an image
+  output_file <- file.path(output_dir, paste0("tools_vs_",metric,".png"))
+  ggsave(output_file, plot = p, width = 8, height = 6) 
+}
+
+```
+
+
+### Plot heatmap of tools performance (RMSE) per tumoral fraction
+
+To plot the performance of each tool at different tumoral fractions, we will use the RMSE since the SCC cannot be used for fixed fractions (covariance is == 0)
+
+```{r}
+# Create a directory to save the plots (optional)
+output_dir <- paste0(path,"heatmap_tools_rmse")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+for (selection in unique(bench$DMRtool)) {
+  
+    # Filter for the specific DMR selection tool
+    plot_data <- bench %>%
+      filter(bench$DMRtool==selection & expected_fraction!=0 & bench$tool!="Methyl_Resolver") %>%
+      group_by(tool,expected_fraction) %>%  # Group by tool and tumoral fraction
+      summarize(RMSE = 1-mean(rmse(expected_fraction,nbl), na.rm = TRUE),
+                .groups = "drop")
+      
+    # Rank the tools by median RMSE
+    median_diff <- plot_data %>% 
+      group_by(tool) %>% 
+      summarise(Mean=abs(mean(RMSE))) %>%
+      arrange(desc(Mean))
+    
+    # Reorder the tools globally
+    plot_data <- plot_data %>%
+      mutate(tool = factor(tool, levels = median_diff$tool))
+    
+    # Plot the heatmap
+    p <- ggplot(plot_data, aes(x = tool, y = factor(expected_fraction), fill = RMSE)) +
+      geom_tile() +  # Heatmap tiles
+      geom_text(aes(label = round(RMSE, 4)), color = "white", size = 3) +  # Annotate RMSE
+      scale_fill_viridis_c(end = 0.6) +  # Color gradient
+      labs(
+        title = paste0("Heatmap of Tumoral Fraction vs Tools (",selection,")"),
+        x = "",
+        y = "Tumoral Fraction"
+      ) +
+      theme(
+        axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+        panel.grid = element_blank(),  # Remove gridlines for cleaner look
+        
+      )
+    
+      # Save the plot as an image
+      output_file <- file.path(output_dir, paste0("heatmap_tools_wo_methylresolver", selection, ".png"))
+      ggsave(output_file, plot = p, width = 8, height = 6)
+}
+
+ 
+```
+
+
+### Plot funkyheatmap
+
+Prepare the data
+
+```{r}
+fraction_funkyheat <- bench %>%
+  filter(expected_fraction!=0) %>%
+  group_by(tool,expected_fraction,DMRtool) %>%
+  summarize(RMSE=rmse(expected_fraction,nbl)) %>%
+  mutate(
+    fraction_class = cut(
+      expected_fraction,
+      breaks = c(-Inf, 0.001, 0.01, 0.1, 0.5, 1), # Define your breakpoints
+      labels = c("<=0.001","<=0.01", "<=0.1", "<=0.5","1"), # Define labels for the classes
+      right = TRUE # Interval includes the lower bound but not the upper
+    )
+  ) %>%
+  group_by(fraction_class,tool) %>%
+  summarize(RMSE_class=1-mean(RMSE),.groups = "drop") %>%
+  pivot_wider(
+    names_from = c(fraction_class),
+    names_sep = "_",
+    values_from = RMSE_class
+  ) %>%
+  mutate(across(where(is.numeric), 
+                ~ (.-min(., na.rm = TRUE)) / (max(., na.rm = TRUE) - min(., na.rm = TRUE))))
+
+dmrtool_funkyheat <- bench %>%
+  group_by(DMRtool,tool) %>%
+  summarize(RMSE=1-rmse(expected_fraction,nbl),.groups = "drop") %>%
+  pivot_wider(
+    names_from = c(DMRtool),
+    names_sep = "_",
+    values_from = RMSE
+  ) %>%
+  mutate(across(where(is.numeric), 
+                ~ (.-min(., na.rm = TRUE)) / (max(., na.rm = TRUE) - min(., na.rm = TRUE))))
+
+classif_funkyheat <- normalized_df %>%
+  group_by(tool) %>%
+  summarize(Classification=mean(normMCC))
+
+metrics_funkyheat <- normalized_df %>% 
+  group_by(tool) %>%
+  summarize(Score=mean(Score),
+            RMSE=mean(normRMSE),
+            SCC=mean(normSCC),
+            MCC=mean(normMCC)
+            ) %>%
+  mutate(Score=(Score-min(Score))/(max(Score)-min(Score)))
+
+data_funkyheat <- merge(metrics_funkyheat[,c("tool","RMSE","SCC","MCC")],dmrtool_funkyheat,by=c("tool"))
+data_funkyheat <- merge(data_funkyheat,fraction_funkyheat,by = c("tool"))
+data_funkyheat <- merge(data_funkyheat,classif_funkyheat,by=c("tool"))
+data_funkyheat <- merge(data_funkyheat,metrics_funkyheat[,c("tool","Score")],by=c("tool"))
+data_funkyheat$Rank <- rank(-data_funkyheat$Score)
+data_funkyheat <- data_funkyheat[order(data_funkyheat$Rank,decreasing = F),]
+```
+
+Prepare the column info necessary for the heatmap
+
+```{r}
+column_info <- tribble(
+  ~id,            ~group,               ~name,         ~geom,        ~palette,    ~options,
+  "tool",         "",                   "",            "text",       NA,          list(hjust = 0, width = 6),
+  "RMSE",         "Per metric",         "1-RMSE",      "funkyrect",  "palette1",  lst(),
+  "SCC",          "Per metric",         "SCC",         "funkyrect",  "palette1",  lst(),
+  "MCC",          "Per metric",         "MCC",         "funkyrect",  "palette1",  lst(),
+  "DMRfinder",    "Per DMR tool",       "DMRfinder",   "funkyrect",  "palette1",  lst(),
+  "limma",        "Per DMR tool",       "limma",       "funkyrect",  "palette1",  lst(),
+  "wgbs_tools",   "Per DMR tool",       "wgbs_tools",  "funkyrect",  "palette1",  lst(),
+  "<=0.001",      "Per fraction",       "(0-0.001]",   "funkyrect",  "palette1",  lst(),
+  "<=0.01",       "Per fraction",       "(0.001-0.01]","funkyrect",  "palette1",  lst(),
+  "<=0.1",        "Per fraction",       "(0.01-0.1]",  "funkyrect",  "palette1",  lst(),
+  "<=0.5",        "Per fraction",       "(0.1-0.5]",   "funkyrect",  "palette1",  lst(),
+  "1",            "Per fraction",       "(0.5-1]",     "funkyrect",  "palette1",  lst(),
+  "Score",        "Overall",            "Overall score","funkyrect", "palette2",  lst(),
+  "Rank",         "Overall",            "Rank",        "rect",       "rank_rect", lst(legend = FALSE),
+  "Rank",         "Overall",            "",            "text",       "rank_text", list(overlay=T),
+)
+
+palettes <- tribble(
+  ~palette,    ~colours, 
+  "rank_rect", rep("#DDAD4B",length(data_funkyheat$tool)),
+  "rank_text", rep("black",length(data_funkyheat$tool)),
+)
+```
+
+Plot and save it in a pdf
+
+```{r}
+
+g <- funky_heatmap(data_funkyheat, 
+                   column_info = column_info,
+                   palettes = palettes
+                   ) 
+
+# Create a directory to save the plots (optional)
+output_dir <- "C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_benchmarking/plots/funkyheatmaps"
+if (!dir.exists(output_dir)) dir.create(output_dir)
+output_file <- file.path(output_dir, paste0("funkyheatmap.pdf"))
+ggsave(output_file, g, width = g$width, height = g$height)
+```
+
+
