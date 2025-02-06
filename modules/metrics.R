@@ -7,7 +7,6 @@ metricsTabUI <- function(id) {
       p("We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores."),
       p("Below, you can find the computed metrics and visualizations."),
       br(),
-      
       tabsetPanel(
         tabPanel(title = "General",
                   # Boxplots section
@@ -35,8 +34,10 @@ metricsTabUI <- function(id) {
                     ),
                     mainPanel( width = 8,
                       plotlyOutput(ns("boxplot_TF"), height = "600px"),
+                      br(),
                       downloadButton(ns("download_boxplot_TF_svg"), "Download as SVG"),
                       downloadButton(ns("download_boxplot_TF_pdf"), "Download as PDF"),
+                      downloadButton(ns("download_boxplot_TF_df"), "Download data"),
                       br(), br(), br()
                     )
                   ),
@@ -62,9 +63,10 @@ metricsTabUI <- function(id) {
                     ),
                     mainPanel(width = 8,
                       plotlyOutput(ns("rmse_plot"), height = "600px"),
+                      br(),
                       downloadButton(ns("download_rmse_plot_svg"), "Download as SVG"),
                       downloadButton(ns("download_rmse_plot_pdf"), "Download as PDF"),
-                      
+                      downloadButton(ns("download_rmse_plot_df"), "Download data"),
                       br(), br(), br()
                     )
                   ),
@@ -72,7 +74,6 @@ metricsTabUI <- function(id) {
                   tags$hr(), br(), br(),
                   
 
-                  
                   # AUC-ROC of tools at 4 low tumoral fractions
                   h3("AUC-ROC at different tumoral fractions"),
                   sidebarLayout(
@@ -101,7 +102,6 @@ metricsTabUI <- function(id) {
                       plotOutput(ns("aucroc"), height = "600px"),
                       downloadButton(ns("download_aucroc_svg"), "Download as SVG"),
                       downloadButton(ns("download_aucroc_png"), "Download as PNG"),
-                      
                       br(), br(),
                     )
                   )
@@ -133,8 +133,10 @@ metricsTabUI <- function(id) {
                     ),
                     mainPanel(width = 8,
                       plotlyOutput(ns("rmse_comparison"), height = "600px"),
+                      br(),
                       downloadButton(ns("download_rmse_comparison_svg"), "Download as SVG"),
                       downloadButton(ns("download_rmse_comparison_pdf"), "Download as PDF"),
+                      downloadButton(ns("download_rmse_comparison_df"), "Download data"),
                       br(), br(),
                     )
                   ),
@@ -189,8 +191,10 @@ metricsTabUI <- function(id) {
                    ),
                    mainPanel(width = 8,
                      plotOutput(ns("heatmap"), height = "600px"),
+                     br(),
                      downloadButton(ns("download_heatmap_svg"), "Download as SVG"),
                      downloadButton(ns("download_heatmap_pdf"), "Download as PDF"),
+                     downloadButton(ns("download_heatmap_df"), "Download data"),
                      br(), br()
                    )
                  )
@@ -217,7 +221,7 @@ metricsTabServer <- function(id) {
     res_wgbstools <- read.csv("data/Results_20M_wgbstools.csv", row.names = 1)
     res_cibersort_dmrfinder <- read.csv("data/Results_20M_DMRfinder_cibersort.csv", row.names = 1)
     metadata <- read.csv("data/SamplesMetadata.csv", sep = "\t")[, c("Sample", "Exp.nbl")]
-    
+
     # Combine datasets with metadata
     bench <- rbind(res_dmrfinder, res_limma, res_wgbstools, res_cibersort_dmrfinder)
     colnames(metadata) <- c("sample", "expected_fraction")
@@ -235,6 +239,9 @@ metricsTabServer <- function(id) {
     bench$DMRtool <- str_trim(bench$DMRtool, side = c("both", "left", "right"))
     bench$sample <- bench$sample %>% str_replace("_R1_001_val_1_bismark_bt2_pe", "")
     bench <- as.data.frame(unique(bench))
+    
+    print(head(bench))
+    print(str(bench))
     
     # 2. Functions
     # RMSE
@@ -276,34 +283,7 @@ metricsTabServer <- function(id) {
     }
 
     
-    # 3. Populate dropdowns and checkboxes
-    updateSelectInput(session, "boxplot_fraction_select", 
-                      choices = sort(unique(bench$expected_fraction[bench$expected_fraction != 0])), 
-                      selected = sort(unique(bench$expected_fraction[bench$expected_fraction != 0]))[1])
-    updateCheckboxGroupInput(session, "boxplot_tools_select", 
-                             choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))
-    updateCheckboxGroupInput(session, "boxplot_dmrtools_select", 
-                             choices = sort(unique(bench$DMRtool)), 
-                             selected = sort(unique(bench$DMRtool)))
-    
-    updateSelectInput(session, "rmse_tool_select", 
-                      choices = sort(unique(bench$tool)), 
-                      selected = sort(unique(bench$tool))[1])
-    updateCheckboxGroupInput(session, "rmse_dmrtools_select", 
-                             choices = sort(unique(bench$DMRtool)), 
-                             selected = sort(unique(bench$DMRtool)))
-    
-    updateSelectInput(session, "rmse_comparison_fraction_select", 
-                      choices = sort(unique(bench$expected_fraction[bench$expected_fraction != 0])), 
-                      selected = sort(unique(bench$expected_fraction[bench$expected_fraction != 0]))[1])
-    updateCheckboxGroupInput(session, "rmse_comparison_tools_select", 
-                             choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))
-    updateCheckboxGroupInput(session, "rmse_comparison_dmrtools_select", 
-                             choices = sort(unique(bench$DMRtool)), 
-                             selected = sort(unique(bench$DMRtool)))
-    
+    # Populate dropdowns and checkboxes
     updateSelectInput(session, "aucroc_tool_select", 
                       choices = sort(unique(bench$tool)), 
                       selected = sort(unique(bench$tool))[1])
@@ -318,15 +298,20 @@ metricsTabServer <- function(id) {
     updateCheckboxGroupInput(session, "rank_dmrtools_select", 
                              choices = sort(unique(bench$DMRtool)), 
                              selected = sort(unique(bench$DMRtool)))
-    
-    updateCheckboxGroupInput(session, "heatmap_tools_select", 
+
+        ## 3. Visualisations
+    ############################################################################
+    ## Boxplot predictions for each tumoral fraction
+    # Dropdowns and checkboxes boxplot 
+    updateSelectInput(session, "boxplot_fraction_select", 
+                      choices = sort(unique(bench$expected_fraction[bench$expected_fraction != 0])), 
+                      selected = sort(unique(bench$expected_fraction[bench$expected_fraction != 0]))[1])
+    updateCheckboxGroupInput(session, "boxplot_tools_select", 
                              choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))    
-    updateSelectInput(session, "heatmap_dmrtool_select", 
-                      choices = sort(unique(bench$DMRtool)), 
-                      selected = sort(unique(bench$DMRtool))[1])    
-    
-    ## 4. Boxplot predictions for each tumoral fraction
+                             selected = sort(unique(bench$tool)))
+    updateCheckboxGroupInput(session, "boxplot_dmrtools_select", 
+                             choices = sort(unique(bench$DMRtool)), 
+                             selected = sort(unique(bench$DMRtool)))
     
     # Reactive expression for filtered data boxplot
     filtered_data_boxplot <- reactive({
@@ -352,10 +337,10 @@ metricsTabServer <- function(id) {
       # Reorder the tools globally
       data <- data %>%
         mutate(tool = factor(tool, levels = median_diff$tool))
-      
-      # Ensure DMRtool is a factor
+
+       # Ensure DMRtool is a factor
       data$DMRtool <- as.factor(data$DMRtool)
-      
+
       # Barplot
       ggplot(data, aes(x = tool, y = nbl, fill = DMRtool, color = DMRtool)) +
         geom_boxplot(position = position_dodge(width = 0.75), outlier.color = "gray40", alpha = 0.6) +
@@ -368,42 +353,54 @@ metricsTabServer <- function(id) {
         ) + theme_benchmarking + 
         theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
         custom_color_manual + custom_fill_manual 
-    
-    }
+      }
+
     # Render the boxplot in UI using the function
     output$boxplot_TF <- renderPlotly({
       data <- filtered_data_boxplot()
       req(nrow(data) > 0)
-      p <- create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select))
-      ggplotly(p) %>% 
+      plot <- create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select))
+      ggplotly(plot) %>% 
         layout(boxmode= "group")
       })
     
-    # Save boxplot using the function
-    output$download_boxplot_TF_svg <- downloadHandler(
+    # Save boxplot as svg and pdf
+    download_boxplot <- function(ext) {
+      downloadHandler(
+        filename = function() paste("boxplots_tools_fraction_", input$boxplot_fraction_select, "_", Sys.Date(), ".", ext, sep = ""),
+        content = function(file) {
+          data <- filtered_data_boxplot()
+          req(nrow(data) > 0)
+          ggsave(file, plot = create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select)),
+                 width = 10, height = 6, dpi = 300, device = ext)
+        }
+      )
+    }
+    output$download_boxplot_TF_svg <- download_boxplot("svg")
+    output$download_boxplot_TF_pdf <- download_boxplot("pdf")  
+    
+    # Save dataframe boxplot as csv
+    output$download_boxplot_TF_df <- downloadHandler(
       filename = function() {
-        paste("boxplots_tools_fraction_", as.numeric(input$boxplot_fraction_select), "_", Sys.Date(), ".svg", sep = "")
+        paste("boxplot_data_fraction_", as.numeric(input$boxplot_fraction_select), "_", Sys.Date(), ".csv", sep = "")
       },
       content = function(file) {
         data <- filtered_data_boxplot()
-        req(nrow(data) > 0)
-        plot <- create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select))
-        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "svg")
-      }
-    )
-    output$download_boxplot_TF_pdf <- downloadHandler(
-      filename = function() {
-        paste("boxplots_tools_fraction_", as.numeric(input$boxplot_fraction_select), "_", Sys.Date(), ".pdf", sep = "")
-      },
-      content = function(file) {
-        data <- filtered_data_boxplot()
-        req(nrow(data) > 0)
-        plot <- create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select))
-        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "pdf")
+        req(nrow(data) > 0)  
+        write.csv(data, file, row.names = FALSE)
       }
     )
     
-    ## 5. RMSE plot
+    ############################################################################ 
+    ## RMSE plot
+    # Dropdowns and checkboxes RMSE plot 
+    updateSelectInput(session, "rmse_tool_select", 
+                      choices = sort(unique(bench$tool)), 
+                      selected = sort(unique(bench$tool))[1])
+    updateCheckboxGroupInput(session, "rmse_dmrtools_select", 
+                             choices = sort(unique(bench$DMRtool)), 
+                             selected = sort(unique(bench$DMRtool)))
+    
     # RMSE Data Filtering
     filtered_data_rmse <- reactive({
       req(input$rmse_tool_select, input$rmse_dmrtools_select)
@@ -412,17 +409,21 @@ metricsTabServer <- function(id) {
                expected_fraction != 0)  # Exclude expected_fraction == 0
     })    
     
+    compute_rmse_data <- function(data, dmrtools) {
+      data %>%
+        filter(DMRtool %in% dmrtools) %>%
+        group_by(DMRtool, expected_fraction) %>%
+        summarise(RMSE = nrmse(expected_fraction, nbl), .groups = "drop")
+    }
+    
     # Create a function to generate the RMSE plot
     create_plot_rmse <- function(data, tool, dmrtools) {
 
-      plot_data <- data %>%
-        filter(tool == tool, DMRtool %in% dmrtools) %>%
-        group_by(DMRtool, expected_fraction) %>%
-        summarise(RMSE = nrmse(expected_fraction, nbl), .groups = "drop") %>%
+      data <- compute_rmse_data(data, dmrtools) %>%
         mutate(tooltip_text = paste("DMRtool:", DMRtool, "<br>Expected Fraction:", expected_fraction, "<br>nRMSE:", round(RMSE, 3)))
       
       # Plot 
-      p <- ggplot(plot_data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, shape = DMRtool, text = tooltip_text)) +
+      ggplot(data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, shape = DMRtool, text = tooltip_text)) +
         geom_point(size = 3, alpha = 0.8) +
         labs(
           #title = paste("nRMSE for Tool:", tool),
@@ -434,47 +435,58 @@ metricsTabServer <- function(id) {
         scale_y_continuous(expand = expansion(mult = 0.05))  +
         custom_color_manual + 
         custom_shape_manual
-
-      return(p)
     }
-    
+
     # Render the RMSE plot in UI using the function
     output$rmse_plot <- renderPlotly({
       data <- filtered_data_rmse()
       req(nrow(data) > 0)
-      
-      p <- create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select)
-      
-      # Convert ggplot to an interactive plotly object
-      ggplotly(p, tooltip = "text") 
+      plot <- create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select)
+      ggplotly(plot, tooltip = "text") 
     })
     
-    # Save RMSE plot using the function
-    output$download_rmse_plot_svg <- downloadHandler(
+    # Save rmse plot as svg and pdf
+    download_rmse_plot <- function(ext) {
+      downloadHandler(
+        filename = function() paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".", ext, sep = ""),
+        content = function(file) {
+          data <- filtered_data_rmse()
+          req(nrow(data) > 0)
+          ggsave(file, plot = create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select),
+                 width = 10, height = 6, dpi = 300, device = ext)
+        }
+      )
+    }
+    output$download_rmse_plot_svg <- download_rmse_plot("svg")
+    output$download_rmse_plot_pdf <- download_rmse_plot("pdf")
+    
+    # Save dataframe rmse plot as csv
+    output$download_rmse_plot_df <- downloadHandler(
       filename = function() {
-        paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".svg", sep = "")
+        paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".csv", sep = "")
       },
       content = function(file) {
         data <- filtered_data_rmse()
-        req(nrow(data) > 0)
-        plot <- create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select)
-        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "svg")
+        req(nrow(data) > 0)  
+        rmse_data <- compute_rmse_data(data, input$rmse_dmrtools_select)
+        write.csv(rmse_data, file, row.names = FALSE)
       }
     )
     
-    output$download_rmse_plot_pdf <- downloadHandler(
-      filename = function() {
-        paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".pdf", sep = "")
-      },
-      content = function(file) {
-        data <- filtered_data_rmse()
-        req(nrow(data) > 0)
-        plot <- create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select)
-        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "pdf")
-      }
-    )
+
+    ############################################################################ 
+    ## RMSE comparison Plot
+    # Dropdowns and checkboxes RMSE comparison plot 
+    updateSelectInput(session, "rmse_comparison_fraction_select", 
+                      choices = sort(unique(bench$expected_fraction[bench$expected_fraction != 0])), 
+                      selected = sort(unique(bench$expected_fraction[bench$expected_fraction != 0]))[1])
+    updateCheckboxGroupInput(session, "rmse_comparison_tools_select", 
+                             choices = sort(unique(bench$tool)), 
+                             selected = sort(unique(bench$tool)))
+    updateCheckboxGroupInput(session, "rmse_comparison_dmrtools_select", 
+                             choices = sort(unique(bench$DMRtool)), 
+                             selected = sort(unique(bench$DMRtool)))
     
-    ## 6. RMSE comparison Plot
     # RMSE tool comparison Data Filtering
     filtered_data_rmse_comparison <- reactive({
       req(input$rmse_comparison_fraction_select, input$rmse_comparison_tools_select, input$rmse_comparison_dmrtools_select)
@@ -485,6 +497,7 @@ metricsTabServer <- function(id) {
                tool %in% input$rmse_comparison_tools_select
         )
     })
+    
     
     # Create a function to generate the RMSE comparison plot
     create_rmse_comparison_plot <- function(data, tool, fraction, dmrtools) {
@@ -524,202 +537,56 @@ metricsTabServer <- function(id) {
         custom_color_manual + 
         custom_shape_manual 
     }
-    # Render the RMSE comparison plot in UI using the function
+    
+        # Render the RMSE comparison plot in UI using the function
     output$rmse_comparison <- renderPlotly({
       data <- filtered_data_rmse_comparison()
       req(nrow(data) > 0)
-      p <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
-      ggplotly(p,tooltip = "text")
+      plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
+      ggplotly(plot, tooltip = "text")
     })
     
     # Save RMSE comparison plot using the function
-    output$download_rmse_comparison_svg <- downloadHandler(
-      filename = function() {
-        paste("ranking_tools_fraction_",as.numeric(input$rmse_comparison_fraction_select),"_", Sys.Date(), ".svg", sep = "")
-      },
-      content = function(file) {
-        data <- filtered_data_rmse_comparison()
-        req(nrow(data) > 0)
-        plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
-        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "svg")
-      }
-    ) 
+    download_rmse_comparison_plot <- function(ext) {
+      downloadHandler(
+        filename = function() paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select), "_", Sys.Date(), ".", ext, sep = ""),
+        content = function(file) {
+          data <- filtered_data_rmse_comparison()
+          req(nrow(data) > 0)
+          ggsave(file, plot = create_rmse_comparison_plot(data, input$rmse_comparison_fraction_select),
+                 width = 10, height = 6, dpi = 300, device = ext)
+        }
+      )
+    }
+    output$download_rmse_comparison_svg <- download_rmse_comparison_plot("svg")
+    output$download_rmse_comparison_pdf <- download_rmse_comparison_plot("pdf")
     
-    output$download_rmse_comparison_pdf <- downloadHandler(
-      filename = function() {
-        paste("ranking_tools_fraction_",as.numeric(input$rmse_comparison_fraction_select),"_", Sys.Date(), ".pdf", sep = "")
-      },
+    # Save dataframe rmse comparison plot as csv
+    output$download_rmse_comparison_df <- downloadHandler(
+      filename = function() paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select), "_", Sys.Date(), ".csv", sep = ""),
       content = function(file) {
-        data <- filtered_data_rmse_comparison()
+        data <- filtered_data_rmse_comparison() %>%
+          group_by(tool, DMRtool) %>%
+          summarise(RMSE = rmse(expected_fraction, nbl), .groups = "drop") %>%
+          select(tool, DMRtool, RMSE)
         req(nrow(data) > 0)
-        plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
-        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "pdf")
+        write.csv(data, file, row.names = FALSE)
       }
     )
     
-    # ## 6. Rank tools Plot
-    # # Reactive expression to filter data based on user selection
-    # filtered_data_rank <- reactive({
-    #   df <- bench %>%
-    #     filter(tool == input$rank_tools_select, DMRtool == input$rank_dmrtools_select)
-    #   return(df)
-    # })
-    # 
-    # # MCC to evaluate tools performance in presence/absence of tumor
-    # classif_performance <-  bench %>%
-    #   group_by(tool,DMRtool) %>%
-    #   filter(!is.na(nbl)) %>%
-    #   summarize(MCC=mcc(expected_fraction,nbl))
-    # 
-    # # print(head(classif_performance))
-    # # print(str(classif_performance))
-    # 
-    # 
-    # # AUC computation to evaluate tools performance in presence/absence of tumor
-    # 
-    # compute_metrics <- function(data) {
-    #   aucroc_data <- data.frame()
-    #   fractions_auc <- unique(data[data$expected_fraction != 0, "expected_fraction"])
-    #   
-    #   for (fraction in fractions_auc) {
-    #     df <- data %>% 
-    #       filter(expected_fraction %in% c(0, fraction))
-    #     
-    #     for (deconv in unique(df$tool)) {
-    #       filt_df <- df %>% 
-    #         filter(tool == deconv)
-    #       
-    #       for (dmrtool in unique(filt_df$DMRtool)) {
-    #         fin_df <- filt_df %>% filter(DMRtool == dmrtool)
-    #         
-    #         # Debugging: Check unique values for expected_fraction (true labels) and nbl (predicted scores)
-    #         print(paste("Processing: Fraction =", fraction, 
-    #                     ", Tool =", deconv, 
-    #                     ", DMR Tool =", dmrtool))
-    #         print("Unique values in expected_fraction (true labels):")
-    #         print(unique(fin_df$expected_fraction))
-    #         
-    #         print("Checking nbl (predicted scores):")
-    #         print(range(fin_df$nbl, na.rm = TRUE))
-    #         
-    #         
-    #         roc_curve <- roc.obj(fin_df$expected_fraction, fin_df$nbl)
-    #         tmp <- data.frame(
-    #           fpr = 1 - rev(roc_curve$specificities),
-    #           tpr = rev(roc_curve$sensitivities),
-    #           thresholds = rev(roc_curve$thresholds),
-    #           auc = rev(roc_curve$auc),
-    #           fraction = fraction,
-    #           tool = deconv,
-    #           DMRtool = dmrtool
-    #         )
-    #         aucroc_data <- rbind(aucroc_data, tmp)
-    #       }
-    #     }
-    #   }
-    #   # print(head(aucroc_data))
-    #   # print(tail(aucroc_data))
-    #   # print(str(aucroc_data))
-    # 
-    #   # Summary of AUC
-    #   classif_performance_auc <- aucroc_data %>%
-    #     group_by(fraction, tool, DMRtool) %>%
-    #     summarize(AUC = mean(auc)) %>%
-    #     group_by(tool, DMRtool) %>%
-    #     summarize(meanAUC = mean(AUC))
-    #   
-    #   # RMSE computation for non-zero fractions
-    #   nonzero_fraction <- data %>%
-    #     filter(expected_fraction != 0) %>%
-    #     group_by(tool, DMRtool) %>%
-    #     summarize(RMSE = rmse(expected_fraction, nbl))
-    #   
-    #   # Spearman's Correlation Coefficient (SCC) for all fractions
-    #   all_fractions <- data %>%
-    #     group_by(tool, DMRtool) %>%
-    #     summarize(SCC = scc(expected_fraction, nbl))
-    #   
-    #   # Merge all metrics
-    #   merged_metrics <- merge(all_fractions, nonzero_fraction, by = c("tool", "DMRtool"))
-    #   merged_metrics <- merge(merged_metrics, classif_performance_auc, by = c("tool", "DMRtool"))
-    #   
-    #   # Normalize the metrics
-    #   normalized_list <- list()
-    #   for (selection in unique(merged_metrics$DMRtool)) {
-    #     tmp <- na.omit(merged_metrics[merged_metrics$DMRtool == selection, ])
-    #     tmp$normSCC <- (tmp$SCC - min(tmp$SCC)) / (max(tmp$SCC) - min(tmp$SCC))
-    #     tmp$normRMSE <- 1 - (tmp$RMSE - min(tmp$RMSE)) / (max(tmp$RMSE) - min(tmp$RMSE))
-    #     tmp$normAUC <- (tmp$meanAUC - min(tmp$meanAUC)) / (max(tmp$meanAUC) - min(tmp$meanAUC))
-    #     normalized_list[[selection]] <- tmp[, c("tool", "DMRtool", "normSCC", "normRMSE", "normAUC")]
-    #   }
-    #   normalized_df <- do.call(rbind, normalized_list)
-    #   
-    #   # Combine and create Score
-    #   nzeros <- nrow(data[data$expected_fraction == 0, ])
-    #   nnonzeros <- nrow(data[data$expected_fraction != 0, ])
-    #   tot <- nzeros + nnonzeros
-    #   normalized_df$Score <- normalized_df$normAUC +  
-    #     (nnonzeros / tot) * (normalized_df$normRMSE) + 
-    #     normalized_df$normSCC
-    #   
-    #   return(normalized_df)
-    # }
-    # 
-    # 
-    # 
-    # # Plot the selected metric
-    # output$rank <- renderPlot({
-    #   df <- filtered_data_rank()
-    #   normalized_df <- compute_metrics(df)
-    #   
-    #   # print(str(normalized_df))
-    #   # print(normalized_df)
-    #   
-    #   # Select the metric
-    #   selected_metric <- input$rank_metric_select
-    # 
-    #   # Rank the tools based on the selected metric
-    #   mean_score <- normalized_df %>%
-    #     group_by(tool) %>%
-    #     summarise(Mean = mean(.data[[paste0("norm", selected_metric)]], na.rm = TRUE)) %>%
-    #     arrange(desc(Mean))
-    # 
-    #   normalized_df <- normalized_df %>%
-    #     mutate(tool = factor(tool, levels = mean_score$tool))
-    # 
-    #   p <- ggplot(normalized_df, aes(y = tool, x = .data[[paste0("norm", selected_metric)]], color = DMRtool, shape = DMRtool)) +
-    #     geom_point(size = 3, alpha = 0.8) +
-    #     labs(
-    #       title = paste0("Tools ranked by mean ", selected_metric),
-    #       x = selected_metric,
-    #       y = ""
-    #     ) +
-    #     theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-    #     scale_color_manual(values = c("limma" = "#F8766D", "wgbs_tools" = "#00BA38", "DMRfinder" = "#619CFF"))
-    # 
-    #   return(p)
-    # })
-    
-    ## Download the plot as SVG
-    # output$download_rank_svg <- downloadHandler(
-    #   filename = function() {
-    #     paste("rank_plot_", Sys.Date(), ".svg", sep = "")
-    #   },
-    #   content = function(file) {
-    #     ggsave(file, plot = output$rank_plot(), device = "svg")
-    #   }
-    # )
-    
-    ## Download the plot as PDF
-    # output$download_rank_pdf <- downloadHandler(
-    #   filename = function() {
-    #     paste("rank_plot_", Sys.Date(), ".pdf", sep = "")
-    #   },
-    #   content = function(file) {
-    #     ggsave(file, plot = output$rank_plot(), device = "pdf")
-    #   }
-    # )
 
+    ############################################################################ 
+    ## Heatmap
+    # Dropdowns and checkboxes heatmap
+    updateCheckboxGroupInput(session, "heatmap_tools_select", 
+                             choices = sort(unique(bench$tool)), 
+                             selected = sort(unique(bench$tool)))    
+    updateSelectInput(session, "heatmap_dmrtool_select", 
+                      choices = sort(unique(bench$DMRtool)), 
+                      selected = sort(unique(bench$DMRtool))[1])    
+    
+    
+    # Create a function to generate the heatmap
     create_heatmap_plot <- function(data, tools, dmrtool) {
       # Filter data based on user selection
       plot_data <- data %>%
@@ -742,22 +609,22 @@ metricsTabServer <- function(id) {
       plot_data <- plot_data %>%
         mutate(tool = factor(tool, levels = median_diff$tool))
       
-      
-      
+
       # Define a function to determine text color based on RMSE value
       get_text_color <- function(rmse_value) {
         # Handle NA values: default to black text for missing values
         if (is.na(rmse_value)) {
-          return("black")  # You can change this to "white" if preferred
+          return("black") 
         }
         
-        # If RMSE is low, the tile is dark and should have white text
-        if (rmse_value < 0.5) {
+        # If RMSE is low, the tile is white and should have black text
+        if (rmse_value <= 0.5) {
           return("black")
         } else {
-          return("white")  # For higher RMSE, tile is light, so black text
+          return("white")
         }
       }
+      
       
       # Create a new column for the labels, where NA values are converted to the string 'NA'
       plot_data$label <- ifelse(is.na(plot_data$RMSE), "NA", round(plot_data$RMSE, 4))
@@ -773,7 +640,7 @@ metricsTabServer <- function(id) {
           label = label, 
           color = text_color  # Apply dynamic text color based on tile fill
         ), size = 4) +
-        scale_fill_gradient(low = "white", high = "gray10") + # Greyscale color scale
+        scale_fill_gradient(low = "white", high = "gray10", limits = c(0,1) ) + # Greyscale color scale
         scale_color_identity() + 
         scale_x_discrete(labels = function(x) str_replace_all(x, "_", " "))+
         labs(
@@ -798,28 +665,33 @@ metricsTabServer <- function(id) {
       create_heatmap_plot(bench, input$heatmap_tools_select, input$heatmap_dmrtool_select)
     })
     
-    output$download_heatmap_svg <- downloadHandler(
-      filename = function() {
-        paste("heatmap_tools_fraction_", input$heatmap_dmrtool_select, "_", Sys.Date(), ".svg", sep = "")
-      },
+    # Save heatmap using the function
+    download_heatmap_plot <- function(ext) {
+      downloadHandler(
+        filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_", Sys.Date(), ".", ext, sep = ""),
+        content = function(file) {
+          req(input$heatmap_tools_select, input$heatmap_dmrtool_select)
+          plot <- create_heatmap_plot(bench, input$heatmap_tools_select, input$heatmap_dmrtool_select)
+          ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = ext)
+
+        }
+      )
+    }
+    output$download_heatmap_svg <- download_heatmap_plot("svg")
+    output$download_heatmap_pdf <- download_heatmap_plot("pdf")    
+    
+    # Save dataframe heatmap as csv
+    output$download_heatmap_df <- downloadHandler(
+      filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_", Sys.Date(), ".csv", sep = ""),
       content = function(file) {
-        req(input$heatmap_tools_select, input$heatmap_dmrtool_select)
-        plot <- create_heatmap_plot(bench, input$heatmap_tools_select, input$heatmap_dmrtool_select)
-        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "svg")
+        data <- bench %>%
+          filter(DMRtool == input$heatmap_dmrtool_select, expected_fraction != 0, tool %in% input$heatmap_tools_select) %>%
+          group_by(tool, expected_fraction) %>%
+          summarize(RMSE = 1 - mean(rmse(expected_fraction, nbl), na.rm = TRUE), .groups = "drop")
+        write.csv(data, file, row.names = FALSE)
       }
     )
-    
-    output$download_heatmap_pdf <- downloadHandler(
-      filename = function() {
-        paste("heatmap_tools_fraction_", input$heatmap_dmrtool_select, "_", Sys.Date(), ".pdf", sep = "")
-      },
-      content = function(file) {
-        req(input$heatmap_tools_select, input$heatmap_dmrtool_select)
-        plot <- create_heatmap_plot(bench, input$heatmap_tools_select, input$heatmap_dmrtool_select)
-        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = "pdf")
-      }
-    )
-    
+
   }) # Close moduleServer
 } # Close metricsTabServer    
     
