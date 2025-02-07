@@ -78,12 +78,6 @@ metricsTabUI <- function(id) {
                   h3("AUC-ROC at different tumoral fractions"),
                   sidebarLayout(
                     sidebarPanel(width = 3,
-                      checkboxGroupInput(
-                        ns("aucroc_fractions_select"),
-                        label = "Select Tumoral Fraction:",
-                        choices = c(0.0001, 0.001, 0.01, 0.05),
-                        selected = c(0.0001, 0.001, 0.01, 0.05)
-                      ),
                       selectInput(
                         ns("aucroc_tool_select"),
                         label = "Select Deconvolution Tools:",
@@ -99,10 +93,10 @@ metricsTabUI <- function(id) {
                     ),
                     
                     mainPanel(width = 8,
-                      plotOutput(ns("aucroc"), height = "600px"),
+                      plotlyOutput(ns("aucroc_plot"),width = "500px"),
                       br(),
                       downloadButton(ns("download_aucroc_svg"), "Download as SVG"),
-                      downloadButton(ns("download_aucroc_png"), "Download as PNG"),
+                      downloadButton(ns("download_aucroc_pdf"), "Download as PDF"),
                       downloadButton(ns("download_aucroc_df"), "Download data"),
                       
                       br(), br(), br()
@@ -645,6 +639,7 @@ metricsTabServer <- function(id) {
         )
     }
     
+    # Render heatmap
     output$heatmap <- renderPlot({
       req(input$heatmap_tools_select, input$heatmap_dmrtool_select) # Ensure inputs are provided
       create_heatmap_plot(bench, input$heatmap_tools_select, input$heatmap_dmrtool_select)
@@ -689,55 +684,98 @@ metricsTabServer <- function(id) {
                       choices = sort(unique(bench$DMRtool)), 
                       selected = sort(unique(bench$DMRtool))[1])
 
-    output$aucroc <- renderPlot({
-      req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
-      
+    # Create a function to generate the heatmap
+    create_aucroc_data <- function(data, tool, dmrtool) {
       aucroc_data <- data.frame()
       fractions <- c(0.0001, 0.001, 0.01, 0.05)
       for (fraction in unique(fractions)) {
-        df <- bench %>%
-          filter(expected_fraction %in% c(0, fraction) & DMRtool == input$aucroc_dmrtool_select & tool == input$aucroc_tool_select)
-        filt_df <- df %>% filter(tool == input$aucroc_tool_select)
-        roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
-        tmp <- data.frame(
-          fpr = 1 - rev(roc_curve$specificities),
-          tpr = rev(roc_curve$sensitivities),
-          thresholds = rev(roc_curve$thresholds),
-          auc = rev(roc_curve$auc),
-          fraction = fraction,
-          tool = input$aucroc_tool_select
-        )
-        aucroc_data <- rbind(aucroc_data, tmp)
+        filt_df <- data %>%
+          filter(expected_fraction %in% c(0, fraction) & DMRtool == dmrtool & tool == !!tool)
+        if (nrow(filt_df) > 0) {
+          roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
+          tmp <- data.frame(
+                    fpr = 1 - rev(roc_curve$specificities),
+                    tpr = rev(roc_curve$sensitivities),
+                    thresholds = rev(roc_curve$thresholds),
+                    auc = rev(roc_curve$auc),
+                    fraction = fraction,
+                    tool = tool
+                  )
+          aucroc_data <- rbind(aucroc_data, tmp)
+        }
       }
+      return(aucroc_data)
+    }
+    
+    # Function to generate AUC-ROC plot
+    create_aucroc_plot <- function(aucroc_data) {
+      # Tooltip text for lines (FPR, TPR, fraction)
+      aucroc_data <- aucroc_data %>%
+        mutate(tooltip_line = paste("FPR:", round(fpr, 3), "<br>TPR:", round(tpr, 3), "<br>Fraction:", fraction))
       
-      ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction))) +
-        geom_line(size = 1) +
-        geom_point(aes(x = 0, y = auc, color = as.factor(fraction)), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
+      # Tooltip text for points (AUC value)
+      aucroc_data <- aucroc_data %>%
+        mutate(tooltip_point = paste("AUC:", round(auc, 3)))
+      
+      ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
+        # ROC Curve Lines
+        geom_line(aes(text = tooltip_line), size = 1) +
+        
+        # AUC Points (only at x=0)
+        geom_point(aes(x = 0, y = auc, text = tooltip_point), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
+        
+        # Labels and theme
         labs(
-          #title = paste("AUC-ROC at different tumoral fractions for", input$aucroc_tool_select, "(", input$aucroc_dmrtool_select, ")"),
-          x = "FPR",
-          y = "TPR",
+          x = "False Positive Rate (FPR)",
+          y = "True Positive Rate (TPR)",
           color = "Tumoral fraction"
         ) +
         theme(
           text = element_text(size = 12),
           legend.position = "bottom"
-        )
+        ) + theme_benchmarking
+    }
+
+    # Render output AUCROC plot
+    output$aucroc_plot <- renderPlotly({
+      req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
+      aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
+      req(nrow(aucroc_data) > 0)  
+      plot <- create_aucroc_plot(aucroc_data)
+      ggplotly(plot, tooltip = "text")
     })
     
-    output$download_aucroc_svg <- downloadHandler(
-      filename = function() { "aucroc_plot.svg" },
+    # Save AUCROC using the function
+    download_aucroc_plot <- function(ext) {
+      downloadHandler(
+        filename = function() paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".", ext, sep=""),
+        content = function(file) {
+          req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
+          aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
+          req(nrow(aucroc_data) > 0)  
+          plot <- create_aucroc_plot(aucroc_data)
+          ggsave(file, plot = plot, width = 6, height = 6, dpi = 300, device = ext)
+        }
+      )
+    }
+    output$download_aucroc_svg <- download_aucroc_plot("svg")
+    output$download_aucroc_pdf <- download_aucroc_plot("pdf")
+    
+    # Save dataframe AUCROC plot as csv
+    output$download_aucroc_df <- downloadHandler(
+      filename = function() {
+        paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
+      },
       content = function(file) {
-        ggsave(file, plot = last_plot(), device = "svg", width = 8, height = 6)
+        req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
+        aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
+        req(nrow(aucroc_data) > 0)  
+        write.csv(aucroc_data, file, row.names = FALSE)
       }
     )
     
-    output$download_aucroc_png <- downloadHandler(
-      filename = function() { "aucroc_plot.png" },
-      content = function(file) {
-        ggsave(file, plot = last_plot(), device = "png", width = 8, height = 6)
-      }
-    )
+    
+    
     
     ############################################################################ 
     ## Rank tools 
