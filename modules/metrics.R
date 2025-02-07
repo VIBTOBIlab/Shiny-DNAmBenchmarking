@@ -12,7 +12,7 @@ metricsTabUI <- function(id) {
                   # Boxplots section
                   h3("Boxplots of the predictions for each tumoral fraction"),
                   sidebarLayout(
-                    sidebarPanel( width = 3,
+                    sidebarPanel( width = 2,
                       selectInput(
                         ns("boxplot_fraction_select"), 
                         label = "Select Tumoral Fraction:",
@@ -32,7 +32,7 @@ metricsTabUI <- function(id) {
                         selected = NULL
                       )
                     ),
-                    mainPanel( width = 8,
+                    mainPanel( width = 2,
                       plotlyOutput(ns("boxplot_TF"), height = "600px"),
                       br(),
                       downloadButton(ns("download_boxplot_TF_svg"), "Download as SVG"),
@@ -47,7 +47,7 @@ metricsTabUI <- function(id) {
                   # RMSE section
                   h3("Performance (nRMSE) per Tumoral Fractions"),
                   sidebarLayout(
-                    sidebarPanel(width = 3,
+                    sidebarPanel(width = 2,
                       selectInput(
                         ns("rmse_tool_select"), 
                         label = "Select Deconvolution Tool:",
@@ -71,44 +71,70 @@ metricsTabUI <- function(id) {
                     )
                   ),
                   
+                 
                   tags$hr(), br(), br(),
                   
 
                   # AUC-ROC of tools at 4 low tumoral fractions
-                  h3("AUC-ROC at different tumoral fractions"),
-                  sidebarLayout(
-                    sidebarPanel(width = 3,
-                      selectInput(
-                        ns("aucroc_tool_select"),
-                        label = "Select Deconvolution Tools:",
-                        choices = NULL,
-                        selected = NULL
-                      ),
-                      selectInput(
-                        ns("aucroc_dmrtool_select"),
-                        label = "Select DMR Tool:",
-                        choices = NULL,
-                        selected = NULL
-                      )
-                    ),
-                    
-                    mainPanel(width = 8,
-                      plotlyOutput(ns("aucroc_plot"),width = "500px"),
-                      br(),
-                      downloadButton(ns("download_aucroc_svg"), "Download as SVG"),
-                      downloadButton(ns("download_aucroc_pdf"), "Download as PDF"),
-                      downloadButton(ns("download_aucroc_df"), "Download data"),
-                      
-                      br(), br(), br()
-                    )
-                  )
-                  ), # close 'General' tab 
+                 h3("AUC-ROC at different tumoral fractions"),
+                 # First main panel for the initial AUC-ROC plot
+                 sidebarLayout(
+                   sidebarPanel(width = 2,
+                                selectInput(
+                                  ns("aucroc_tool_select"),
+                                  label = "Select Deconvolution Tool:",
+                                  choices = NULL,
+                                  selected = NULL
+                                ),
+                                selectInput(
+                                  ns("aucroc_dmrtool_select"),
+                                  label = "Select DMR Tool:",
+                                  choices = NULL,
+                                  selected = NULL
+                                )
+                   ),
+                   mainPanel(width = 8,
+                             plotlyOutput(ns("aucroc_plot"), height = "400px", width = "600px"),
+                             br(),
+                             downloadButton(ns("download_aucroc_svg"), "Download as SVG"),
+                             downloadButton(ns("download_aucroc_pdf"), "Download as PDF"),
+                             downloadButton(ns("download_aucroc_df"), "Download data"),
+                             br(), br(), br()
+                   )
+                 ),
+                 br(), br(),
+                 # Second main panel for the complete AUC-ROC plot
+                 sidebarLayout(
+                   sidebarPanel(width = 2,
+                                checkboxGroupInput(
+                                  ns("aucroc_complete_tools_select"),
+                                  label = "Select Deconvolution Tools:",
+                                  choices = NULL,
+                                  selected = NULL
+                                ),
+                                selectInput(
+                                  ns("aucroc_complete_dmrtool_select"),
+                                  label = "Select DMR Tool:",
+                                  choices = NULL,
+                                  selected = NULL
+                                )
+                   ),
+                   mainPanel(width = 8,
+                             plotOutput(ns("aucroc_complete_plot"), height = "600px"),
+                             br(),
+                             downloadButton(ns("download_aucroc_complete_svg"), "Download as SVG"),
+                             downloadButton(ns("download_aucroc_complete_pdf"), "Download as PDF"),
+                             downloadButton(ns("download_aucroc_complete_df"), "Download data"),
+                             br(), br(), br()
+                   )
+                 )
+                 ), # close 'General' tab 
         
         tabPanel(title = "Tools",
                   # RMSE Comparison section
                   h3("Tool ranks based on RMSE per tumoral fraction"),
                   sidebarLayout(
-                    sidebarPanel(width = 3,
+                    sidebarPanel(width = 2,
                       selectInput(
                         ns("rmse_comparison_fraction_select"), 
                         label = "Select Tumoral Fraction:",
@@ -140,7 +166,7 @@ metricsTabUI <- function(id) {
                  tags$hr(), br(), br(),
                  h3("General ranking of the tools"),
                  sidebarLayout(
-                   sidebarPanel(width = 3,
+                   sidebarPanel(width = 2,
                      checkboxGroupInput(
                        ns("rank_tools_select"),
                        label = "Select Deconvolution Tools:",
@@ -172,7 +198,7 @@ metricsTabUI <- function(id) {
                  # Heatmap section
                  h3("Heatmap of Tumoral Fraction vs Tools"),
                  sidebarLayout(
-                   sidebarPanel(width = 3,
+                   sidebarPanel(width = 2,
                      checkboxGroupInput(
                        ns("heatmap_tools_select"),
                        label = "Select Deconvolution Tools:",
@@ -726,13 +752,11 @@ metricsTabServer <- function(id) {
         
         # Labels and theme
         labs(
-          x = "False Positive Rate (FPR)",
-          y = "True Positive Rate (TPR)",
+          # x = "False Positive Rate (FPR)",
+          # y = "True Positive Rate (TPR)",
+          x = "FPR",
+          y = "TPR",
           color = "Tumoral fraction"
-        ) +
-        theme(
-          text = element_text(size = 12),
-          legend.position = "bottom"
         ) + theme_benchmarking
     }
 
@@ -775,8 +799,103 @@ metricsTabServer <- function(id) {
     )
     
     
+    ############################################################################ 
+    # AUCROC complete plot
+    # Dropdowns and checkboxes AUCROC complete plot
     
+    updateCheckboxGroupInput(session, "aucroc_complete_tools_select", 
+                             choices = sort(unique(bench$tool)), 
+                             selected = sort(unique(bench$tool)))
+    updateSelectInput(session, "aucroc_complete_dmrtool_select", 
+                      choices = sort(unique(bench$DMRtool)), 
+                      selected = sort(unique(bench$DMRtool))[1])
     
+    # Create a function to generate the heatmap for multiple tools
+    create_aucroc_complete_data <- function(data, tools, dmrtool) {
+      aucroc_complete_data <- data.frame()
+      fractions <- c(0.0001, 0.001, 0.01, 0.05)
+      for (tool in tools) {
+        for (fraction in unique(fractions)) {
+          filt_df <- data %>%
+            filter(expected_fraction %in% c(0, fraction) & DMRtool == dmrtool & tool == !!tool)
+          if (nrow(filt_df) > 0) {
+            roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
+            tmp <- data.frame(
+              fpr = 1 - rev(roc_curve$specificities),
+              tpr = rev(roc_curve$sensitivities),
+              thresholds = rev(roc_curve$thresholds),
+              auc = rev(roc_curve$auc),
+              fraction = fraction,
+              tool = tool
+            )
+            aucroc_complete_data <- rbind(aucroc_complete_data, tmp)
+          }
+        }
+      }
+      return(aucroc_complete_data)
+    }
+    
+    # Function to generate AUC-ROC plot with facet_wrap
+    create_aucroc_complete_plot <- function(aucroc_complete_data) {
+      ggplot(aucroc_complete_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
+        # ROC Curve Lines
+        geom_line(size = 1) +
+        
+        # AUC Points (only at x=0)
+        geom_point(aes(x = 0, y = auc), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
+        
+        # Labels and theme
+        labs(
+          x = "FPR",
+          y = "TPR",
+          color = "Tumoral fraction"
+        ) + 
+        theme_benchmarking +
+        facet_wrap(~ tool, ncol = 5)+ # Adjust ncol to control the number of columns
+        theme(
+          text = element_text(size = 14),
+          strip.text = element_text(size = 12),
+          legend.position = "bottom",
+          panel.spacing = unit(1,"lines")
+        )
+    }
+    
+    # Render output AUCROC plot
+    output$aucroc_complete_plot <- renderPlot({
+      req(input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
+      aucroc_complete_data <- create_aucroc_complete_data(bench, input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
+      req(nrow(aucroc_complete_data) > 0)  
+      create_aucroc_complete_plot(aucroc_complete_data)
+    })
+    
+    # Save AUCROC using the function
+    download_aucroc_complete_plot <- function(ext) {
+      downloadHandler(
+        filename = function() paste("aucroc_tumor_fractions_",input$aucroc_dmrtool_select, "_", Sys.Date(), ".", ext, sep=""),
+        content = function(file) {
+          req(input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
+          aucroc_complete_data <- create_aucroc_complete_data(bench, input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
+          req(nrow(aucroc_complete_data) > 0)  
+          plot <- create_aucroc_complete_plot(aucroc_complete_data)
+          ggsave(file, plot = plot, width = 8, height = 6, dpi = 300, device = ext)
+        }
+      )
+    }
+    output$download_aucroc_complete_svg <- download_aucroc_complete_plot("svg")
+    output$download_aucroc_complete_pdf <- download_aucroc_complete_plot("pdf")
+    
+    # Save dataframe AUCROC plot as csv
+    output$download_aucroc_complete_df <- downloadHandler(
+      filename = function() {
+        paste("aucroc_tumor_fractions_", input$aucroc_complete_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
+      },
+      content = function(file) {
+        req(input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
+        aucroc_complete_data <- create_aucroc_complete_data(bench, input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
+        req(nrow(aucroc_complete_data) > 0)  
+        write.csv(aucroc_complete_data, file, row.names = FALSE)
+      }
+    )
     ############################################################################ 
     ## Rank tools 
     # Dropdowns and checkboxes Rank tools

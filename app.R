@@ -8,7 +8,7 @@
 #   "tidyverse", "plotly", "shiny", "lubridate", "dplyr", "pROC", 
 #   "philentropy", "Metrics", "reshape2", "htmltools", "bslib",
 #   "stringr", "funkyheatmap", "spsComps", "conflicted", "LaplacesDemon",
-#   "shinytoastr", "cowplot"
+#   "shinytoastr", "cowplot", 
 # ))
 
 
@@ -26,7 +26,6 @@ library(pROC)
 library(spsComps) 
 library(conflicted)
 library(htmltools)
-
 
 # Source the module files
 source("modules/home.R")
