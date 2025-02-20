@@ -32,11 +32,11 @@ metricsTabUI <- function(id) {
                         selected = NULL
                       )
                     ),
-                    mainPanel( width = 2,
+                    mainPanel( width = 8,
                       plotlyOutput(ns("boxplot_TF"), height = "600px"),
                       br(),
-                      downloadButton(ns("download_boxplot_TF_svg"), "Download as SVG"),
-                      downloadButton(ns("download_boxplot_TF_pdf"), "Download as PDF"),
+                      # downloadButton(ns("download_boxplot_TF_svg"), "Download as SVG"),
+                      # downloadButton(ns("download_boxplot_TF_pdf"), "Download as PDF"),
                       downloadButton(ns("download_boxplot_TF_df"), "Download data"),
                       br(), br(), br()
                     )
@@ -64,8 +64,8 @@ metricsTabUI <- function(id) {
                     mainPanel(width = 8,
                       plotlyOutput(ns("rmse_plot"), height = "600px"),
                       br(),
-                      downloadButton(ns("download_rmse_plot_svg"), "Download as SVG"),
-                      downloadButton(ns("download_rmse_plot_pdf"), "Download as PDF"),
+                      # downloadButton(ns("download_rmse_plot_svg"), "Download as SVG"),
+                      # downloadButton(ns("download_rmse_plot_pdf"), "Download as PDF"),
                       downloadButton(ns("download_rmse_plot_df"), "Download data"),
                       br(), br(), br()
                     )
@@ -96,8 +96,8 @@ metricsTabUI <- function(id) {
                    mainPanel(width = 8,
                              plotlyOutput(ns("aucroc_plot"), height = "400px", width = "600px"),
                              br(),
-                             downloadButton(ns("download_aucroc_svg"), "Download as SVG"),
-                             downloadButton(ns("download_aucroc_pdf"), "Download as PDF"),
+                             # downloadButton(ns("download_aucroc_svg"), "Download as SVG"),
+                             # downloadButton(ns("download_aucroc_pdf"), "Download as PDF"),
                              downloadButton(ns("download_aucroc_df"), "Download data"),
                              br(), br(), br()
                    )
@@ -157,8 +157,8 @@ metricsTabUI <- function(id) {
                     mainPanel(width = 8,
                       plotlyOutput(ns("rmse_comparison"), height = "600px"),
                       br(),
-                      downloadButton(ns("download_rmse_comparison_svg"), "Download as SVG"),
-                      downloadButton(ns("download_rmse_comparison_pdf"), "Download as PDF"),
+                      # downloadButton(ns("download_rmse_comparison_svg"), "Download as SVG"),
+                      # downloadButton(ns("download_rmse_comparison_pdf"), "Download as PDF"),
                       downloadButton(ns("download_rmse_comparison_df"), "Download data"),
                       br(), br(),
                     )
@@ -187,9 +187,11 @@ metricsTabUI <- function(id) {
                      )
                    ),
                    mainPanel(width = 8,
-                     plotOutput(ns("rank"), height = "600px"),
-                     downloadButton(ns("download_rank_svg"), "Download as SVG"),
-                     downloadButton(ns("download_rank_pdf"), "Download as PDF"),
+                             plotlyOutput(ns("rank"), height = "600px"),
+                             # downloadButton(ns("download_rank_svg"), "Download as SVG"),
+                             # downloadButton(ns("download_rank_pdf"), "Download as PDF"),
+                             downloadButton(ns("download_rank_df"), "Download data"),
+                     
                      br(), br()
                    )
                  )
@@ -367,7 +369,10 @@ metricsTabServer <- function(id) {
       req(nrow(data) > 0)
       plot <- create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select))
       ggplotly(plot) %>% 
-        layout(boxmode= "group")
+        layout(boxmode= "group") %>% # Convert ggplot to interactive plotly
+        config(toImageButtonOptions = list(format = "svg",
+                                           filename = paste("boxplots_tools_fraction_", input$boxplot_fraction_select, "_", Sys.Date())
+        ))
       })
     
     # Save boxplot as svg and pdf
@@ -426,10 +431,12 @@ metricsTabServer <- function(id) {
     create_plot_rmse <- function(data, tool, dmrtools) {
 
       data <- compute_rmse_data(data, dmrtools) %>%
-        mutate(tooltip_text = paste("DMRtool:", DMRtool, "<br>Expected Fraction:", expected_fraction, "<br>nRMSE:", round(RMSE, 3)))
+        mutate(tooltip_text = paste("DMRtool:", DMRtool, 
+                                    "<br>Expected Fraction:", expected_fraction, 
+                                    "<br>nRMSE:", round(RMSE, 3)))
       
       # Plot 
-      ggplot(data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, shape = DMRtool, text = tooltip_text)) +
+      ggplot(data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, text = tooltip_text)) +
         geom_point(size = 3, alpha = 0.8) +
         labs(
           #title = paste("nRMSE for Tool:", tool),
@@ -439,17 +446,20 @@ metricsTabServer <- function(id) {
           shape = "DMRtool"
         ) + theme_benchmarking +  
         scale_y_continuous(expand = expansion(mult = 0.05))  +
-        custom_color_manual + 
-        custom_shape_manual
-    }
+        custom_color_manual
+      }
 
-    # Render the RMSE plot in UI using the function
+    #Render the RMSE plot in UI using the function
     output$rmse_plot <- renderPlotly({
       data <- filtered_data_rmse()
       req(nrow(data) > 0)
       plot <- create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select)
-      ggplotly(plot, tooltip = "text") 
+      ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
+        config(toImageButtonOptions = list(format = c("svg"),
+                                           filename = paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date()))
+        )
     })
+    
     
     # Save rmse plot as svg and pdf
     download_rmse_plot <- function(ext) {
@@ -527,10 +537,12 @@ metricsTabServer <- function(id) {
       # Reorder the tools globally
       plot_data <- plot_data %>%
         mutate(tool = factor(tool, levels = median_diff$tool)) %>%
-        mutate(tooltip_text = paste("DMRtool:", DMRtool, "<br>nRMSE:", round(RMSE, 3)))
+        mutate(tooltip_text = paste("DMRtool:", DMRtool, 
+                                    "<br>Tool:", tool,
+                                    "<br>nRMSE:", round(RMSE, 3)))
       
       # Generate the plot
-      ggplot(plot_data, aes(x = RMSE, y = fct_reorder(tool, RMSE), color = DMRtool, shape = DMRtool, text = tooltip_text)) +
+      ggplot(plot_data, aes(x = RMSE, y = fct_reorder(tool, RMSE), color = DMRtool, text = tooltip_text)) +
         geom_point(size = 3, alpha = 0.8) +
         scale_y_discrete(labels = function(y) str_replace_all(y, "_", " ")) +
         labs(
@@ -540,16 +552,18 @@ metricsTabServer <- function(id) {
           color = "DMRtool",
           shape = "DMRtool"
         ) + theme_benchmarking + scale_x_continuous(expand = expansion(mult = 0.05)) + 
-        custom_color_manual + 
-        custom_shape_manual 
-    }
+        custom_color_manual
+      }
     
         # Render the RMSE comparison plot in UI using the function
     output$rmse_comparison <- renderPlotly({
       data <- filtered_data_rmse_comparison()
       req(nrow(data) > 0)
       plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
-      ggplotly(plot, tooltip = "text")
+      ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
+        config(toImageButtonOptions = list(format = "svg",
+                                           filename = paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select), "_", Sys.Date())
+        ))
     })
     
     # Save RMSE comparison plot using the function
@@ -559,7 +573,9 @@ metricsTabServer <- function(id) {
         content = function(file) {
           data <- filtered_data_rmse_comparison()
           req(nrow(data) > 0)
-          ggsave(file, plot = create_rmse_comparison_plot(data, input$rmse_comparison_fraction_select),
+          plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
+
+          ggsave(file, plot = plot,
                  width = 10, height = 6, dpi = 300, device = ext)
         }
       )
@@ -644,8 +660,8 @@ metricsTabServer <- function(id) {
         geom_text(aes(
           label = label, 
           color = text_color  # Apply dynamic text color based on tile fill
-        ), size = 4) +
-        scale_fill_gradient(low = "white", high = "gray10", limits = c(0,1) ) + # Greyscale color scale
+        ), size = 4) + 
+        scale_fill_gradient(low = "white", high = "#2f425e", limits = c(0,1) ) + # Greyscale color scale
         scale_color_identity() + 
         scale_x_discrete(labels = function(x) str_replace_all(x, "_", " "))+
         labs(
@@ -905,6 +921,163 @@ metricsTabServer <- function(id) {
     updateCheckboxGroupInput(session, "rank_dmrtools_select", 
                              choices = sort(unique(bench$DMRtool)), 
                              selected = sort(unique(bench$DMRtool)))
+    updateSelectInput(session, "rank_metric_select", 
+                      choices =  c("normAUC", "normRMSE", "normSCC", "Score"), 
+                      selected = c("normAUC", "normRMSE", "normSCC", "Score")[1])
+    
+    
+    # Rank tool Data Filtering
+    filtered_data_ranking <- function(bench, tools, dmrtools) {
+      # Filter the input data based on selected tools and DMR tools
+      bench <- bench %>% 
+        filter(tool %in% tools, DMRtool %in% dmrtools)
+      
+      print(str(bench))
+      print(head(bench))
+      
+      # Compute AUC-ROC
+      aucroc_data <- data.frame()
+      fractions_auc <- unique(bench[bench$expected_fraction != 0, "expected_fraction"])
+      
+      for (fraction in fractions_auc) {
+        df <- bench %>% filter(expected_fraction %in% c(0, fraction))
+        for (deconv in unique(df$tool)) {
+          filt_df <- df %>% filter(tool == deconv)
+          for (dmrtool in unique(filt_df$DMRtool)) {
+            fin_df <- filt_df %>% filter(DMRtool == dmrtool)
+            
+            roc_curve <- roc.obj(fin_df$expected_fraction, fin_df$nbl)
+            tmp <- data.frame(
+              tool = deconv,
+              DMRtool = dmrtool,
+              meanAUC = mean(rev(roc_curve$auc)),
+              fraction = fraction
+            )
+            aucroc_data <- rbind(aucroc_data, tmp)
+          }
+        }
+      }
+      
+      classif_performance_auc <- aucroc_data %>%
+        group_by(tool, DMRtool) %>%
+        summarize(meanAUC = mean(meanAUC))
+      
+      # Compute RMSE for nonzero fractions
+      nonzero_fraction <- bench %>%
+        filter(expected_fraction != 0) %>%
+        group_by(tool, DMRtool) %>%
+        summarize(RMSE = rmse(expected_fraction, nbl))
+      
+      # Compute SCC for all fractions
+      all_fractions <- bench %>%
+        group_by(tool, DMRtool) %>%
+        summarize(SCC = scc(expected_fraction, nbl))
+      
+      # Merge the computed metrics
+      merged_metrics <- merge(all_fractions, nonzero_fraction, by = c("tool", "DMRtool"))
+      merged_metrics <- merge(merged_metrics, classif_performance_auc, by = c("tool", "DMRtool"))
+      
+      # Normalize the metrics
+      normalized_list <- list()
+      for (selection in unique(merged_metrics$DMRtool)) {
+        tmp <- na.omit(merged_metrics[merged_metrics$DMRtool == selection, ])
+        tmp$normSCC <- (tmp$SCC - min(tmp$SCC)) / (max(tmp$SCC) - min(tmp$SCC))
+        tmp$normRMSE <- 1 - (tmp$RMSE - min(tmp$RMSE)) / (max(tmp$RMSE) - min(tmp$RMSE))
+        tmp$normAUC <- (tmp$meanAUC - min(tmp$meanAUC)) / (max(tmp$meanAUC) - min(tmp$meanAUC))
+        normalized_list[[selection]] <- tmp[, c("tool", "DMRtool", "normSCC", "normRMSE", "normAUC")]
+      }
+      
+      normalized_df <- do.call(rbind, normalized_list)
+      
+      # Create a combined metrics 'Score' (using the formula you provided)
+      nzeros <- nrow(bench[bench$expected_fraction == 0,])
+      nnonzeros <- nrow(bench[bench$expected_fraction != 0,])
+      tot <- nzeros + nnonzeros
+      
+      normalized_df$Score <- 
+        normalized_df$normAUC + 
+        (nnonzeros / tot) * (normalized_df$normRMSE) + 
+        normalized_df$normSCC
+      
+      return(normalized_df)
+    }
+    
+    
+    # Create a function to generate rank plots
+    create_plot_ranking <- function(data, metric) {
+      data <- data %>%
+        mutate(tooltip_text = paste(metric,":", round(.data[[metric]], 3), 
+                                    "<br>Tool:", tool, 
+                                    "<br>DMRtool:", DMRtool))
+      
+      # Calculate mean score if not already available (or use from existing data)
+      mean_score <- data %>%
+        group_by(tool) %>%
+        summarise(Mean = mean(.data[[metric]], na.rm = TRUE)) %>%
+        arrange(desc(Mean))
+      
+      # Reorder the tools globally without adding 'meanScore' column to the dataframe
+      data <- data %>%
+        mutate(tool = factor(tool, levels = mean_score$tool))
+      
+      ggplot(data, aes(y = as.factor(tool), x = .data[[metric]], color = DMRtool, text = tooltip_text)) +
+        geom_point(size = 3, alpha = 0.8) +
+        labs(
+          #title = paste("Tools Ranked by", metric),
+          x = metric,
+          y = ""
+        ) +
+        theme_benchmarking +  
+       #scale_y_discrete(expand = expansion(mult = 0.05)) +
+        scale_y_discrete(labels = function(x) str_replace_all(x, "_", " "))+
+        custom_color_manual 
+    }
+    
+
+    # Render ggplotly rank plots
+    output$rank <- renderPlotly({
+      data <- filtered_data_ranking(bench, input$rank_tools_select,input$rank_dmrtools_select )
+      req(nrow(data) > 0)
+      
+      plot <- create_plot_ranking(data, input$rank_metric_select)
+      ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
+        config(toImageButtonOptions = list(format = "svg",
+                                           filename = paste("tools_vs_",input$rank_metric_select,"_", Sys.Date())
+                                           ))
+    })
+    
+    # Download rank plots via svg or pdf 
+    download_rank_plot <- function(ext) {
+      downloadHandler(
+        filename = function() {
+          paste("tools_vs_",input$rank_metric_select,"_", Sys.Date(), ".", ext, sep = "")
+        },
+        content = function(file) {
+          data <- filtered_data_ranking(bench, input$rank_tools_select, input$rank_dmrtools_select)
+          req(nrow(data) > 0)
+          ggsave(file, plot = create_plot_ranking(data, input$rank_metric_select),
+                 width = 10, height = 6, dpi = 300, device = ext)
+        }
+      )
+    }
+    
+    output$download_rank_svg <- download_rank_plot("svg")
+    output$download_rank_pdf <- download_rank_plot("pdf")
+    
+    # Download data of rank plots
+    output$download_rank_df <- downloadHandler(
+      filename = function() {
+        paste("tools_vs_",input$rank_metric_select, Sys.Date(), ".csv", sep = "")
+      },
+      content = function(file) {
+        data <- filtered_data_ranking(bench, input$rank_tools_select, input$rank_dmrtools_select)
+        req(nrow(data) > 0)
+        write.csv(data, file, row.names = FALSE)
+      }
+    )
+    
+    
+    
     
     
   }) # Close moduleServer
