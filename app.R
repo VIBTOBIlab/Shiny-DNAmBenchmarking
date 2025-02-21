@@ -4,23 +4,29 @@
 ####################################################################################
 
 # Install packages
-# install.packages(c(
-#   "tidyverse", "plotly", "shiny", "lubridate", "dplyr", "pROC",
-#   "philentropy", "Metrics", "reshape2", "htmltools", "bslib",
-#   "stringr", "funkyheatmap", "spsComps", "conflicted", "LaplacesDemon",
-#   "shinytoastr", "cowplot"
-# ))
+packages <- c("shiny", "bslib", "reshape2", "plotly", "philentropy", "LaplacesDemon", 
+              "Metrics", "dplyr", "ggplot2", "readr", "tidyr", "stringr", "forcats", 
+              "pROC", "spsComps", "conflicted", "htmltools", "quarto", "sever")
+
+# Check and install missing packages
+for (pkg in packages) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    install.packages(pkg)
+  }
+  library(pkg, character.only = TRUE)
+}
+
+# Set shiny server options
+#options("shiny.host"='10.32.8.17')
+#options("shiny.port"=8888)
 
 # Set library packages directory
 readRenviron(".Renviron")
 .libPaths(c(path.expand(Sys.getenv("R_LIBS_USER")), .libPaths()))
 print(.libPaths())
-#.libPaths("/mnt/c/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/4.3.1")
-#.libPaths("~/Projects/DecoNFlow_Benchmarking/4.3.1")
 
-#find.package("shiny") 
+
 # Load necessary libraries
-#library(R6)
 library(shiny)
 library(bslib)
 library(reshape2)
@@ -29,7 +35,7 @@ library(philentropy)
 library(LaplacesDemon)
 library(Metrics)
 #library(funkyheatmap) 
-#library(tidyverse)  # Includes dplyr, ggplot2, stringr, etc.
+#library(tidyverse)  # Includes dplyr, ggplot2, stringr, etc. --> problems on CMB shiny server
 library(dplyr)
 library(ggplot2)
 library(readr)
@@ -42,9 +48,8 @@ library(conflicted)
 library(htmltools)
 library(quarto)
 library(sever)
+library(forcats)
 
-#library(funkyheatmap)
-#library(tidyverse)  # Includes dplyr, ggplot2, stringr, etc.
 
 # Source the module files
 source("modules/home.R")
@@ -91,8 +96,6 @@ server <- function(input, output, session) {
   homeTabServer("home")
   metricsTabServer("metrics")
   contactTabServer("contact")
-  #session$onSessionEnded(stopApp) # Automatically stop a Shiny app when closing the browser tab: https://github.com/daattali/advanced-shiny/tree/master/auto-kill-app
-
 }
 
 # Run the app
