@@ -224,7 +224,11 @@ metricsTabUI <- function(id) {
                    )
                  )
 
-      )# Close 'DMRtool' section 
+      ), # Close 'DMRtool' section 
+      tabPanel(title = "Mean vs Median"),
+      tabPanel(title = "LoD")
+      
+               
       ),# Close tabsetPanel
       
       # Go to top of the page
@@ -307,7 +311,7 @@ metricsTabServer <- function(id) {
       return(roc_obj)
     }
 
-        ## 3. Visualisations
+    ## 3. Visualisations
     ############################################################################
     ## Boxplot predictions for each tumoral fraction
     # Dropdowns and checkboxes boxplot 
@@ -376,19 +380,19 @@ metricsTabServer <- function(id) {
       })
     
     # Save boxplot as svg and pdf
-    download_boxplot <- function(ext) {
-      downloadHandler(
-        filename = function() paste("boxplots_tools_fraction_", input$boxplot_fraction_select, "_", Sys.Date(), ".", ext, sep = ""),
-        content = function(file) {
-          data <- filtered_data_boxplot()
-          req(nrow(data) > 0)
-          ggsave(file, plot = create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select)),
-                 width = 10, height = 6, dpi = 300, device = ext)
-        }
-      )
-    }
-    output$download_boxplot_TF_svg <- download_boxplot("svg")
-    output$download_boxplot_TF_pdf <- download_boxplot("pdf")  
+    # download_boxplot <- function(ext) {
+    #   downloadHandler(
+    #     filename = function() paste("boxplots_tools_fraction_", input$boxplot_fraction_select, "_", Sys.Date(), ".", ext, sep = ""),
+    #     content = function(file) {
+    #       data <- filtered_data_boxplot()
+    #       req(nrow(data) > 0)
+    #       ggsave(file, plot = create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select)),
+    #              width = 10, height = 6, dpi = 300, device = ext)
+    #     }
+    #   )
+    # }
+    # output$download_boxplot_TF_svg <- download_boxplot("svg")
+    # output$download_boxplot_TF_pdf <- download_boxplot("pdf")  
     
     # Save dataframe boxplot as csv
     output$download_boxplot_TF_df <- downloadHandler(
@@ -460,21 +464,20 @@ metricsTabServer <- function(id) {
         )
     })
     
-    
     # Save rmse plot as svg and pdf
-    download_rmse_plot <- function(ext) {
-      downloadHandler(
-        filename = function() paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".", ext, sep = ""),
-        content = function(file) {
-          data <- filtered_data_rmse()
-          req(nrow(data) > 0)
-          ggsave(file, plot = create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select),
-                 width = 10, height = 6, dpi = 300, device = ext)
-        }
-      )
-    }
-    output$download_rmse_plot_svg <- download_rmse_plot("svg")
-    output$download_rmse_plot_pdf <- download_rmse_plot("pdf")
+    # download_rmse_plot <- function(ext) {
+    #   downloadHandler(
+    #     filename = function() paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".", ext, sep = ""),
+    #     content = function(file) {
+    #       data <- filtered_data_rmse()
+    #       req(nrow(data) > 0)
+    #       ggsave(file, plot = create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select),
+    #              width = 10, height = 6, dpi = 300, device = ext)
+    #     }
+    #   )
+    # }
+    # output$download_rmse_plot_svg <- download_rmse_plot("svg")
+    # output$download_rmse_plot_pdf <- download_rmse_plot("pdf")
     
     # Save dataframe rmse plot as csv
     output$download_rmse_plot_df <- downloadHandler(
@@ -567,21 +570,21 @@ metricsTabServer <- function(id) {
     })
     
     # Save RMSE comparison plot using the function
-    download_rmse_comparison_plot <- function(ext) {
-      downloadHandler(
-        filename = function() paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select), "_", Sys.Date(), ".", ext, sep = ""),
-        content = function(file) {
-          data <- filtered_data_rmse_comparison()
-          req(nrow(data) > 0)
-          plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
-
-          ggsave(file, plot = plot,
-                 width = 10, height = 6, dpi = 300, device = ext)
-        }
-      )
-    }
-    output$download_rmse_comparison_svg <- download_rmse_comparison_plot("svg")
-    output$download_rmse_comparison_pdf <- download_rmse_comparison_plot("pdf")
+    # download_rmse_comparison_plot <- function(ext) {
+    #   downloadHandler(
+    #     filename = function() paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select), "_", Sys.Date(), ".", ext, sep = ""),
+    #     content = function(file) {
+    #       data <- filtered_data_rmse_comparison()
+    #       req(nrow(data) > 0)
+    #       plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
+    # 
+    #       ggsave(file, plot = plot,
+    #              width = 10, height = 6, dpi = 300, device = ext)
+    #     }
+    #   )
+    # }
+    # output$download_rmse_comparison_svg <- download_rmse_comparison_plot("svg")
+    # output$download_rmse_comparison_pdf <- download_rmse_comparison_plot("pdf")
     
     # Save dataframe rmse comparison plot as csv
     output$download_rmse_comparison_df <- downloadHandler(
@@ -782,24 +785,27 @@ metricsTabServer <- function(id) {
       aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
       req(nrow(aucroc_data) > 0)  
       plot <- create_aucroc_plot(aucroc_data)
-      ggplotly(plot, tooltip = "text")
+      ggplotly(plot, tooltip = "text") %>%
+        config(toImageButtonOptions = list(format = "svg",
+                                           filename = paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
+                                           ))
     })
     
     # Save AUCROC using the function
-    download_aucroc_plot <- function(ext) {
-      downloadHandler(
-        filename = function() paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".", ext, sep=""),
-        content = function(file) {
-          req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
-          aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
-          req(nrow(aucroc_data) > 0)  
-          plot <- create_aucroc_plot(aucroc_data)
-          ggsave(file, plot = plot, width = 6, height = 6, dpi = 300, device = ext)
-        }
-      )
-    }
-    output$download_aucroc_svg <- download_aucroc_plot("svg")
-    output$download_aucroc_pdf <- download_aucroc_plot("pdf")
+    # download_aucroc_plot <- function(ext) {
+    #   downloadHandler(
+    #     filename = function() paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".", ext, sep=""),
+    #     content = function(file) {
+    #       req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
+    #       aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
+    #       req(nrow(aucroc_data) > 0)  
+    #       plot <- create_aucroc_plot(aucroc_data)
+    #       ggsave(file, plot = plot, width = 6, height = 6, dpi = 300, device = ext)
+    #     }
+    #   )
+    # }
+    # output$download_aucroc_svg <- download_aucroc_plot("svg")
+    # output$download_aucroc_pdf <- download_aucroc_plot("pdf")
     
     # Save dataframe AUCROC plot as csv
     output$download_aucroc_df <- downloadHandler(
@@ -1047,22 +1053,22 @@ metricsTabServer <- function(id) {
     })
     
     # Download rank plots via svg or pdf 
-    download_rank_plot <- function(ext) {
-      downloadHandler(
-        filename = function() {
-          paste("tools_vs_",input$rank_metric_select,"_", Sys.Date(), ".", ext, sep = "")
-        },
-        content = function(file) {
-          data <- filtered_data_ranking(bench, input$rank_tools_select, input$rank_dmrtools_select)
-          req(nrow(data) > 0)
-          ggsave(file, plot = create_plot_ranking(data, input$rank_metric_select),
-                 width = 10, height = 6, dpi = 300, device = ext)
-        }
-      )
-    }
-    
-    output$download_rank_svg <- download_rank_plot("svg")
-    output$download_rank_pdf <- download_rank_plot("pdf")
+    # download_rank_plot <- function(ext) {
+    #   downloadHandler(
+    #     filename = function() {
+    #       paste("tools_vs_",input$rank_metric_select,"_", Sys.Date(), ".", ext, sep = "")
+    #     },
+    #     content = function(file) {
+    #       data <- filtered_data_ranking(bench, input$rank_tools_select, input$rank_dmrtools_select)
+    #       req(nrow(data) > 0)
+    #       ggsave(file, plot = create_plot_ranking(data, input$rank_metric_select),
+    #              width = 10, height = 6, dpi = 300, device = ext)
+    #     }
+    #   )
+    # }
+    # 
+    # output$download_rank_svg <- download_rank_plot("svg")
+    # output$download_rank_pdf <- download_rank_plot("pdf")
     
     # Download data of rank plots
     output$download_rank_df <- downloadHandler(
