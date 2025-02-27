@@ -28,27 +28,33 @@ print(.libPaths())
 
 # Load necessary libraries
 library(shiny)
+
+#library(tidyverse)  # Includes dplyr, ggplot2, stringr, etc. --> problems on CMB shiny server
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(stringr)
+library(forcats)
+
+
 library(bslib)
 library(reshape2)
 library(plotly) 
+
+
 library(philentropy)
 library(LaplacesDemon)
 library(Metrics)
 #library(funkyheatmap) 
-#library(tidyverse)  # Includes dplyr, ggplot2, stringr, etc. --> problems on CMB shiny server
-library(dplyr)
-library(ggplot2)
-library(readr)
-library(tidyr)
-library(stringr)
-library(forcats)
-library(pROC)
-library(spsComps) 
+
+
+# library(pROC)
+# library(spsComps) 
 library(conflicted)
 library(htmltools)
 library(quarto)
 library(sever)
-library(forcats)
 
 
 # Source the module files

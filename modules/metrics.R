@@ -14,8 +14,20 @@ metricsTabUI <- function(id) {
                   sidebarLayout(
                     sidebarPanel( width = 3,
                       selectInput(
+                        ns("boxplot_depth_select"), 
+                        label = "Depth",
+                        choices = NULL,
+                        selected = NULL
+                      ),
+                      selectInput(
+                        ns("boxplot_approach_select"), 
+                        label = "Approach",
+                        choices = NULL,
+                        selected = NULL
+                      ),
+                      selectInput(
                         ns("boxplot_fraction_select"), 
-                        label = "Select Tumoral Fraction:",
+                        label = "Tumoral Fraction",
                         choices = NULL,
                         selected = NULL
                       ),
@@ -27,7 +39,7 @@ metricsTabUI <- function(id) {
                       ),
                       checkboxGroupInput(
                         ns("boxplot_dmrtools_select"),
-                        label = "Select DMR Tools:",
+                        label = "DMR Tools",
                         choices = NULL,  
                         selected = NULL
                       )
@@ -120,7 +132,7 @@ metricsTabUI <- function(id) {
                                 )
                    ),
                    mainPanel(width = 9,
-                             plotOutput(ns("aucroc_complete_plot"), height = "600px"),
+                             plotOutput(ns("aucroc_complete_plot"), height = "800px"),
                              br(),
                              downloadButton(ns("download_aucroc_complete_svg"), "Download as SVG"),
                              downloadButton(ns("download_aucroc_complete_pdf"), "Download as PDF"),
@@ -243,56 +255,52 @@ metricsTabUI <- function(id) {
 metricsTabServer <- function(id) {
   moduleServer(id, function(input, output, session) {
     
-    ## 1. Import the dataset and preprocess
+    ## 1. Import Data and Preprocessing
     # Load the data
-    res_limma <- read.csv("data/Results_20M_limma.csv", row.names = 1)
-    res_dmrfinder <- read.csv("data/Results_20M_DMRfinder.csv", row.names = 1)
-    res_wgbstools <- read.csv("data/Results_20M_wgbstools.csv", row.names = 1)
-    res_cibersort_dmrfinder <- read.csv("data/Results_20M_DMRfinder_cibersort.csv", row.names = 1)
-    metadata <- read.csv("data/SamplesMetadata.csv", sep = "\t")[, c("Sample", "Exp.nbl")]
-
-    # Combine datasets with metadata
-    bench <- rbind(res_dmrfinder, res_limma, res_wgbstools, res_cibersort_dmrfinder)
-    colnames(metadata) <- c("sample", "expected_fraction")
-    bench <- as.data.frame(merge(bench, metadata, by = "sample"))
+    combined_data <- read.csv("results/results_nbl_cfRRBS.csv")
     
-    # Change names of references and tools
-    bench <- bench %>%
-      mutate(
-        # Replacing tool names 
-        tool = case_when(
-          tool == "EpiDISH_RPC" ~ "RPC",
-          tool == "EpiDISH_CP_eq" ~ "Houseman's CP/QP w/equality",
-          tool == "EpiDISH_CP_ineq" ~ "Houseman's CP/QP w/inequality",
-          tool == "meth_atlas" ~ "MethAtlas",
-          tool == "Methyl_Resolver" ~ "MethylResolver",
-          tool == "PRMeth" ~ "NMF",
-          TRUE ~ tool
-        ),
-        # Replacing reference values 
-        reference = case_when(
-          reference == "reference_11healthy_10nbl" ~ "all available cell lines",
-          reference == "reference_11healthy_1nbl" ~ "matched cell line",
-          reference == "reference_11healthy_9nbl" ~ "all cell lines except matched",
-          reference == "reference_11healthy_4nbl" ~ "all adrenergic cell lines except matched",
-          TRUE ~ reference  
-        )
-      )
+    metadata <- read.csv("files/samples_metadata_nbl_cfRRBS.csv",sep = "\t")[,c("Sample","Exp.nbl","Depth")]
+    colnames(metadata) <- c("sample","expected_fraction","depth")
+    
+    # Combine data with metadata 
+    bench <- as.data.frame(merge(combined_data, metadata, by = "sample"))
     
     # Subset bench
-    bench <- subset(
-      bench,
-      bench$reference == "all cell lines except matched" &  # "reference_11healthy_9nbl" & 
-        bench$expected_fraction %in% c(0, 0.0001, 0.001, 0.003, 0.007, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5)
-      )
+    bench <- subset(bench,bench$reference=="reference_11healthy_9nbl" &
+                      bench$expected_fraction %in% c(0,0.0001,0.001,0.003,0.007,0.01,0.025,0.05,0.1,0.25,0.5))
+
+    # Change names of references and tools
+    # bench <- bench %>%
+    #   mutate(
+    #     # Replacing tool names 
+    #     tool = case_when(
+    #       tool == "EpiDISH_RPC" ~ "RPC",
+    #       tool == "EpiDISH_CP_eq" ~ "Houseman's CP/QP w/equality",
+    #       tool == "EpiDISH_CP_ineq" ~ "Houseman's CP/QP w/inequality",
+    #       tool == "meth_atlas" ~ "MethAtlas",
+    #       tool == "Methyl_Resolver" ~ "MethylResolver",
+    #       tool == "PRMeth" ~ "NMF",
+    #       TRUE ~ tool
+    #     ),
+    #     # Replacing reference values 
+    #     reference = case_when(
+    #       reference == "reference_11healthy_10nbl" ~ "all available cell lines",
+    #       reference == "reference_11healthy_1nbl" ~ "matched cell line",
+    #       reference == "reference_11healthy_9nbl" ~ "all cell lines except matched",
+    #       reference == "reference_11healthy_4nbl" ~ "all adrenergic cell lines except matched",
+    #       TRUE ~ reference  
+    #     )
+    #   )
     
     # Clean and format data 
-    bench$nbl <- round(bench$nbl, 4)
+    bench$nbl <- round(bench$nbl, 4) 
     bench$sample <- str_trim(bench$sample, side = c("both", "left", "right"))
     bench$tool <- str_trim(bench$tool, side = c("both", "left", "right"))
-    bench$DMRtool <- str_trim(bench$DMRtool, side = c("both", "left", "right"))
-    bench$sample <- bench$sample %>% str_replace("_R1_001_val_1_bismark_bt2_pe", "")
     bench <- as.data.frame(unique(bench))
+    
+    bench <- bench %>%
+      mutate(across(c(reference, DMRtool, direction, top, collapse_approach, 
+                      depth, min_cpgs, min_counts), as.factor))
     
     print(head(bench))
     print(str(bench))
@@ -310,39 +318,49 @@ metricsTabServer <- function(id) {
     scc <- function(actual, predicted) {
       cor(actual, predicted, method = "spearman")
     }
-    # MCC
-    mcc <- function(y_true,y_pred) {
-      TP <- as.numeric(sum(y_true > 0 & y_pred > 0 ))
-      TN <- as.numeric(sum(y_true == 0 & y_pred == 0))
-      FP <- as.numeric(sum(y_true == 0 & y_pred > 0))
-      FN <- as.numeric(sum(y_true > 0 & y_pred == 0))
-      
-      numerator <- (TP * TN) - (FP * FN)
-      denominator <- sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))
-      if (denominator == 0) return(0)
-      return(numerator / denominator)
-    }
-    aupr.obj <- function(true_labels, predicted_scores) {
-      true_labels[true_labels>0] <- 1
-      
-      # Calculate precision-recall curve and AUPR
-      pr <- pr.curve(scores.class0 = predicted_scores, weights.class0 = true_labels, curve = T)
-      
-      return(pr)
-    }
+    
     roc.obj <- function(true_labels, predicted_scores) {
       true_labels[true_labels>0] <- 1
       roc_obj <- roc(true_labels, predicted_scores)
       return(roc_obj)
     }
+    
+    
+    # # MCC
+    # mcc <- function(y_true,y_pred) {
+    #   TP <- as.numeric(sum(y_true > 0 & y_pred > 0 ))
+    #   TN <- as.numeric(sum(y_true == 0 & y_pred == 0))
+    #   FP <- as.numeric(sum(y_true == 0 & y_pred > 0))
+    #   FN <- as.numeric(sum(y_true > 0 & y_pred == 0))
+    #   
+    #   numerator <- (TP * TN) - (FP * FN)
+    #   denominator <- sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))
+    #   if (denominator == 0) return(0)
+    #   return(numerator / denominator)
+    # }
+    # aupr.obj <- function(true_labels, predicted_scores) {
+    #   true_labels[true_labels>0] <- 1
+    #   
+    #   # Calculate precision-recall curve and AUPR
+    #   pr <- pr.curve(scores.class0 = predicted_scores, weights.class0 = true_labels, curve = T)
+    #   
+    #   return(pr)
+    # }
 
-    ## 3. Visualisations
+    ## 3. Visualizations Benchmarking Results
     ############################################################################
     ## Boxplot predictions for each tumoral fraction
     # Dropdowns and checkboxes boxplot 
+    updateSelectInput(session, "boxplot_depth_select", 
+                      choices = sort(unique(bench$depth)), 
+                      selected = sort(unique(bench$depth))[1])
+    updateSelectInput(session, "boxplot_approach_select", 
+                      choices = sort(unique(bench$collapse_approach)), 
+                      selected = sort(unique(bench$collapse_approach))[1])
     updateSelectInput(session, "boxplot_fraction_select", 
                       choices = sort(unique(bench$expected_fraction[bench$expected_fraction != 0])), 
                       selected = sort(unique(bench$expected_fraction[bench$expected_fraction != 0]))[1])
+    
     updateCheckboxGroupInput(session, "boxplot_tools_select", 
                              choices = sort(unique(bench$tool)), 
                              selected = sort(unique(bench$tool)))
@@ -350,57 +368,69 @@ metricsTabServer <- function(id) {
                              choices = sort(unique(bench$DMRtool)), 
                              selected = sort(unique(bench$DMRtool)))
     
+
     # Reactive expression for filtered data boxplot
     filtered_data_boxplot <- reactive({
-      req(input$boxplot_fraction_select, input$boxplot_tools_select, input$boxplot_dmrtools_select)
-      bench %>% 
-        filter(expected_fraction == as.numeric(input$boxplot_fraction_select),
-               tool %in% input$boxplot_tools_select,
-               DMRtool %in% input$boxplot_dmrtools_select,
-               expected_fraction != 0)  # Exclude expected_fraction == 0
+      req(input$boxplot_depth_select, input$boxplot_approach_select, input$boxplot_fraction_select,
+          input$boxplot_tools_select, input$boxplot_dmrtools_select)
+      
+      bench %>%
+        filter(depth == input$boxplot_depth_select,                # Filter by depth
+               collapse_approach == input$boxplot_approach_select,  # Filter by approach
+               expected_fraction == as.numeric(input$boxplot_fraction_select),  # Filter by fraction
+               tool %in% input$boxplot_tools_select,                   # Filter by tools
+               DMRtool %in% input$boxplot_dmrtools_select,             # Filter by DMRtools
+               expected_fraction != 0) # Exclude expected_fraction == 0
     })
     
+    
     # Function to create the boxplot
-    create_boxplot_TF <- function(data, fraction) {
+    create_boxplot_TF <- function(data, depth, approach, fraction ) {
       # Rank the tools by median difference
-      median_diff <- bench %>%
-        filter(expected_fraction == fraction) %>%
+      median_diff <- data %>%
         group_by(tool, DMRtool) %>%
-        summarise(Diff = abs(median(expected_fraction) - median(nbl))) %>%
+        summarise(Diff = abs(median(expected_fraction) - median(nbl)), .groups = 'drop') %>%
         group_by(tool) %>%
-        summarise(Mean = mean(Diff, na.rm = TRUE)) %>%
+        summarise(Mean = mean(Diff, na.rm = TRUE), .groups = 'drop') %>%
         arrange(Mean)
+      # Tools with the smallest mean difference (more accurate) are placed first.
+      # Tools with the largest mean difference (less accurate) are placed last.
+      
+      print(median_diff)
       
       # Reorder the tools globally
       data <- data %>%
         mutate(tool = factor(tool, levels = median_diff$tool))
 
-       # Ensure DMRtool is a factor
-      data$DMRtool <- as.factor(data$DMRtool)
-
-      # Barplot
+      # Create hover text for jitter points
+      # data <- data %>%
+      #   mutate(hover_text = paste0("Tool: ", tool, "<br>",
+      #                              "nbl: ", nbl, "<br>",
+      #                              "DMRtool: ", DMRtool))
+      
+      # Boxplot
       ggplot(data, aes(x = tool, y = nbl, fill = DMRtool, color = DMRtool)) +
-        geom_boxplot(position = position_dodge(width = 0.75), outlier.color = "gray40", alpha = 0.6) +
+        geom_boxplot(position = position_dodge(width = 0.75), alpha = 0.6) +
         geom_jitter(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.75), size = 0.8, alpha = 0.5) +
         geom_hline(yintercept = fraction, color = "red", linetype = "dashed") +
-        #scale_x_discrete(labels = function(x) str_replace_all(x, "_", " ")) + 
+        scale_x_discrete(labels = function(x) str_replace_all(x, "_", " ")) +
         labs(
           x = "",
           y = "Tumoral fraction"
-        ) + theme_benchmarking + 
+        ) + theme_benchmarking +
         theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-        custom_color_manual + custom_fill_manual 
+        custom_color_manual + custom_fill_manual
       }
 
     # Render the boxplot in UI using the function
     output$boxplot_TF <- renderPlotly({
       data <- filtered_data_boxplot()
       req(nrow(data) > 0)
-      plot <- create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select))
+      plot <- create_boxplot_TF(data, input$boxplot_depth_select, input$boxplot_approach_select, as.numeric(input$boxplot_fraction_select))
       ggplotly(plot) %>% 
-        layout(boxmode= "group") %>% # Convert ggplot to interactive plotly
+        layout(boxmode= "group") %>% 
         config(toImageButtonOptions = list(format = "svg",
-                                           filename = paste("boxplots_tools_fraction_", input$boxplot_fraction_select, "_", Sys.Date())
+                                           filename = paste("boxplot_",input$boxplot_depth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_fraction_select, "_", Sys.Date())
         ))
       })
     
@@ -422,7 +452,7 @@ metricsTabServer <- function(id) {
     # Save dataframe boxplot as csv
     output$download_boxplot_TF_df <- downloadHandler(
       filename = function() {
-        paste("boxplot_data_fraction_", as.numeric(input$boxplot_fraction_select), "_", Sys.Date(), ".csv", sep = "")
+        paste("boxplot_",input$boxplot_depth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_fraction_select, "_", Sys.Date(), ".csv", sep = "")
       },
       content = function(file) {
         data <- filtered_data_boxplot()
@@ -898,7 +928,7 @@ metricsTabServer <- function(id) {
           color = "Tumoral fraction"
         ) + 
         theme_benchmarking +
-        facet_wrap(~ tool, ncol = 5)+ # Adjust ncol to control the number of columns
+        facet_wrap(~ tool, ncol = 4)+ # Adjust ncol to control the number of columns
         theme(
           text = element_text(size = 14),
           strip.text = element_text(size = 12),

@@ -1,0 +1,784 @@
+---
+title: "benchmarking_metrics"
+output: html_document
+date: "2024-10-31"
+---
+
+## Benchmarking metrics
+
+We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ {\displaystyle \rho }). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores.
+
+## Import the libraries
+
+```{r message=FALSE, warning=FALSE}
+library(philentropy)
+library(LaplacesDemon)
+library(Metrics)
+library(dplyr)
+library(funkyheatmap)
+library(tidyverse)
+library(stringr)
+library(funkyheatmap)
+library(pROC)
+```
+
+## Import the datasets and filter it
+
+Here, we will import all the results generated on the neuroblastoma vs healthy in-silico mixtures. A total number of 10 tumoral fractions will be considered. For each simulated tumoral fraction we have generated 60 replicates. Additionally, this scenario has been simulated with 4 different sequencing depth: an ideal scenario in the context of RRBS sequencing depth (20M of reads), and 3 other scenarios in which the initial samples have been downsampled: 15M, 10M and 5M or reads to estimate the deconvolution performance at lower sequencing depth.
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/")
+```
+
+In this chunk we will merge all the results generated for each DMR selection tool at different sequencing depths. If you already have the final .csv file, you can skip this.
+
+```{r}
+# Define the directory containing the CSV files
+dir_path <- "C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/"
+
+# Get a list of all CSV files in the directory
+csv_files <- list.files(paste0(dir_path,"results/"), pattern = "Results_.*", full.names = TRUE)
+
+# Read and bind all CSV files
+# combined_data <- do.call(rbind, lapply(csv_files, function(file) {
+#   df <- read.csv(file, row.names = 1)
+#   return(df)
+# }))
+
+# Save the combined file
+#write.csv(combined_data, file = paste0(dir_path,"results/results_nbl_cfRRBS.csv"), row.names = FALSE)
+```
+
+The next step is to merge the benchmarking results file with the metadata file, where we will select 3 columns that are crucial for our analyses: sample, expected tumoral (Exp.nbl) fraction and the sequencing depth. Finally, as you can see from the combined_data file, there are 3 different reference datasets used for this analysis. For our experiment, we will select only one reference (11 healthy vs 9nbl) cause this reference is totally independent from the samples used to generate the in-silico simulated mixtures.
+
+```{r}
+metadata <- read.csv(paste0(dir_path,"files/samples_metadata_nbl_cfRRBS.csv"),sep = "\t")[,c("Sample","Exp.nbl","Depth")]
+colnames(metadata) <- c("sample","expected_fraction","depth")
+
+combined_data <- read.csv(paste0(dir_path,"results/results_nbl_cfRRBS.csv"))
+
+bench <- as.data.frame(merge(combined_data,metadata,by="sample"))
+bench <- subset(bench,bench$reference=="reference_11healthy_9nbl" &
+                bench$expected_fraction %in% c(0,0.0001,0.001,0.003,0.007,0.01,0.025,0.05,0.1,0.25,0.5))
+bench$nbl <- round(bench$nbl,4)
+```
+
+Here we perform some cleaning steps to avoid white space at the beginning and ending of the strings. We also remove the duplicates rows, which shouldn't be present anyway.
+
+```{r}
+bench$sample <- str_trim(bench$sample, side = c("both", "left", "right"))
+bench$tool <- str_trim(bench$tool, side = c("both", "left", "right"))
+#bench$sample <- bench$sample %>% str_replace("_R1_001_val_1_bismark_bt2_pe", "")
+bench <- as.data.frame(unique(bench))
+
+write.csv(bench, file = paste0(dir_path,"bench.csv"), row.names = FALSE)
+
+```
+
+## Specify the metrics to use
+
+The next step to do is to define the metrics that we will use to evaluate the tools. For the 0% expected tumoral fraction, using RMSE can be problematic if you want to normalize it to make comparison per different tumor fractions possible. It's not possible to use MAPE either, since dividing by zero generates Inf values. That's the reason why we will use three different metrics: AUC value for classification performance (we try to answer the following question: how good is a tool in predicting presence/absence of tumor?), RMSE for fractions \>0% (here we try to answer the following question: how good is a tool in estimating the tumor fractions in samples where we expect tumoral fraction?) and Spearman's rank correlation coefficient fractions \>= 0% (this will be used more as a general metric). We will therefore have 3 metrics that can be combined with a weighted linear combination, where the weights are represented by the proportion of samples used to compute each metric:
+
+$$ 
+\text{Score} = \text{AUC} \times 1 + \text{SCC} \times 1 + \text{RMSE} \times 0.87 
+$$
+
+Since RMSE is computed on a proportion of all the samples (specifically, only the samples with tumoral fraction \> 0% --\> 0.87), it will be weighted by this percentage. The normalized RMSE (NRMSE) will be used to compare tools performance across different tumoral fractions: if we don't normalize, increasing the tumoral fraction will result in an increase in RMSE just because the value are higher and not necessarly because the performance is worse. The AUC will be computed using the library pROC, so no need to write it.
+
+```{r}
+# RMSE
+rmse <- function(actual, predicted) {
+  round(sqrt(mean((actual - predicted)^2)),4)
+}
+# Normalized RMSE (NRMSE)
+nrmse <- function(actual, predicted) {
+    round(sqrt(mean((actual - predicted))^2)/mean(actual),4)
+}
+# Spearman's rank correlation coefficient (SCC)
+scc <- function(actual, predicted) {
+  cor(actual, predicted, method = "spearman")
+}
+roc.obj <- function(true_labels, predicted_scores) {
+  true_labels[true_labels>0] <- 1
+  roc_obj <- roc(true_labels, predicted_scores)
+  return(roc_obj)
+}
+
+```
+
+## Plot the benchmarking results
+
+Now we are ready to plot the results for downstream interpretation.
+
+### Plot boxplots of the predictions for each tumoral fraction \> 0%
+
+The first visualization we are plotting are boxplots or the predicted tumoral fractions for each deconvolution tool across 3 different DMR selection tools. We will create one folder for each sequencing depth, and within each folder, one folder for mean and one folder for median.
+
+```{r}
+# Create the main directory to save the plots
+output_dir <- paste0(dir_path, "plots/boxplots_tools_rmse")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get unique values of sequencing depth and expected fraction
+unique_depths <- unique(bench$depth)
+unique_approaches <- unique(bench$collapse_approach)
+unique_fractions <- unique(bench$expected_fraction)
+unique_fractions <- subset(unique_fractions, unique_fractions != 0)
+
+# Loop over each sequencing depth
+for (seqdepth in unique_depths) {
+  
+  # Create a subdirectory for this depth (optional)
+  depth_dir <- file.path(output_dir, paste0("depth_", seqdepth))
+  if (!dir.exists(depth_dir)) dir.create(depth_dir)
+
+  # Loop over collapse approach
+  for (approach in unique_approaches) {
+    
+    # Create a subdirectory for this collapse approach (optional)
+    approach_dir <- file.path(depth_dir, approach)
+    if (!dir.exists(approach_dir)) dir.create(approach_dir)
+    
+      # Loop over each expected fraction
+    for (fraction in unique_fractions) {
+      
+      # Filter for the specific depth and fraction
+      plot_data <- bench %>%
+        filter(depth == seqdepth & expected_fraction == fraction &
+               collapse_approach == approach)
+      
+      # Rank the tools by median difference
+      median_diff <- plot_data %>% 
+        group_by(tool, DMRtool) %>% 
+        summarise(Diff = abs(median(expected_fraction) - median(nbl)), .groups = "drop") %>%
+        group_by(tool) %>%
+        summarise(Mean = mean(Diff, na.rm = TRUE), .groups = "drop") %>%
+        arrange(Mean)
+      
+      # Step 2: Reorder the tools globally
+      plot_data <- plot_data %>%
+        mutate(tool = factor(tool, levels = median_diff$tool))
+      
+      # Generate the boxplot
+      p <- plot_data %>%
+        group_by(tool) %>%
+        ggplot(aes(x = tool, y = nbl, color = DMRtool)) +
+        geom_boxplot() +
+        geom_hline(yintercept = fraction, color = "red", linetype = "dashed") +
+        labs(
+          title = paste("Depth:", seqdepth, "| Approach:", approach, "| Expected Fraction:", fraction),
+          x = "",
+          y = "Tumoral fraction"
+        ) +
+        theme(
+          axis.text.x = element_text(angle = 45, hjust = 1)
+        )
+      
+      # Save the plot
+      output_file <- file.path(approach_dir, paste0("boxplot_depth_", seqdepth, 
+                                                    "_approach_", approach, 
+                                                    "_fraction_", fraction, ".png"))
+      ggsave(output_file, plot = p, width = 8, height = 6)
+    }
+  }
+}
+```
+
+### Plot each tool performance (NRMSE) per tumoral fractions \>0%
+
+Now it might be interesting how the deconvolutions tools perform when increasing (or decreasing) the tumoral fraction. That is, what is the deconvolution performance at each tumoral fraction. However, since RMSE is scale dependent, we need to normalize it. We will use the normalized RMSE (NRMSE) in order to make the score scale indipendent: otherwise, increasing the expected value will also determine an increase in RMSE, giving a (wrong) perception that tools perform worse when increasing the tumoral fraction. The NRMSE is calculated as following:
+
+$$
+\text{NRMSE} = \frac{\text{RMSE}}{\bar{y}}
+$$
+
+```{r}
+# Create the main directory to save the plots
+output_dir <- paste0(dir_path, "plots/tools_vs_fractions_nrmse")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get unique values of sequencing depth, collapse approach, and tools
+unique_depths <- unique(bench$depth)
+unique_approaches <- unique(bench$collapse_approach)
+unique_tools <- unique(bench$tool)
+
+# Loop over sequencing depth
+for (seqdepth in unique_depths) {
+  
+  # Create a subdirectory for this depth (optional)
+  depth_dir <- file.path(output_dir, paste0("depth_", seqdepth))
+  if (!dir.exists(depth_dir)) dir.create(depth_dir)
+  
+  # Loop over collapse approach
+  for (approach in unique_approaches) {
+    
+    # Create a subdirectory for this collapse approach (optional)
+    approach_dir <- file.path(depth_dir, approach)
+    if (!dir.exists(approach_dir)) dir.create(approach_dir)
+    
+    # Loop over each tool (dec_tool)
+    for (dec_tool in unique_tools) {
+      
+      # Filter for the specific depth, collapse approach, and tool
+      plot_data <- bench %>%
+        filter(depth == seqdepth & collapse_approach == approach & 
+               tool == dec_tool & expected_fraction != 0) %>%
+        group_by(DMRtool, expected_fraction) %>%
+        summarize(NRMSE = rmse(expected_fraction, nbl) / mean(expected_fraction), .groups = "drop")  # Calculate mean RMSE
+      
+      # Plot the heatmap
+      p <- ggplot(plot_data, aes(x = factor(expected_fraction), y = NRMSE, color = DMRtool, shape = DMRtool)) +
+        geom_point(size = 3, alpha = 0.8) +
+        labs(
+          title = paste("NRMSE:", dec_tool, "| Depth:", seqdepth, "| Approach:", approach),
+          x = "Expected fraction",
+          y = "NRMSE"
+        ) +
+        theme(
+          axis.text.x = element_text(angle = 45, hjust = 1)
+        ) +
+        scale_color_manual(values = c("limma" = "#F8766D", "wgbs_tools" = "#00BA38", "DMRfinder" = "#619CFF"))
+      
+      # Save the plot as an image
+      output_file <- file.path(approach_dir, paste0("NRMSE_", dec_tool, "_depth_", seqdepth, "_", approach, ".png"))
+      ggsave(output_file, plot = p, width = 8, height = 6)
+    }
+  }
+}
+
+
+```
+
+
+### Plot tool ranks based on RMSE per tumoral fraction
+
+Here, we want to show the deconvolution tools perfomance at each tumoral fraction. Very similar to what we plot above, but in this case we are ranking for each tumoral fraction the tools based on the RMSE. Since in this analysis we are only looking at each tumoral fraction separately, there is no need to normalize the RMSE.
+
+
+```{r}
+# Create the main directory to save the plots
+output_dir <- paste0(dir_path, "plots/ranked_tools_rmse")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get unique values of sequencing depth, collapse approach, and expected_fraction
+unique_depths <- unique(bench$depth)
+unique_approaches <- unique(bench$collapse_approach)
+unique_fractions <- unique(bench$expected_fraction)
+unique_fractions <- subset(unique_fractions, unique_fractions != 0)
+
+# Loop over sequencing depth
+for (seqdepth in unique_depths) {
+  
+  # Create a subdirectory for this depth (optional)
+  depth_dir <- file.path(output_dir, paste0("depth_", seqdepth))
+  if (!dir.exists(depth_dir)) dir.create(depth_dir)
+  
+  # Loop over collapse approach
+  for (approach in unique_approaches) {
+    
+    # Create a subdirectory for this collapse approach (optional)
+    approach_dir <- file.path(depth_dir, approach)
+    if (!dir.exists(approach_dir)) dir.create(approach_dir)
+    
+    # Loop over each expected fraction
+    for (fraction in unique_fractions) {
+      
+      # Filter for the specific depth, approach, and fraction
+      plot_data <- bench %>%
+        filter(depth == seqdepth & collapse_approach == approach & expected_fraction == fraction) %>%
+        group_by(tool, DMRtool) %>% 
+        summarise(RMSE = rmse(expected_fraction, nbl), .groups = "drop")
+      
+      # Rank the tools by mean RMSE across DMR tools
+      median_diff <- plot_data %>%
+        group_by(tool) %>%
+        summarise(Mean = mean(RMSE, na.rm = TRUE)) %>%
+        arrange(Mean)
+      
+      # Reorder the tools globally
+      plot_data <- plot_data %>%
+        mutate(tool = factor(tool, levels = median_diff$tool))
+      
+      # Generate the plot
+      p <- ggplot(plot_data, aes(x = RMSE, y = tool, color = DMRtool, shape = DMRtool)) +
+        geom_point(size = 3, alpha = 0.8) +
+        labs(
+          title = paste("RMSE vs Tool | Fraction:", fraction, "| Depth:", depth, "| Approach:", approach),
+          x = "RMSE",
+          y = ""
+        )
+      
+      # Save the plot as an image
+      output_file <- file.path(approach_dir, paste0("ranking_tools_fraction_", fraction, "_depth_", seqdepth, "_", approach, ".png"))
+      ggsave(output_file, plot = p, width = 8, height = 6)
+    }
+  }
+}
+```
+
+### Plot AUC-ROC of tools at 4 low tumoral fractions
+
+Here we want to answer the question: how good are the deconvolution tools in predicting the presence/absence of the tumor at different tumoral fractions. Here we will investigate the AUC-ROC at 4, very low, tumoral fractions, that will be compared in pair-wise comparisons with 0% tumor mixtures. For each pair-wise comparison, the AUC-ROC will be computed.
+
+```{r}
+# Create the main directory to save the plots
+output_dir <- paste0(dir_path, "plots/aucroc_tumoral_fractions")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Define the target fractions
+fractions <- c(0.0001, 0.001, 0.01, 0.05)
+
+# Get unique sequencing depths, collapse approaches, and DMR tools
+unique_depths <- unique(bench$depth)
+unique_approaches <- unique(bench$collapse_approach)
+unique_dmrtools <- unique(bench$DMRtool)
+miss <- list()
+# Loop over sequencing depth
+for (seqdepth in unique_depths) {
+  
+  # Create a subdirectory for this depth (optional)
+  depth_dir <- file.path(output_dir, paste0("depth_", seqdepth))
+  if (!dir.exists(depth_dir)) dir.create(depth_dir)
+  
+  # Loop over collapse approach
+  for (approach in unique_approaches) {
+    
+    # Create a subdirectory for this collapse approach (optional)
+    approach_dir <- file.path(depth_dir, approach)
+    if (!dir.exists(approach_dir)) dir.create(approach_dir)
+    
+    for (dmrtool in unique_dmrtools) {
+      aucroc_data <- data.frame()
+
+      for (deconv in unique(df$tool)) {
+
+        for (fraction in fractions) {
+          filt_df <- bench %>%
+            filter(expected_fraction %in% c(0,fraction) & 
+                   DMRtool == dmrtool &
+                   collapse_approach == approach &
+                   depth == seqdepth &
+                   tool == deconv)
+          # Skip if there are not exactly two levels in expected_fraction (i.e., both 0 and fraction)
+          if (length(unique(filt_df$expected_fraction)) != 2) {
+            miss <- c(miss,deconv)
+            next
+          }
+          roc_curve <- roc.obj(filt_df$expected_fraction,filt_df$nbl)
+          tmp <- data.frame(
+            fpr = 1-rev(roc_curve$specificities),  # False Positive Rate
+            tpr = rev(roc_curve$sensitivities),  # True Positive Rate
+            thresholds = rev(roc_curve$thresholds),
+            auc = rev(roc_curve$auc),
+            fraction = fraction,
+            tool = deconv)
+          aucroc_data <- rbind(aucroc_data,tmp)
+        }
+      }
+      p <- ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction))) +
+        geom_line(size = 1) +
+        facet_wrap(~ tool, scales = "free", ncol = 5) +
+        geom_point(aes(x = 0, y = auc, color = as.factor(fraction)),shape = 1,stroke=1.5,size=2,show.legend = F) +
+        labs(
+          title = "AUC-ROC at different tumoral fractions",
+          x = "FPR",
+          y = "TPR",
+          color = "Tumoral fraction"
+        ) +
+        theme(
+          text = element_text(size = 12),
+          strip.text = element_text(size = 10),
+          legend.position = "bottom"
+        )
+      
+      # Save the plot as an image
+      output_file <- file.path(approach_dir, paste0("auc", "_depth_", seqdepth, "_", approach, "_", dmrtool, ".png"))
+      ggsave(output_file, plot = p, width = 8, height = 6)
+    }
+  }
+}
+
+```
+
+
+### Plot final ranks
+
+For now, we have only plotted the tools based on some metrics without making a ranking. In this section instead we will plot the tools ranked by the metrics we introduced at the beginning of this tutorial: AUC (presence/absence of tumor), RMSE (for >0%) and SCC (for all). In order to avoid unbalanced datasets when computing the AUC, each tumoral fraction will be compared to the 0% samples and AUC calculated. Finally, all the pairwise AUC will be averaged to extract the final AUC per tool.
+
+#### AUC-ROC to evaluate tools performance in presence/absence of tumor
+
+```{r message=FALSE, warning=FALSE}
+# Get unique sequencing depths, collapse approaches, and DMR tools
+unique_depths <- unique(bench$depth)
+unique_approaches <- unique(bench$collapse_approach)
+unique_dmrtools <- unique(bench$DMRtool)
+aucroc_data <- data.frame()
+
+# Loop over sequencing depth
+for (seqdepth in unique_depths) {
+  
+  # Create a subdirectory for this depth (optional)
+  depth_dir <- file.path(output_dir, paste0("depth_", seqdepth))
+  if (!dir.exists(depth_dir)) dir.create(depth_dir)
+  
+  # Loop over collapse approach
+  for (approach in unique_approaches) {
+    
+    # Create a subdirectory for this collapse approach (optional)
+    approach_dir <- file.path(depth_dir, approach)
+    if (!dir.exists(approach_dir)) dir.create(approach_dir)
+    
+    for (dmrtool in unique_dmrtools) {
+
+      for (deconv in unique(df$tool)) {
+
+        for (fraction in fractions) {
+          filt_df <- bench %>%
+            filter(expected_fraction %in% c(0,fraction) & 
+                   DMRtool == dmrtool &
+                   collapse_approach == approach &
+                   depth == seqdepth &
+                   tool == deconv)
+          
+          # Skip if df is empty
+          if (length(unique(filt_df$expected_fraction)) != 2) {
+            miss <- c(miss,deconv)
+            next
+          }
+          
+          roc_curve <- roc.obj(filt_df$expected_fraction,filt_df$nbl)
+          tmp <- data.frame(
+            fpr = 1-rev(roc_curve$specificities),  # False Positive Rate
+            tpr = rev(roc_curve$sensitivities),  # True Positive Rate
+            thresholds = rev(roc_curve$thresholds),
+            auc = rev(roc_curve$auc),
+            fraction = fraction,
+            tool = deconv,
+            DMRtool = dmrtool,
+            collapse_approach = approach,
+            depth = seqdepth)
+          aucroc_data <- rbind(aucroc_data,tmp)
+        }
+      }
+    }
+  }
+}
+classif_performance_auc <- aucroc_data %>%
+  group_by(fraction,tool,DMRtool,collapse_approach,depth) %>%
+  summarize(AUC=mean(auc)) %>%
+  group_by(tool,DMRtool,collapse_approach,depth) %>%
+  summarize(meanAUC=mean(AUC))
+
+```
+
+#### RMSE of tools on fractions \> 0%
+
+```{r}
+# Get unique values of expected_fraction and exclude the 0
+unique_fractions <- unique(bench$expected_fraction)
+
+# Compute the metrics
+nonzero_fraction <- bench %>%
+  filter(expected_fraction!=0) %>%
+  group_by(tool,DMRtool,collapse_approach,depth) %>%
+  summarize(RMSE=rmse(expected_fraction,nbl))
+```
+
+#### Spearman's rank Correlation Coefficient on all the fractions
+
+```{r}
+# Get unique values of expected_fraction 
+unique_fractions <- unique(bench$expected_fraction)
+
+# Compute the metrics
+all_fractions <- bench %>%
+  group_by(tool,DMRtool,depth,collapse_approach) %>%
+  summarize(SCC=scc(expected_fraction,nbl))
+```
+
+#### Plot general ranking of the tools based on RMSE, SCC, AUC and combined score
+
+```{r}
+# Get unique values of expected_fraction and exclude the 0
+unique_fractions <- unique(bench$expected_fraction)
+unique_depths <- unique(bench$depth)
+unique_approaches <- unique(bench$collapse_approach)
+unique_dmrtools <- unique(bench$DMRtool)
+
+# Merge the metrics
+merged_metrics <- merge(all_fractions,nonzero_fraction,by = c("tool","DMRtool","collapse_approach","depth"))
+merged_metrics <- merge(merged_metrics,classif_performance_auc,by = c("tool","DMRtool","collapse_approach","depth"))
+
+# Normalize all the metrics
+normalized_list <- list()
+miss <- list()
+for (dmrtool in unique_dmrtools) {
+  for (seqdepth in unique_depths) {
+    for (approach in unique_approaches) {
+      
+      tmp <- merged_metrics %>%
+              filter(DMRtool == dmrtool &
+                   collapse_approach == approach &
+                   depth == seqdepth)
+      # Skip if df is empty
+      if (dim(tmp)[1] == 0) {
+        miss <- c(miss,deconv)
+        next
+      }
+      tmp <- tmp %>%
+        mutate(
+          SCC = ifelse(is.na(SCC), 0, SCC),  # Replace NAs in SCC with 0
+          RMSE = ifelse(is.na(RMSE), 1, RMSE),   # Replace NAs in RMSE with 1
+          AUC = ifelse(is.na(meanAUC),0,meanAUC)  
+        )
+      tmp$normSCC <- (tmp$SCC - min(tmp$SCC)) / (max(tmp$SCC)-min(tmp$SCC))
+      tmp$normRMSE <- 1-(tmp$RMSE - min(tmp$RMSE)) / (max(tmp$RMSE) - min(tmp$RMSE))
+      tmp$normAUC <- (tmp$meanAUC - min(tmp$meanAUC)) / (max(tmp$meanAUC)-min(tmp$meanAUC))
+      # Append the normalized subset to the list
+      key <- paste(dmrtool, seqdepth, approach, sep = "_")
+      normalized_list[[key]] <- tmp[, c("tool", "DMRtool", "collapse_approach","depth", "normSCC", "normRMSE","normAUC")]  
+    }
+  }
+}
+# Combine all normalized subsets into a single data frame
+normalized_df <- do.call(rbind, normalized_list)
+
+# Create a combined metrics
+nzeros <- nrow(bench[bench$expected_fraction==0,])
+nnonzeros <- nrow(bench[bench$expected_fraction!=0,])
+tot <- nzeros + nnonzeros
+normalized_df$Score <- 
+  normalized_df$normAUC +
+  (nnonzeros/tot)*(normalized_df$normRMSE) + 
+  normalized_df$normSCC
+```
+
+Now we can plot the final ranks.
+
+```{r}
+# Create a directory to save the plots (optional)
+output_dir <- paste0(dir_path,"plots/final_ranks")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+for (metric in c("normSCC","normRMSE","Score","normAUC")) {
+  
+  for (seqdepth in unique_depths) {
+    
+    # Create a subdirectory for this depth (optional)
+    depth_dir <- file.path(output_dir, paste0("depth_", seqdepth))
+    if (!dir.exists(depth_dir)) dir.create(depth_dir)
+    
+    for (approach in unique_approaches) {
+      
+      # Create a subdirectory for this collapse approach (optional)
+      approach_dir <- file.path(depth_dir, approach)
+      if (!dir.exists(approach_dir)) dir.create(approach_dir)
+      
+      df <- normalized_df %>%
+            filter(collapse_approach == approach &
+                   depth == seqdepth)
+      
+      # Rank the tools by combined metric
+      mean_score <- df %>% 
+            group_by(tool) %>% 
+            summarise(Mean=sum(.data[[metric]])/length(unique_dmrtools)) %>%
+            arrange(Mean)
+
+      # Reorder the tools globally
+      df <- df %>%
+        mutate(tool = factor(tool, levels = mean_score$tool))
+      
+      p <- ggplot(df, aes(y = tool, x = .data[[metric]], color = DMRtool, shape = DMRtool)) +
+          geom_point(size = 3, alpha = 0.8) +
+          labs(
+              title = paste("Depth:", depth, "| Approach:", approach),
+              x = metric,
+              y = ""
+          ) +
+          theme(
+              axis.text.x = element_text(angle = 45, hjust = 1)
+          ) +
+          scale_color_manual(values=c("limma"="#F8766D","wgbs_tools"="#00BA38","DMRfinder"="#619CFF"))
+      
+      # Save the plot as an image
+      output_file <- file.path(approach_dir, paste0("rank_",metric,"_depth_", seqdepth, "_", approach, ".png"))
+      ggsave(output_file, plot = p, width = 8, height = 6)
+    }
+  }
+}
+```
+
+
+### Plot heatmap of tools performance (RMSE) per tumoral fraction
+
+To plot the performance of each tool at different tumoral fractions, we will use the RMSE. We will plot an heatmap to have a more condensed overview.
+
+```{r}
+# Create a directory to save the plots (optional)
+output_dir <- paste0(dir_path,"plots/heatmap_tools_rmse")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+unique_fractions <- unique(bench$expected_fraction)
+unique_depths <- unique(bench$depth)
+unique_approaches <- unique(bench$collapse_approach)
+unique_dmrtools <- unique(bench$DMRtool)
+
+for (dmrtool in unique_dmrtools) {
+  for (seqdepth in unique_depths) {
+    
+    # Create a subdirectory for this depth (optional)
+    depth_dir <- file.path(output_dir, paste0("depth_", seqdepth))
+    if (!dir.exists(depth_dir)) dir.create(depth_dir)
+    
+    for (approach in unique_approaches) {
+
+      # Create a subdirectory for this collapse approach (optional)
+      approach_dir <- file.path(depth_dir, approach)
+      if (!dir.exists(approach_dir)) dir.create(approach_dir)
+      
+      # Filter for the specific DMR selection tool
+      plot_data <- bench %>%
+        filter(DMRtool==dmrtool & 
+               expected_fraction!=0 &
+               depth == seqdepth &
+               collapse_approach == approach) %>%
+        group_by(tool,expected_fraction) %>%  # Group by tool and tumoral fraction
+        summarize(RMSE = rmse(expected_fraction, nbl), .groups = "drop")
+        
+      # Rank the tools by median RMSE
+      median_diff <- plot_data %>% 
+        group_by(tool) %>% 
+        filter(expected_fraction==0.0001) %>%
+        arrange(RMSE)
+      
+      # Reorder the tools globally
+      plot_data <- plot_data %>%
+        mutate(tool = factor(tool, levels = median_diff$tool))
+      
+      # Plot the heatmap
+      p <- ggplot(plot_data, aes(x = tool, y = factor(expected_fraction), fill = RMSE)) +
+        geom_tile() +  # Heatmap tiles
+        geom_text(aes(label = round(RMSE, 5)), color = "white", size = 3) +  # Annotate RMSE
+        scale_fill_viridis_c(end = 0.6) +  # Color gradient
+        labs(
+          title = paste0("Heatmap of Tumoral Fraction vs Tools (",dmrtool,")"),
+          x = "",
+          y = "Tumoral Fraction"
+        ) +
+        theme(
+          axis.text.x = element_text(angle = 45, hjust = 1),  # Rotate x-axis labels
+          panel.grid = element_blank()  # Remove gridlines for cleaner look
+        )
+      
+        # Save the plot as an image
+        output_file <- file.path(approach_dir, paste0("heatmap_tools_",dmrtool,"_depth_", seqdepth, "_", approach, ".png"))
+        ggsave(output_file, plot = p, width = 8, height = 6)   
+    }
+  }
+}
+
+ 
+```
+
+### Plot funkyheatmap
+
+Prepare the data
+
+```{r}
+fraction_funkyheat <- bench %>%
+  filter(expected_fraction!=0) %>%
+  group_by(tool,expected_fraction,DMRtool) %>%
+  summarize(RMSE=rmse(expected_fraction,nbl)) %>%
+  mutate(
+    fraction_class = cut(
+      expected_fraction,
+      breaks = c(-Inf, 0.001, 0.01, 0.1, 0.5, 1), # Define your breakpoints
+      labels = c("<=0.001","<=0.01", "<=0.1", "<=0.5","1"), # Define labels for the classes
+      right = TRUE # Interval includes the lower bound but not the upper
+    )
+  ) %>%
+  group_by(fraction_class,tool) %>%
+  summarize(RMSE_class=1-mean(RMSE),.groups = "drop") %>%
+  pivot_wider(
+    names_from = c(fraction_class),
+    names_sep = "_",
+    values_from = RMSE_class
+  ) %>%
+  mutate(across(where(is.numeric), 
+                ~ (.-min(., na.rm = TRUE)) / (max(., na.rm = TRUE) - min(., na.rm = TRUE))))
+
+dmrtool_funkyheat <- bench %>%
+  group_by(DMRtool,tool) %>%
+  summarize(RMSE=1-rmse(expected_fraction,nbl),.groups = "drop") %>%
+  pivot_wider(
+    names_from = c(DMRtool),
+    names_sep = "_",
+    values_from = RMSE
+  ) %>%
+  mutate(across(where(is.numeric), 
+                ~ (.-min(., na.rm = TRUE)) / (max(., na.rm = TRUE) - min(., na.rm = TRUE))))
+
+classif_funkyheat <- normalized_df %>%
+  group_by(tool) %>%
+  summarize(Classification=mean(normMCC))
+
+metrics_funkyheat <- normalized_df %>% 
+  group_by(tool) %>%
+  summarize(Score=mean(Score),
+            RMSE=mean(normRMSE),
+            SCC=mean(normSCC),
+            MCC=mean(normMCC)
+            ) %>%
+  mutate(Score=(Score-min(Score))/(max(Score)-min(Score)))
+
+data_funkyheat <- merge(metrics_funkyheat[,c("tool","RMSE","SCC","MCC")],dmrtool_funkyheat,by=c("tool"))
+data_funkyheat <- merge(data_funkyheat,fraction_funkyheat,by = c("tool"))
+data_funkyheat <- merge(data_funkyheat,classif_funkyheat,by=c("tool"))
+data_funkyheat <- merge(data_funkyheat,metrics_funkyheat[,c("tool","Score")],by=c("tool"))
+data_funkyheat$Rank <- rank(-data_funkyheat$Score)
+data_funkyheat <- data_funkyheat[order(data_funkyheat$Rank,decreasing = F),]
+```
+
+Prepare the column info necessary for the heatmap
+
+```{r}
+column_info <- tribble(
+  ~id,            ~group,               ~name,         ~geom,        ~palette,    ~options,
+  "tool",         "",                   "",            "text",       NA,          list(hjust = 0, width = 6),
+  "RMSE",         "Per metric",         "1-RMSE",      "funkyrect",  "palette1",  lst(),
+  "SCC",          "Per metric",         "SCC",         "funkyrect",  "palette1",  lst(),
+  "MCC",          "Per metric",         "MCC",         "funkyrect",  "palette1",  lst(),
+  "DMRfinder",    "Per DMR tool",       "DMRfinder",   "funkyrect",  "palette1",  lst(),
+  "limma",        "Per DMR tool",       "limma",       "funkyrect",  "palette1",  lst(),
+  "wgbs_tools",   "Per DMR tool",       "wgbs_tools",  "funkyrect",  "palette1",  lst(),
+  "<=0.001",      "Per fraction",       "(0-0.001]",   "funkyrect",  "palette1",  lst(),
+  "<=0.01",       "Per fraction",       "(0.001-0.01]","funkyrect",  "palette1",  lst(),
+  "<=0.1",        "Per fraction",       "(0.01-0.1]",  "funkyrect",  "palette1",  lst(),
+  "<=0.5",        "Per fraction",       "(0.1-0.5]",   "funkyrect",  "palette1",  lst(),
+  "1",            "Per fraction",       "(0.5-1]",     "funkyrect",  "palette1",  lst(),
+  "Score",        "Overall",            "Overall score","funkyrect", "palette2",  lst(),
+  "Rank",         "Overall",            "Rank",        "rect",       "rank_rect", lst(legend = FALSE),
+  "Rank",         "Overall",            "",            "text",       "rank_text", list(overlay=T),
+)
+
+palettes <- tribble(
+  ~palette,    ~colours, 
+  "rank_rect", rep("#DDAD4B",length(data_funkyheat$tool)),
+  "rank_text", rep("black",length(data_funkyheat$tool)),
+)
+```
+
+Plot and save it in a pdf
+
+```{r}
+
+g <- funky_heatmap(data_funkyheat, 
+                   column_info = column_info,
+                   palettes = palettes
+                   ) 
+
+# Create a directory to save the plots (optional)
+output_dir <- "~/Desktop/plots/funkyheatmaps"
+if (!dir.exists(output_dir)) dir.create(output_dir)
+output_file <- file.path(output_dir, paste0("funkyheatmap.pdf"))
+ggsave(output_file, g, width = g$width, height = g$height)
+```
