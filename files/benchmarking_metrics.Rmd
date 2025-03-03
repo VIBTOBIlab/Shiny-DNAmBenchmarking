@@ -37,6 +37,7 @@ In this chunk we will merge all the results generated for each DMR selection too
 dir_path <- "C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/"
 
 # Get a list of all CSV files in the directory
+#colnames(bench)
 csv_files <- list.files(paste0(dir_path,"results/"), pattern = "Results_.*", full.names = TRUE)
 
 # Read and bind all CSV files
@@ -71,7 +72,7 @@ bench$tool <- str_trim(bench$tool, side = c("both", "left", "right"))
 #bench$sample <- bench$sample %>% str_replace("_R1_001_val_1_bismark_bt2_pe", "")
 bench <- as.data.frame(unique(bench))
 
-write.csv(bench, file = paste0(dir_path,"bench.csv"), row.names = FALSE)
+#write.csv(bench, file = paste0(dir_path,"bench.csv"), row.names = FALSE)
 
 ```
 

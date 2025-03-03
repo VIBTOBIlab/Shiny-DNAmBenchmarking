@@ -33,7 +33,7 @@ metricsTabUI <- function(id) {
                       ),
                       checkboxGroupInput(
                         ns("boxplot_tools_select"),
-                        label = "Select Deconvolution Tools:",
+                        label = "Deconvolution Tools",
                         choices = NULL,  
                         selected = NULL
                       ),
@@ -56,29 +56,42 @@ metricsTabUI <- function(id) {
                   
                   tags$hr(), br(), br(),
                   
-                  # RMSE section
-                  h3("Performance (nRMSE) per Tumoral Fractions"),
+                  # nRMSE section
+                  h3("Performance (nRMSE)"),
                   sidebarLayout(
                     sidebarPanel(width = 3,
                       selectInput(
-                        ns("rmse_tool_select"), 
-                        label = "Select Deconvolution Tool:",
+                        ns("nrmse_depth_select"), 
+                        label = "Depth",
+                        choices = NULL,
+                        selected = NULL
+                        ),
+                      selectInput(
+                        ns("nrmse_approach_select"),
+                        label = "Approach",
+                        choices = NULL,
+                        selected = NULL
+                        ),                                 
+
+                      selectInput(
+                        ns("nrmse_tool_select"), 
+                        label = "Deconvolution Tool",
                         choices = NULL,  
                         selected = NULL
                       ),
                       checkboxGroupInput(
-                        ns("rmse_dmrtools_select"),
-                        label = "Select DMR Tools:",
+                        ns("nrmse_dmrtools_select"),
+                        label = "DMR Tools",
                         choices = NULL,  
                         selected = NULL
                       )
                     ),
                     mainPanel(width = 9,
-                      plotlyOutput(ns("rmse_plot"), height = "600px"),
+                      plotlyOutput(ns("nrmse_plot"), height = "600px"),
                       br(),
-                      # downloadButton(ns("download_rmse_plot_svg"), "Download as SVG"),
-                      # downloadButton(ns("download_rmse_plot_pdf"), "Download as PDF"),
-                      downloadButton(ns("download_rmse_plot_df"), "Download data"),
+                      # downloadButton(ns("download_nrmse_plot_svg"), "Download as SVG"),
+                      # downloadButton(ns("download_nrmse_plot_pdf"), "Download as PDF"),
+                      downloadButton(ns("download_nrmse_plot_df"), "Download data"),
                       br(), br(), br()
                     )
                   ),
@@ -302,8 +315,8 @@ metricsTabServer <- function(id) {
       mutate(across(c(reference, DMRtool, direction, top, collapse_approach, 
                       depth, min_cpgs, min_counts), as.factor))
     
-    print(head(bench))
-    print(str(bench))
+    # print(head(bench))
+    # print(str(bench))
     
     # 2. Functions
     # RMSE
@@ -311,9 +324,9 @@ metricsTabServer <- function(id) {
       round(sqrt(mean((actual - predicted)^2)),4)
     }
     # Normalized RMSE (NRMSE)
-    nrmse <- function(actual, predicted) {
-      round(sqrt(mean((actual - predicted))^2)/mean(actual),4)
-    }
+    # nrmse <- function(actual, predicted) {
+    #   round(sqrt(mean((actual - predicted))^2)/mean(actual),4)
+    # }
     # Spearman's rank correlation coefficient (SCC)
     scc <- function(actual, predicted) {
       cor(actual, predicted, method = "spearman")
@@ -396,7 +409,7 @@ metricsTabServer <- function(id) {
       # Tools with the smallest mean difference (more accurate) are placed first.
       # Tools with the largest mean difference (less accurate) are placed last.
       
-      print(median_diff)
+      #print(median_diff)
       
       # Reorder the tools globally
       data <- data %>%
@@ -462,45 +475,64 @@ metricsTabServer <- function(id) {
     )
     
     ############################################################################ 
-    ## RMSE plot
-    # Dropdowns and checkboxes RMSE plot 
-    updateSelectInput(session, "rmse_tool_select", 
+    ## NRMSE plot
+    # Dropdowns and checkboxes nRMSE plot 
+    updateSelectInput(session, "nrmse_depth_select", 
+                      choices = sort(unique(bench$depth)), 
+                      selected = sort(unique(bench$depth))[1])
+    updateSelectInput(session, "nrmse_approach_select", 
+                      choices = sort(unique(bench$collapse_approach)), 
+                      selected = sort(unique(bench$collapse_approach))[1])
+    updateSelectInput(session, "nrmse_fraction_select", 
+                      choices = sort(unique(bench$expected_fraction[bench$expected_fraction != 0])), 
+                      selected = sort(unique(bench$expected_fraction[bench$expected_fraction != 0]))[1])
+
+    updateSelectInput(session, "nrmse_tool_select", 
                       choices = sort(unique(bench$tool)), 
                       selected = sort(unique(bench$tool))[1])
-    updateCheckboxGroupInput(session, "rmse_dmrtools_select", 
+    updateCheckboxGroupInput(session, "nrmse_dmrtools_select", 
                              choices = sort(unique(bench$DMRtool)), 
                              selected = sort(unique(bench$DMRtool)))
     
     # RMSE Data Filtering
-    filtered_data_rmse <- reactive({
-      req(input$rmse_tool_select, input$rmse_dmrtools_select)
-      bench %>%
-        filter(tool == input$rmse_tool_select, 
-               expected_fraction != 0)  # Exclude expected_fraction == 0
+    filtered_data_nrmse <- reactive({
+      req(input$nrmse_depth_select, input$nrmse_approach_select,input$nrmse_tool_select, input$nrmse_dmrtools_select)
+      data <- bench %>%
+        filter(depth == input$nrmse_depth_select, 
+               collapse_approach == input$nrmse_approach_select, 
+               tool == input$nrmse_tool_select, 
+               DMRtool %in% input$nrmse_dmrtools_select,
+               expected_fraction != 0) # Exclude expected_fraction == 0
+      # print(head(data))
+      # print(str(data))
+      return(data)
     })    
     
-    compute_rmse_data <- function(data, dmrtools) {
-      data %>%
-        filter(DMRtool %in% dmrtools) %>%
+    compute_nrmse_data <- function(data) {
+      nrmse_data <- data %>%
+        #filter(DMRtool %in% dmrtools) %>%
         group_by(DMRtool, expected_fraction) %>%
-        summarise(RMSE = nrmse(expected_fraction, nbl), .groups = "drop")
+        summarize(NRMSE = rmse(expected_fraction, nbl) / mean(expected_fraction), .groups = "drop") # Calculate mean RMSE
+      print(head(nrmse_data))
+      print(str(nrmse_data))
+      return(nrmse_data)
     }
-    
+  
     # Create a function to generate the RMSE plot
-    create_plot_rmse <- function(data, tool, dmrtools) {
+    create_plot_nrmse <- function(data) {
 
-      data <- compute_rmse_data(data, dmrtools) %>%
+      data <- data %>%
         mutate(tooltip_text = paste("DMRtool:", DMRtool, 
                                     "<br>Expected Fraction:", expected_fraction, 
-                                    "<br>nRMSE:", round(RMSE, 3)))
+                                    "<br>NRMSE:", round(NRMSE, 3)))
       
       # Plot 
-      ggplot(data, aes(x = factor(expected_fraction), y = RMSE, color = DMRtool, text = tooltip_text)) +
+      ggplot(data, aes(x = factor(expected_fraction), y = NRMSE, color = DMRtool, text = tooltip_text)) +
         geom_point(size = 3, alpha = 0.8) +
         labs(
           #title = paste("nRMSE for Tool:", tool),
-          x = "Expected Fraction",
-          y = "nRMSE",
+          x = "Expected fraction",
+          y = "NRMSE",
           color = "DMRtool",
           shape = "DMRtool"
         ) + theme_benchmarking +  
@@ -509,41 +541,42 @@ metricsTabServer <- function(id) {
       }
 
     #Render the RMSE plot in UI using the function
-    output$rmse_plot <- renderPlotly({
-      data <- filtered_data_rmse()
+    output$nrmse_plot <- renderPlotly({
+      data <- filtered_data_nrmse()
       req(nrow(data) > 0)
-      plot <- create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select)
+      nrmse_data <- compute_nrmse_data(data)
+      plot <- create_plot_nrmse(nrmse_data)
       ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
         config(toImageButtonOptions = list(format = c("svg"),
-                                           filename = paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date()))
+                                           filename = paste("NRMSE_",input$nrmse_tool_select, "_depth_",input$nrmse_depth_select,"_approach_",input$nrmse_approach_select,"_", Sys.Date()))
         )
     })
     
-    # Save rmse plot as svg and pdf
-    # download_rmse_plot <- function(ext) {
+    # Save nrmse plot as svg and pdf
+    # download_nrmse_plot <- function(ext) {
     #   downloadHandler(
-    #     filename = function() paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".", ext, sep = ""),
+    #     filename = function() paste(input$nrmse_tool_select, "_vs_fractions_nrmse_", Sys.Date(), ".", ext, sep = ""),
     #     content = function(file) {
-    #       data <- filtered_data_rmse()
+    #       data <- filtered_data_nrmse()
     #       req(nrow(data) > 0)
-    #       ggsave(file, plot = create_plot_rmse(data, input$rmse_tool_select, input$rmse_dmrtools_select),
+    #       ggsave(file, plot = create_plot_nrmse(data, input$nrmse_tool_select, input$nrmse_dmrtools_select),
     #              width = 10, height = 6, dpi = 300, device = ext)
     #     }
     #   )
     # }
-    # output$download_rmse_plot_svg <- download_rmse_plot("svg")
-    # output$download_rmse_plot_pdf <- download_rmse_plot("pdf")
+    # output$download_nrmse_plot_svg <- download_nrmse_plot("svg")
+    # output$download_nrmse_plot_pdf <- download_nrmse_plot("pdf")
     
-    # Save dataframe rmse plot as csv
-    output$download_rmse_plot_df <- downloadHandler(
+    # Save dataframe nrmse plot as csv
+    output$download_nrmse_plot_df <- downloadHandler(
       filename = function() {
-        paste(input$rmse_tool_select, "_vs_fractions_rmse_", Sys.Date(), ".csv", sep = "")
+        paste("NRMSE_",input$nrmse_tool_select, "_depth_",input$nrmse_depth_select,"_approach_",input$nrmse_approach_select,"_", Sys.Date(),".csv", sep = "")
       },
       content = function(file) {
-        data <- filtered_data_rmse()
+        data <- filtered_data_nrmse()
         req(nrow(data) > 0)  
-        rmse_data <- compute_rmse_data(data, input$rmse_dmrtools_select)
-        write.csv(rmse_data, file, row.names = FALSE)
+        nrmse_data <- compute_nrmse_data(data)
+        write.csv(nrmse_data, file, row.names = FALSE)
       }
     )
     
@@ -572,7 +605,7 @@ metricsTabServer <- function(id) {
         )
     })
     
-    
+    print(head(filtered_data_rmse_comparison))
     # Create a function to generate the RMSE comparison plot
     create_rmse_comparison_plot <- function(data, tool, fraction, dmrtools) {
       

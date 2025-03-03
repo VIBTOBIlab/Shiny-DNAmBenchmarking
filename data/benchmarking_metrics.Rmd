@@ -261,7 +261,7 @@ aucroc_data <- data.frame()
 fractions <- c(0.0001,0.001,0.01,0.05)
 for (fraction in unique(fractions)) {
   df <- bench %>%
-    filter(expected_fraction %in% c(0,fraction) & DMRtool == "DMRfinder")
+    filter(expected_fraction %in% c(0,fraction) & DMRtool == "DMRfinder") # & tool == 'CelFIE')
   for (deconv in unique(df$tool)) {
     filt_df <- df %>%
       filter(tool==deconv)
@@ -285,7 +285,7 @@ p <- ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction))) +
   facet_wrap(~ tool, scales = "free", ncol = 5) +
   geom_point(aes(x = 0, y = auc, color = as.factor(fraction)),shape = 1,stroke=1.5,size=2,show.legend = F) +
   labs(
-    title = "AUC-ROC at different tumoral fractions",
+    title = "AUC-ROC at different tumoral fractions UXM",
     x = "FPR",
     y = "TPR",
     color = "Tumoral fraction"
@@ -301,6 +301,24 @@ output_file <- file.path(output_dir, paste0("aucroc_tumor_fractions_dmrfinder.pn
 ggsave(output_file, plot = p, width = 8, height = 6)
 ```
 
+```{r}
+# Create the plot without facet_wrap
+p <- ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction))) +
+  geom_line(size = 1) +
+  geom_point(aes(x = 0, y = auc, color = as.factor(fraction)), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
+  labs(
+    title = "AUC-ROC at different tumoral fractions",
+    x = "FPR",
+    y = "TPR",
+    color = "Tumoral fraction",
+    linetype = "Tool"
+  ) +
+  theme(
+    text = element_text(size = 12),
+    legend.position = "bottom"
+  )
+p
+```
 
 ### Plot final ranks
 
@@ -310,16 +328,16 @@ Use the MCC to evaluate how the tools perform when predicting presence/absence o
 
 ```{r}
 # Create a directory to save the plots (optional)
-output_dir <- paste0(path,"final_ranks")
-if (!dir.exists(output_dir)) dir.create(output_dir)
+# output_dir <- paste0(path,"final_ranks")
+#if (!dir.exists(output_dir)) dir.create(output_dir)
 
 # Get unique values of expected_fraction and exclude the 0
-unique_fractions <- unique(bench$expected_fraction)
+#unique_fractions <- unique(bench$expected_fraction)
 # Compute the metrics
-classif_performance <- bench %>%
-  group_by(tool,DMRtool) %>%
-  filter(!is.na(nbl)) %>%
-  summarize(MCC=mcc(expected_fraction,nbl))
+# classif_performance <- bench %>%
+#   group_by(tool,DMRtool) %>%
+#   filter(!is.na(nbl)) %>%
+#   summarize(MCC=mcc(expected_fraction,nbl))
 ```
 
 #### AUC-ROC to evaluate tools performance in presence/absence of tumor
@@ -377,8 +395,8 @@ classif_performance_auc <- aucroc_data %>%
 
 ```{r}
 # Create a directory to save the plots (optional)
-output_dir <- paste0(path,"final_ranks")
-if (!dir.exists(output_dir)) dir.create(output_dir)
+# output_dir <- paste0(path,"final_ranks")
+# if (!dir.exists(output_dir)) dir.create(output_dir)
 
 # Get unique values of expected_fraction and exclude the 0
 unique_fractions <- unique(bench$expected_fraction)
@@ -394,8 +412,8 @@ nonzero_fraction <- bench %>%
 
 ```{r}
 # Create a directory to save the plots (optional)
-output_dir <- paste0(path,"final_ranks")
-if (!dir.exists(output_dir)) dir.create(output_dir)
+# output_dir <- paste0(path,"final_ranks")
+# if (!dir.exists(output_dir)) dir.create(output_dir)
 
 # Get unique values of expected_fraction 
 unique_fractions <- unique(bench$expected_fraction)
@@ -466,7 +484,7 @@ for (metric in c("normSCC","normRMSE","Score","normAUC")) {
         theme(
             axis.text.x = element_text(angle = 45, hjust = 1)
         ) +
-        scale_color_manual(values=c("limma"="#F8766D","wgbs_tools"="#00BA38","DMRfinder"="#619CFF"))
+        scale_color_manual(values=c("limma"="#F8766D","wgbs_tools"="#00BA38","DMRfinder"="#619CFF")) + theme_classic()
       
   # Save the plot as an image
   output_file <- file.path(output_dir, paste0("tools_vs_",metric,".png"))
@@ -525,112 +543,5 @@ for (selection in unique(bench$DMRtool)) {
       ggsave(output_file, plot = p, width = 8, height = 6)
 }
 
- 
+library(plotly) 
 ```
-
-
-### Plot funkyheatmap
-
-Prepare the data
-
-```{r}
-fraction_funkyheat <- bench %>%
-  filter(expected_fraction!=0) %>%
-  group_by(tool,expected_fraction,DMRtool) %>%
-  summarize(RMSE=rmse(expected_fraction,nbl)) %>%
-  mutate(
-    fraction_class = cut(
-      expected_fraction,
-      breaks = c(-Inf, 0.001, 0.01, 0.1, 0.5, 1), # Define your breakpoints
-      labels = c("<=0.001","<=0.01", "<=0.1", "<=0.5","1"), # Define labels for the classes
-      right = TRUE # Interval includes the lower bound but not the upper
-    )
-  ) %>%
-  group_by(fraction_class,tool) %>%
-  summarize(RMSE_class=1-mean(RMSE),.groups = "drop") %>%
-  pivot_wider(
-    names_from = c(fraction_class),
-    names_sep = "_",
-    values_from = RMSE_class
-  ) %>%
-  mutate(across(where(is.numeric), 
-                ~ (.-min(., na.rm = TRUE)) / (max(., na.rm = TRUE) - min(., na.rm = TRUE))))
-
-dmrtool_funkyheat <- bench %>%
-  group_by(DMRtool,tool) %>%
-  summarize(RMSE=1-rmse(expected_fraction,nbl),.groups = "drop") %>%
-  pivot_wider(
-    names_from = c(DMRtool),
-    names_sep = "_",
-    values_from = RMSE
-  ) %>%
-  mutate(across(where(is.numeric), 
-                ~ (.-min(., na.rm = TRUE)) / (max(., na.rm = TRUE) - min(., na.rm = TRUE))))
-
-classif_funkyheat <- normalized_df %>%
-  group_by(tool) %>%
-  summarize(Classification=mean(normMCC))
-
-metrics_funkyheat <- normalized_df %>% 
-  group_by(tool) %>%
-  summarize(Score=mean(Score),
-            RMSE=mean(normRMSE),
-            SCC=mean(normSCC),
-            MCC=mean(normMCC)
-            ) %>%
-  mutate(Score=(Score-min(Score))/(max(Score)-min(Score)))
-
-data_funkyheat <- merge(metrics_funkyheat[,c("tool","RMSE","SCC","MCC")],dmrtool_funkyheat,by=c("tool"))
-data_funkyheat <- merge(data_funkyheat,fraction_funkyheat,by = c("tool"))
-data_funkyheat <- merge(data_funkyheat,classif_funkyheat,by=c("tool"))
-data_funkyheat <- merge(data_funkyheat,metrics_funkyheat[,c("tool","Score")],by=c("tool"))
-data_funkyheat$Rank <- rank(-data_funkyheat$Score)
-data_funkyheat <- data_funkyheat[order(data_funkyheat$Rank,decreasing = F),]
-```
-
-Prepare the column info necessary for the heatmap
-
-```{r}
-column_info <- tribble(
-  ~id,            ~group,               ~name,         ~geom,        ~palette,    ~options,
-  "tool",         "",                   "",            "text",       NA,          list(hjust = 0, width = 6),
-  "RMSE",         "Per metric",         "1-RMSE",      "funkyrect",  "palette1",  lst(),
-  "SCC",          "Per metric",         "SCC",         "funkyrect",  "palette1",  lst(),
-  "MCC",          "Per metric",         "MCC",         "funkyrect",  "palette1",  lst(),
-  "DMRfinder",    "Per DMR tool",       "DMRfinder",   "funkyrect",  "palette1",  lst(),
-  "limma",        "Per DMR tool",       "limma",       "funkyrect",  "palette1",  lst(),
-  "wgbs_tools",   "Per DMR tool",       "wgbs_tools",  "funkyrect",  "palette1",  lst(),
-  "<=0.001",      "Per fraction",       "(0-0.001]",   "funkyrect",  "palette1",  lst(),
-  "<=0.01",       "Per fraction",       "(0.001-0.01]","funkyrect",  "palette1",  lst(),
-  "<=0.1",        "Per fraction",       "(0.01-0.1]",  "funkyrect",  "palette1",  lst(),
-  "<=0.5",        "Per fraction",       "(0.1-0.5]",   "funkyrect",  "palette1",  lst(),
-  "1",            "Per fraction",       "(0.5-1]",     "funkyrect",  "palette1",  lst(),
-  "Score",        "Overall",            "Overall score","funkyrect", "palette2",  lst(),
-  "Rank",         "Overall",            "Rank",        "rect",       "rank_rect", lst(legend = FALSE),
-  "Rank",         "Overall",            "",            "text",       "rank_text", list(overlay=T),
-)
-
-palettes <- tribble(
-  ~palette,    ~colours, 
-  "rank_rect", rep("#DDAD4B",length(data_funkyheat$tool)),
-  "rank_text", rep("black",length(data_funkyheat$tool)),
-)
-```
-
-Plot and save it in a pdf
-
-```{r}
-
-g <- funky_heatmap(data_funkyheat, 
-                   column_info = column_info,
-                   palettes = palettes
-                   ) 
-
-# Create a directory to save the plots (optional)
-output_dir <- "C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_benchmarking/plots/funkyheatmaps"
-if (!dir.exists(output_dir)) dir.create(output_dir)
-output_file <- file.path(output_dir, paste0("funkyheatmap.pdf"))
-ggsave(output_file, g, width = g$width, height = g$height)
-```
-
-
