@@ -161,20 +161,32 @@ metricsTabUI <- function(id) {
                   sidebarLayout(
                     sidebarPanel(width = 3,
                       selectInput(
+                        ns("rmse_comparison_depth_select"),
+                        label = "Depth",
+                        choices = NULL,
+                        selected = NULL
+                        ),
+                      selectInput(
+                        ns("rmse_comparison_approach_select"),
+                        label = "Approach",
+                        choices = NULL,
+                        selected = NULL
+                        ),
+                      selectInput(
                         ns("rmse_comparison_fraction_select"), 
-                        label = "Select Tumoral Fraction:",
+                        label = "Tumoral Fraction",
                         choices = NULL,
                         selected = NULL
                       ),
                       checkboxGroupInput(
                         ns("rmse_comparison_tools_select"),
-                        label = "Select Deconvolution Tools:",
+                        label = "Deconvolution Tools",
                         choices = NULL,  
                         selected = NULL
                       ),
                       checkboxGroupInput(
                         ns("rmse_comparison_dmrtools_select"),
-                        label = "Select DMR Tools:",
+                        label = "DMR Tools",
                         choices = NULL, 
                         selected = NULL
                       )
@@ -584,9 +596,16 @@ metricsTabServer <- function(id) {
     ############################################################################ 
     ## RMSE comparison Plot
     # Dropdowns and checkboxes RMSE comparison plot 
+    updateSelectInput(session, "rmse_comparison_depth_select", 
+                      choices = sort(unique(bench$depth)), 
+                      selected = sort(unique(bench$depth))[1])
+    updateSelectInput(session, "rmse_comparison_approach_select", 
+                      choices = sort(unique(bench$collapse_approach)), 
+                      selected = sort(unique(bench$collapse_approach))[1])
     updateSelectInput(session, "rmse_comparison_fraction_select", 
                       choices = sort(unique(bench$expected_fraction[bench$expected_fraction != 0])), 
                       selected = sort(unique(bench$expected_fraction[bench$expected_fraction != 0]))[1])
+    
     updateCheckboxGroupInput(session, "rmse_comparison_tools_select", 
                              choices = sort(unique(bench$tool)), 
                              selected = sort(unique(bench$tool)))
@@ -596,34 +615,35 @@ metricsTabServer <- function(id) {
     
     # RMSE tool comparison Data Filtering
     filtered_data_rmse_comparison <- reactive({
-      req(input$rmse_comparison_fraction_select, input$rmse_comparison_tools_select, input$rmse_comparison_dmrtools_select)
+      req(input$rmse_comparison_depth_select,input$rmse_comparison_approach_select, input$rmse_comparison_fraction_select, input$rmse_comparison_tools_select, input$rmse_comparison_dmrtools_select)
       bench %>%
-        filter(expected_fraction == as.numeric(input$rmse_comparison_fraction_select),
+        filter(depth == input$rmse_comparison_depth_select,
+               collapse_approach == input$rmse_comparison_approach_select, 
+               expected_fraction == input$rmse_comparison_fraction_select,
                expected_fraction != 0, # Exclude expected_fraction == 0
                DMRtool %in% input$rmse_comparison_dmrtools_select,
                tool %in% input$rmse_comparison_tools_select
         )
     })
-    
-    print(head(filtered_data_rmse_comparison))
+
     # Create a function to generate the RMSE comparison plot
-    create_rmse_comparison_plot <- function(data, tool, fraction, dmrtools) {
+    create_rmse_comparison_plot <- function(data) {
       
-      # Filter data based on tool and DMRtools
+      # Calculate RMSE
       plot_data <- data %>%
-        filter(expected_fraction == fraction) %>%
         #filter(tool != 'Methyl_Resolver') %>%
         group_by(tool, DMRtool) %>%
         summarise(RMSE = rmse(expected_fraction, nbl), .groups = "drop")
       
-      # Rank the tools by mean RMSE across DMRtools
-      median_diff <- data %>% 
-        filter(expected_fraction == fraction) %>%
-        group_by(tool, DMRtool) %>% 
-        summarise(RMSE = rmse(expected_fraction, nbl)) %>%
+      # Rank the tools by mean RMSE across DMR tools
+      median_diff <- plot_data %>% 
         group_by(tool) %>%
         summarise(Mean = mean(RMSE, na.rm = TRUE)) %>%
         arrange(Mean)
+      print(median_diff)
+      
+      # Higher (top) on the y-axis: Tools with a higher RMSE (worse performance).
+      # Lower (bottom) on the y-axis: Tools with a lower RMSE (better performance).
       
       # Reorder the tools globally
       plot_data <- plot_data %>%
@@ -633,12 +653,12 @@ metricsTabServer <- function(id) {
                                     "<br>nRMSE:", round(RMSE, 3)))
       
       # Generate the plot
-      ggplot(plot_data, aes(x = RMSE, y = fct_reorder(tool, RMSE), color = DMRtool, text = tooltip_text)) +
+      ggplot(plot_data, aes(x = RMSE, y = tool, color = DMRtool, text = tooltip_text)) +
         geom_point(size = 3, alpha = 0.8) +
         scale_y_discrete(labels = function(y) str_replace_all(y, "_", " ")) +
         labs(
           #title = paste("RMSE vs Tool (Expected Fraction:", fraction, ")"),
-          x = "nRMSE",
+          x = "RMSE",
           y = "",
           color = "DMRtool",
           shape = "DMRtool"
@@ -650,10 +670,10 @@ metricsTabServer <- function(id) {
     output$rmse_comparison <- renderPlotly({
       data <- filtered_data_rmse_comparison()
       req(nrow(data) > 0)
-      plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
+      plot <- create_rmse_comparison_plot(data)
       ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
         config(toImageButtonOptions = list(format = "svg",
-                                           filename = paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select), "_", Sys.Date())
+                                           filename = paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select),"_depth_",input$rmse_comparison_depth_select,"_", Sys.Date())
         ))
     })
     
@@ -676,7 +696,7 @@ metricsTabServer <- function(id) {
     
     # Save dataframe rmse comparison plot as csv
     output$download_rmse_comparison_df <- downloadHandler(
-      filename = function() paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select), "_", Sys.Date(), ".csv", sep = ""),
+      filename = function() paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select), "_depth_", input$rmse_comparison_depth_select,"_", Sys.Date(), ".csv", sep = ""),
       content = function(file) {
         data <- filtered_data_rmse_comparison() %>%
           group_by(tool, DMRtool) %>%
