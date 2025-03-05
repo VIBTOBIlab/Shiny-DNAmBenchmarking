@@ -350,14 +350,14 @@ for (seqdepth in unique_depths) {
     for (dmrtool in unique_dmrtools) {
       aucroc_data <- data.frame()
 
-      for (deconv in unique(df$tool)) {
+      for (deconv in unique(bench$tool)) {
 
         for (fraction in fractions) {
           filt_df <- bench %>%
-            filter(expected_fraction %in% c(0,fraction) & 
-                   DMRtool == dmrtool &
-                   collapse_approach == approach &
-                   depth == seqdepth &
+            filter(expected_fraction %in% c(0,fraction), 
+                   DMRtool == dmrtool,
+                   collapse_approach == approach,
+                   depth == seqdepth,
                    tool == deconv)
           # Skip if there are not exactly two levels in expected_fraction (i.e., both 0 and fraction)
           if (length(unique(filt_df$expected_fraction)) != 2) {
@@ -392,7 +392,9 @@ for (seqdepth in unique_depths) {
         )
       
       # Save the plot as an image
-      output_file <- file.path(approach_dir, paste0("auc", "_depth_", seqdepth, "_", approach, "_", dmrtool, ".png"))
+      output_file <- file.path(approach_dir, paste0("auc", "_depth_",
+                                                    seqdepth, "_", approach,
+                                                    "_", dmrtool, ".png"))
       ggsave(output_file, plot = p, width = 8, height = 6)
     }
   }

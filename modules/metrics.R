@@ -102,7 +102,44 @@ metricsTabUI <- function(id) {
 
                   # AUC-ROC of tools at 4 low tumoral fractions
                  h3("AUC-ROC at different tumoral fractions"),
-                 # First main panel for the initial AUC-ROC plot
+                 # First main panel for the complete AUC-ROC plot
+                 sidebarLayout(
+                   sidebarPanel(width = 3,
+                                selectInput(
+                                  ns("aucroc_complete_depth_select"), 
+                                  label = "Depth",
+                                  choices = NULL,
+                                  selected = NULL
+                                ),
+                                selectInput(
+                                  ns("aucroc_complete_approach_select"),
+                                  label = "Approach",
+                                  choices = NULL,
+                                  selected = NULL
+                                ),   
+                                checkboxGroupInput(
+                                  ns("aucroc_complete_tools_select"),
+                                  label = "Deconvolution Tool",
+                                  choices = NULL,
+                                  selected = NULL
+                                ),
+                                selectInput(
+                                  ns("aucroc_complete_dmrtool_select"),
+                                  label = "DMR Tool",
+                                  choices = NULL,
+                                  selected = NULL
+                                )
+                   ),
+                   mainPanel(width = 9,
+                             plotOutput(ns("aucroc_complete_plot"), height = "800px"),
+                             br(),
+                             downloadButton(ns("download_aucroc_complete_df"), "Download data"),
+                             downloadButton(ns("download_aucroc_complete_svg"), "Download as SVG"),
+                             downloadButton(ns("download_aucroc_complete_pdf"), "Download as PDF"),
+                             br(), br(), br()
+                   )
+                 ),
+                 # Second main panel for on specific AUC-ROC interactive plot
                  sidebarLayout(
                    sidebarPanel(width = 3,
                                 selectInput(
@@ -127,32 +164,8 @@ metricsTabUI <- function(id) {
                              br(), br(), br()
                    )
                  ),
-                 br(), br(),
-                 # Second main panel for the complete AUC-ROC plot
-                 sidebarLayout(
-                   sidebarPanel(width = 3,
-                                checkboxGroupInput(
-                                  ns("aucroc_complete_tools_select"),
-                                  label = "Select Deconvolution Tools:",
-                                  choices = NULL,
-                                  selected = NULL
-                                ),
-                                selectInput(
-                                  ns("aucroc_complete_dmrtool_select"),
-                                  label = "Select DMR Tool:",
-                                  choices = NULL,
-                                  selected = NULL
-                                )
-                   ),
-                   mainPanel(width = 9,
-                             plotOutput(ns("aucroc_complete_plot"), height = "800px"),
-                             br(),
-                             downloadButton(ns("download_aucroc_complete_svg"), "Download as SVG"),
-                             downloadButton(ns("download_aucroc_complete_pdf"), "Download as PDF"),
-                             downloadButton(ns("download_aucroc_complete_df"), "Download data"),
-                             br(), br(), br()
-                   )
-                 )
+                 br(), br()
+
                  ), # close 'General' tab 
         
         tabPanel(title = "Tools",
@@ -536,11 +549,11 @@ metricsTabServer <- function(id) {
       data <- data %>%
         mutate(tooltip_text = paste("DMRtool:", DMRtool, 
                                     "<br>Expected Fraction:", expected_fraction, 
-                                    "<br>NRMSE:", round(NRMSE, 3)))
+                                    "<br>NRMSE:", round(NRMSE, 4)))
       
       # Plot 
       ggplot(data, aes(x = factor(expected_fraction), y = NRMSE, color = DMRtool, text = tooltip_text)) +
-        geom_point(size = 3, alpha = 0.8) +
+        geom_point(size = 3, alpha = 0.8,  position = position_jitter(width = 0, height = 0)) +
         labs(
           #title = paste("nRMSE for Tool:", tool),
           x = "Expected fraction",
@@ -636,25 +649,37 @@ metricsTabServer <- function(id) {
         summarise(RMSE = rmse(expected_fraction, nbl), .groups = "drop")
       
       # Rank the tools by mean RMSE across DMR tools
-      median_diff <- plot_data %>% 
-        group_by(tool) %>%
-        summarise(Mean = mean(RMSE, na.rm = TRUE)) %>%
-        arrange(Mean)
-      print(median_diff)
+      # median_diff <- plot_data %>% 
+      #   group_by(tool) %>%
+      #   summarise(Mean = mean(RMSE, na.rm = TRUE)) %>%
+      #   arrange(Mean)
+      # print(median_diff)
       
-      # Higher (top) on the y-axis: Tools with a higher RMSE (worse performance).
-      # Lower (bottom) on the y-axis: Tools with a lower RMSE (better performance).
+      # Rank the tools by mean RMSE
+      ranked_tools <- plot_data %>%
+        group_by(tool) %>%
+        summarise(MeanRMSE = mean(RMSE, na.rm = TRUE)) %>%
+        arrange(MeanRMSE) %>%
+        pull(tool)  # Extract ordered tool names
+      
+      # Reorder tools based on calculated ranking
+      plot_data <- plot_data %>%
+        mutate(tool = factor(tool, levels = ranked_tools)) 
+      
+
+      # The tools with lower RMSE (better performance) will appear at the top of the y-axis.
+      # The tools with higher RMSE (worse performance) will appear at the bottom of the y-axis.
       
       # Reorder the tools globally
       plot_data <- plot_data %>%
-        mutate(tool = factor(tool, levels = median_diff$tool)) %>%
+        # mutate(tool = factor(tool, levels = median_diff$tool)) %>%
         mutate(tooltip_text = paste("DMRtool:", DMRtool, 
                                     "<br>Tool:", tool,
-                                    "<br>nRMSE:", round(RMSE, 3)))
+                                    "<br>RMSE:", round(RMSE, 4)))
       
       # Generate the plot
       ggplot(plot_data, aes(x = RMSE, y = tool, color = DMRtool, text = tooltip_text)) +
-        geom_point(size = 3, alpha = 0.8) +
+        geom_point(size = 3, alpha = 0.8, position = position_jitter(width = 0, height = 0) ) +
         scale_y_discrete(labels = function(y) str_replace_all(y, "_", " ")) +
         labs(
           #title = paste("RMSE vs Tool (Expected Fraction:", fraction, ")"),
@@ -706,7 +731,267 @@ metricsTabServer <- function(id) {
         write.csv(data, file, row.names = FALSE)
       }
     )
+
+    ############################################################################     
+    # AUCROC complete plot
+    # Dropdowns and checkboxes AUCROC complete plot
+    updateSelectInput(session, "aucroc_complete_depth_select", 
+                      choices = sort(unique(bench$depth)), 
+                      selected = sort(unique(bench$depth))[1])
+    updateSelectInput(session, "aucroc_complete_approach_select", 
+                      choices = sort(unique(bench$collapse_approach)), 
+                      selected = sort(unique(bench$collapse_approach))[1])
     
+    updateCheckboxGroupInput(session, "aucroc_complete_tools_select", 
+                             choices = sort(unique(bench$tool)), 
+                             selected = sort(unique(bench$tool)))
+    updateSelectInput(session, "aucroc_complete_dmrtool_select", 
+                      choices = sort(unique(bench$DMRtool)), 
+                      selected = sort(unique(bench$DMRtool))[1])
+    
+    # Create a reactive function for AUCROC complete data
+    create_aucroc_complete_data <- reactive({
+      req(input$aucroc_complete_depth_select, 
+          input$aucroc_complete_approach_select, 
+          input$aucroc_complete_tools_select, 
+          input$aucroc_complete_dmrtool_select)
+      
+      # Initialize empty dataframe
+      aucroc_complete_data <- data.frame()
+      fractions <- c(0.0001, 0.001, 0.01, 0.05)
+      miss <- c()  # Initialize missing tool tracker
+      
+      # Loop through tools and fractions to generate ROC data
+      for (tool in input$aucroc_complete_tools_select) {
+        for (fraction in unique(fractions)) {
+          filt_df <- bench %>%
+            filter(depth == input$aucroc_complete_depth_select,
+                   collapse_approach == input$aucroc_complete_approach_select,
+                   expected_fraction %in% c(0, fraction), 
+                   DMRtool == input$aucroc_complete_dmrtool_select,
+                   tool == !!tool
+                   )
+          # Ensure both 0 and fraction are present before running ROC analysis
+          if (length(unique(filt_df$expected_fraction)) != 2) {
+            miss <- c(miss, tool)  # Keep track of skipped cases
+            next  # Skip to the next iteration
+          }
+          
+          if (nrow(filt_df) > 0) {
+            roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
+            tmp <- data.frame(
+              fpr = 1 - rev(roc_curve$specificities),
+              tpr = rev(roc_curve$sensitivities),
+              thresholds = rev(roc_curve$thresholds),
+              auc = rev(roc_curve$auc),
+              fraction = fraction,
+              tool = tool
+            )
+            aucroc_complete_data <- rbind(aucroc_complete_data, tmp)
+          }
+        }
+      }
+      
+      return(aucroc_complete_data)
+    })
+    
+    
+    
+    # create_aucroc_complete_data <- function(data, tools, dmrtool) {
+    #   aucroc_complete_data <- data.frame()
+    #   fractions <- c(0.0001, 0.001, 0.01, 0.05)
+    #   for (tool in tools) {
+    #     for (fraction in unique(fractions)) {
+    #       filt_df <- data %>%
+    #         filter(expected_fraction %in% c(0, fraction) & DMRtool == dmrtool & tool == !!tool)
+    #       if (nrow(filt_df) > 0) {
+    #         roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
+    #         tmp <- data.frame(
+    #           fpr = 1 - rev(roc_curve$specificities),
+    #           tpr = rev(roc_curve$sensitivities),
+    #           thresholds = rev(roc_curve$thresholds),
+    #           auc = rev(roc_curve$auc),
+    #           fraction = fraction,
+    #           tool = tool
+    #         )
+    #         aucroc_complete_data <- rbind(aucroc_complete_data, tmp)
+    #       }
+    #     }
+    #   }
+    #   return(aucroc_complete_data)
+    # }
+    
+    # Function to generate AUC-ROC plot with facet_wrap
+    create_aucroc_complete_plot <- function(aucroc_complete_data) {
+      print(aucroc_complete_data)
+      ggplot(aucroc_complete_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
+        # ROC Curve Lines
+        geom_line(size = 1) +
+        
+        # AUC Points (only at x=0)
+        geom_point(aes(x = 0, y = auc), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
+        
+        # Labels and theme
+        labs(
+          x = "FPR",
+          y = "TPR",
+          color = "Tumoral fraction"
+        ) + 
+        theme_benchmarking +
+        facet_wrap(~ tool, ncol = 4)+ # Adjust ncol to control the number of columns
+        theme(
+          text = element_text(size = 14),
+          strip.text = element_text(size = 12),
+          legend.position = "bottom",
+          panel.spacing = unit(1,"lines")
+        )
+    }
+    
+    # Render output AUCROC plot
+    output$aucroc_complete_plot <- renderPlot({
+      req(input$aucroc_complete_depth_select, 
+          input$aucroc_complete_approach_select, 
+          input$aucroc_complete_tools_select, 
+          input$aucroc_complete_dmrtool_select)
+      aucroc_complete_data <- create_aucroc_complete_data()
+      req(nrow(aucroc_complete_data) > 0)  
+      create_aucroc_complete_plot(aucroc_complete_data)
+    })
+    
+    # Save AUCROC using the function
+    download_aucroc_complete_plot <- function(ext) {
+      downloadHandler(
+        filename = function() paste("auc_depth_",input$aucroc_complete_depth_select, "_",input$aucroc_complete_approach_select, "_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".", ext, sep=""),
+        content = function(file) {
+          req(input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
+          aucroc_complete_data <- create_aucroc_complete_data()
+          req(nrow(aucroc_complete_data) > 0)  
+          plot <- create_aucroc_complete_plot(aucroc_complete_data)
+          ggsave(file, plot = plot, width = 8, height = 6, dpi = 300, device = ext)
+        }
+      )
+    }
+    output$download_aucroc_complete_svg <- download_aucroc_complete_plot("svg")
+    output$download_aucroc_complete_pdf <- download_aucroc_complete_plot("pdf")
+    
+    # Save dataframe AUCROC plot as csv
+    output$download_aucroc_complete_df <- downloadHandler(
+      filename = function() {
+        paste("auc_depth_",input$aucroc_complete_depth_select, "_",input$aucroc_complete_approach_select, "_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".csv", sep="")
+      },
+      content = function(file) {
+        req(input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
+        aucroc_complete_data <- create_aucroc_complete_data()
+        req(nrow(aucroc_complete_data) > 0)  
+        write.csv(aucroc_complete_data, file, row.names = FALSE)
+      }
+    )
+    ############################################################################ 
+    ## Interactive AUCROC plot
+    # Dropdowns and checkboxes AUCROC
+    updateSelectInput(session, "aucroc_tool_select", 
+                      choices = sort(unique(bench$tool)), 
+                      selected = sort(unique(bench$tool))[1])
+    
+    updateSelectInput(session, "aucroc_dmrtool_select", 
+                      choices = sort(unique(bench$DMRtool)), 
+                      selected = sort(unique(bench$DMRtool))[1])
+    
+    # Create a function to generate the heatmap
+    create_aucroc_data <- function(data, tool, dmrtool) {
+      aucroc_data <- data.frame()
+      fractions <- c(0.0001, 0.001, 0.01, 0.05)
+      for (fraction in unique(fractions)) {
+        filt_df <- data %>%
+          filter(expected_fraction %in% c(0, fraction) & 
+                   DMRtool == dmrtool & 
+                   tool == !!tool)
+        
+        if (nrow(filt_df) > 0) {
+          roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
+          tmp <- data.frame(
+            fpr = 1 - rev(roc_curve$specificities),
+            tpr = rev(roc_curve$sensitivities),
+            thresholds = rev(roc_curve$thresholds),
+            auc = rev(roc_curve$auc),
+            fraction = fraction,
+            tool = tool
+          )
+          aucroc_data <- rbind(aucroc_data, tmp)
+        }
+      }
+      return(aucroc_data)
+    }
+    
+    # Function to generate AUC-ROC plot
+    create_aucroc_plot <- function(aucroc_data) {
+      # Tooltip text for lines (FPR, TPR, fraction)
+      aucroc_data <- aucroc_data %>%
+        mutate(tooltip_line = paste("FPR:", round(fpr, 3), "<br>TPR:", round(tpr, 3), "<br>Fraction:", fraction))
+      
+      # Tooltip text for points (AUC value)
+      aucroc_data <- aucroc_data %>%
+        mutate(tooltip_point = paste("AUC:", round(auc, 3)))
+      
+      ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
+        # ROC Curve Lines
+        geom_line(aes(text = tooltip_line), size = 1) +
+        
+        # AUC Points (only at x=0)
+        geom_point(aes(x = 0, y = auc, text = tooltip_point), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
+        
+        # Labels and theme
+        labs(
+          # x = "False Positive Rate (FPR)",
+          # y = "True Positive Rate (TPR)",
+          x = "FPR",
+          y = "TPR",
+          color = "Tumoral fraction"
+        ) + theme_benchmarking
+    }
+    
+    # Render output AUCROC plot
+    output$aucroc_plot <- renderPlotly({
+      req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
+      aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
+      req(nrow(aucroc_data) > 0)  
+      plot <- create_aucroc_plot(aucroc_data)
+      ggplotly(plot, tooltip = "text") %>%
+        config(toImageButtonOptions = list(format = "svg",
+                                           filename = paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
+        ))
+    })
+    
+    # Save AUCROC using the function
+    # download_aucroc_plot <- function(ext) {
+    #   downloadHandler(
+    #     filename = function() paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".", ext, sep=""),
+    #     content = function(file) {
+    #       req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
+    #       aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
+    #       req(nrow(aucroc_data) > 0)  
+    #       plot <- create_aucroc_plot(aucroc_data)
+    #       ggsave(file, plot = plot, width = 6, height = 6, dpi = 300, device = ext)
+    #     }
+    #   )
+    # }
+    # output$download_aucroc_svg <- download_aucroc_plot("svg")
+    # output$download_aucroc_pdf <- download_aucroc_plot("pdf")
+    
+    # Save dataframe AUCROC plot as csv
+    output$download_aucroc_df <- downloadHandler(
+      filename = function() {
+        paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
+      },
+      content = function(file) {
+        req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
+        aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
+        req(nrow(aucroc_data) > 0)  
+        write.csv(aucroc_data, file, row.names = FALSE)
+      }
+    )
+    
+
     ############################################################################ 
     ## Heatmap
     # Dropdowns and checkboxes heatmap
@@ -741,7 +1026,7 @@ metricsTabServer <- function(id) {
       plot_data <- plot_data %>%
         mutate(tool = factor(tool, levels = median_diff$tool))
       
-
+      
       # Define a function to determine text color based on RMSE value
       get_text_color <- function(rmse_value) {
         # Handle NA values: default to black text for missing values
@@ -806,7 +1091,7 @@ metricsTabServer <- function(id) {
           req(input$heatmap_tools_select, input$heatmap_dmrtool_select)
           plot <- create_heatmap_plot(bench, input$heatmap_tools_select, input$heatmap_dmrtool_select)
           ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = ext)
-
+          
         }
       )
     }
@@ -824,208 +1109,7 @@ metricsTabServer <- function(id) {
         write.csv(data, file, row.names = FALSE)
       }
     )
-
     
-    ############################################################################ 
-    ## AUCROC plot
-    # Dropdowns and checkboxes AUCROC
-    updateSelectInput(session, "aucroc_tool_select", 
-                      choices = sort(unique(bench$tool)), 
-                      selected = sort(unique(bench$tool))[1])
-    
-    updateSelectInput(session, "aucroc_dmrtool_select", 
-                      choices = sort(unique(bench$DMRtool)), 
-                      selected = sort(unique(bench$DMRtool))[1])
-
-    # Create a function to generate the heatmap
-    create_aucroc_data <- function(data, tool, dmrtool) {
-      aucroc_data <- data.frame()
-      fractions <- c(0.0001, 0.001, 0.01, 0.05)
-      for (fraction in unique(fractions)) {
-        filt_df <- data %>%
-          filter(expected_fraction %in% c(0, fraction) & DMRtool == dmrtool & tool == !!tool)
-        if (nrow(filt_df) > 0) {
-          roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
-          tmp <- data.frame(
-                    fpr = 1 - rev(roc_curve$specificities),
-                    tpr = rev(roc_curve$sensitivities),
-                    thresholds = rev(roc_curve$thresholds),
-                    auc = rev(roc_curve$auc),
-                    fraction = fraction,
-                    tool = tool
-                  )
-          aucroc_data <- rbind(aucroc_data, tmp)
-        }
-      }
-      return(aucroc_data)
-    }
-    
-    # Function to generate AUC-ROC plot
-    create_aucroc_plot <- function(aucroc_data) {
-      # Tooltip text for lines (FPR, TPR, fraction)
-      aucroc_data <- aucroc_data %>%
-        mutate(tooltip_line = paste("FPR:", round(fpr, 3), "<br>TPR:", round(tpr, 3), "<br>Fraction:", fraction))
-      
-      # Tooltip text for points (AUC value)
-      aucroc_data <- aucroc_data %>%
-        mutate(tooltip_point = paste("AUC:", round(auc, 3)))
-      
-      ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
-        # ROC Curve Lines
-        geom_line(aes(text = tooltip_line), size = 1) +
-        
-        # AUC Points (only at x=0)
-        geom_point(aes(x = 0, y = auc, text = tooltip_point), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
-        
-        # Labels and theme
-        labs(
-          # x = "False Positive Rate (FPR)",
-          # y = "True Positive Rate (TPR)",
-          x = "FPR",
-          y = "TPR",
-          color = "Tumoral fraction"
-        ) + theme_benchmarking
-    }
-
-    # Render output AUCROC plot
-    output$aucroc_plot <- renderPlotly({
-      req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
-      aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
-      req(nrow(aucroc_data) > 0)  
-      plot <- create_aucroc_plot(aucroc_data)
-      ggplotly(plot, tooltip = "text") %>%
-        config(toImageButtonOptions = list(format = "svg",
-                                           filename = paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
-                                           ))
-    })
-    
-    # Save AUCROC using the function
-    # download_aucroc_plot <- function(ext) {
-    #   downloadHandler(
-    #     filename = function() paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".", ext, sep=""),
-    #     content = function(file) {
-    #       req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
-    #       aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
-    #       req(nrow(aucroc_data) > 0)  
-    #       plot <- create_aucroc_plot(aucroc_data)
-    #       ggsave(file, plot = plot, width = 6, height = 6, dpi = 300, device = ext)
-    #     }
-    #   )
-    # }
-    # output$download_aucroc_svg <- download_aucroc_plot("svg")
-    # output$download_aucroc_pdf <- download_aucroc_plot("pdf")
-    
-    # Save dataframe AUCROC plot as csv
-    output$download_aucroc_df <- downloadHandler(
-      filename = function() {
-        paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
-      },
-      content = function(file) {
-        req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
-        aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
-        req(nrow(aucroc_data) > 0)  
-        write.csv(aucroc_data, file, row.names = FALSE)
-      }
-    )
-    
-    
-    ############################################################################ 
-    # AUCROC complete plot
-    # Dropdowns and checkboxes AUCROC complete plot
-    
-    updateCheckboxGroupInput(session, "aucroc_complete_tools_select", 
-                             choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))
-    updateSelectInput(session, "aucroc_complete_dmrtool_select", 
-                      choices = sort(unique(bench$DMRtool)), 
-                      selected = sort(unique(bench$DMRtool))[1])
-    
-    # Create a function to generate the heatmap for multiple tools
-    create_aucroc_complete_data <- function(data, tools, dmrtool) {
-      aucroc_complete_data <- data.frame()
-      fractions <- c(0.0001, 0.001, 0.01, 0.05)
-      for (tool in tools) {
-        for (fraction in unique(fractions)) {
-          filt_df <- data %>%
-            filter(expected_fraction %in% c(0, fraction) & DMRtool == dmrtool & tool == !!tool)
-          if (nrow(filt_df) > 0) {
-            roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
-            tmp <- data.frame(
-              fpr = 1 - rev(roc_curve$specificities),
-              tpr = rev(roc_curve$sensitivities),
-              thresholds = rev(roc_curve$thresholds),
-              auc = rev(roc_curve$auc),
-              fraction = fraction,
-              tool = tool
-            )
-            aucroc_complete_data <- rbind(aucroc_complete_data, tmp)
-          }
-        }
-      }
-      return(aucroc_complete_data)
-    }
-    
-    # Function to generate AUC-ROC plot with facet_wrap
-    create_aucroc_complete_plot <- function(aucroc_complete_data) {
-      ggplot(aucroc_complete_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
-        # ROC Curve Lines
-        geom_line(size = 1) +
-        
-        # AUC Points (only at x=0)
-        geom_point(aes(x = 0, y = auc), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
-        
-        # Labels and theme
-        labs(
-          x = "FPR",
-          y = "TPR",
-          color = "Tumoral fraction"
-        ) + 
-        theme_benchmarking +
-        facet_wrap(~ tool, ncol = 4)+ # Adjust ncol to control the number of columns
-        theme(
-          text = element_text(size = 14),
-          strip.text = element_text(size = 12),
-          legend.position = "bottom",
-          panel.spacing = unit(1,"lines")
-        )
-    }
-    
-    # Render output AUCROC plot
-    output$aucroc_complete_plot <- renderPlot({
-      req(input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
-      aucroc_complete_data <- create_aucroc_complete_data(bench, input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
-      req(nrow(aucroc_complete_data) > 0)  
-      create_aucroc_complete_plot(aucroc_complete_data)
-    })
-    
-    # Save AUCROC using the function
-    download_aucroc_complete_plot <- function(ext) {
-      downloadHandler(
-        filename = function() paste("aucroc_tumor_fractions_",input$aucroc_dmrtool_select, "_", Sys.Date(), ".", ext, sep=""),
-        content = function(file) {
-          req(input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
-          aucroc_complete_data <- create_aucroc_complete_data(bench, input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
-          req(nrow(aucroc_complete_data) > 0)  
-          plot <- create_aucroc_complete_plot(aucroc_complete_data)
-          ggsave(file, plot = plot, width = 8, height = 6, dpi = 300, device = ext)
-        }
-      )
-    }
-    output$download_aucroc_complete_svg <- download_aucroc_complete_plot("svg")
-    output$download_aucroc_complete_pdf <- download_aucroc_complete_plot("pdf")
-    
-    # Save dataframe AUCROC plot as csv
-    output$download_aucroc_complete_df <- downloadHandler(
-      filename = function() {
-        paste("aucroc_tumor_fractions_", input$aucroc_complete_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
-      },
-      content = function(file) {
-        req(input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
-        aucroc_complete_data <- create_aucroc_complete_data(bench, input$aucroc_complete_tools_select, input$aucroc_complete_dmrtool_select)
-        req(nrow(aucroc_complete_data) > 0)  
-        write.csv(aucroc_complete_data, file, row.names = FALSE)
-      }
-    )
     ############################################################################ 
     ## Rank tools 
     # Dropdowns and checkboxes Rank tools
