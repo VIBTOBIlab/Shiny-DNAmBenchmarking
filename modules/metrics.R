@@ -143,14 +143,27 @@ metricsTabUI <- function(id) {
                  sidebarLayout(
                    sidebarPanel(width = 3,
                                 selectInput(
+                                  ns("aucroc_depth_select"), 
+                                  label = "Depth",
+                                  choices = NULL,
+                                  selected = NULL
+                                ),
+                                selectInput(
+                                  ns("aucroc_approach_select"),
+                                  label = "Approach",
+                                  choices = NULL,
+                                  selected = NULL
+                                ),   
+                                
+                                selectInput(
                                   ns("aucroc_tool_select"),
-                                  label = "Select Deconvolution Tool:",
+                                  label = "Deconvolution Tool",
                                   choices = NULL,
                                   selected = NULL
                                 ),
                                 selectInput(
                                   ns("aucroc_dmrtool_select"),
-                                  label = "Select DMR Tool:",
+                                  label = "DMR Tool",
                                   choices = NULL,
                                   selected = NULL
                                 )
@@ -214,26 +227,38 @@ metricsTabUI <- function(id) {
                     )
                   ),
                  tags$hr(), br(), br(),
-                 h3("General ranking of the tools"),
+                 h3("Final ranking of the tools"),
                  sidebarLayout(
                    sidebarPanel(width = 3,
+                      selectInput(
+                        ns("rank_depth_select"),
+                        label = "Depth",
+                        choices = NULL,
+                        selected = NULL
+                        ),
+                      selectInput(
+                        ns("rank_approach_select"),
+                        label = "Approach",
+                        choices = NULL,
+                        selected = NULL
+                        ),
+                      selectInput(
+                        ns("rank_metric_select"), 
+                        label = "Metric",
+                        choices = c("normAUC", "normRMSE", "normSCC", "meanScore"),
+                        selected = "normAUC"
+                      ),
                      checkboxGroupInput(
                        ns("rank_tools_select"),
-                       label = "Select Deconvolution Tools:",
+                       label = "Deconvolution Tools",
                        choices = NULL,  
                        selected = NULL
                      ),
                      checkboxGroupInput(
                        ns("rank_dmrtools_select"),
-                       label = "Select DMR Tools:",
+                       label = "DMR Tools",
                        choices = NULL, 
                        selected = NULL
-                     ),
-                     selectInput(
-                       ns("rank_metric_select"), 
-                       label = "Tools Ranked by:",
-                       choices = c("normAUC", "normRMSE", "normSCC", "meanScore"),
-                       selected = "normAUC"
                      )
                    ),
                    mainPanel(width = 9,
@@ -251,15 +276,27 @@ metricsTabUI <- function(id) {
                  h3("Heatmap of Tumoral Fraction vs Tools"),
                  sidebarLayout(
                    sidebarPanel(width = 3,
+                    selectInput(
+                      ns("heatmap_depth_select"),
+                      label = "Depth",
+                      choices = NULL,
+                      selected = NULL
+                      ),
+                    selectInput(
+                      ns("heatmap_approach_select"),
+                      label = "Approach",
+                      choices = NULL,
+                      selected = NULL
+                      ),
                      checkboxGroupInput(
                        ns("heatmap_tools_select"),
-                       label = "Select Deconvolution Tools:",
+                       label = "Deconvolution Tools",
                        choices = NULL,  
                        selected = NULL
                      ),
                      selectInput(
                        ns("heatmap_dmrtool_select"),
-                       label = "Select DMR Tool:",
+                       label = "DMR Tool",
                        choices = NULL, 
                        selected = NULL
                      )
@@ -336,9 +373,18 @@ metricsTabServer <- function(id) {
     bench$tool <- str_trim(bench$tool, side = c("both", "left", "right"))
     bench <- as.data.frame(unique(bench))
     
+    # Convert depth to Millions notation and add "M"
+    bench$depth <- paste0(bench$depth / 1e6, "M")
+    
+    # Sort the levels of depth
+    depth_levels <- unique(bench$depth)
+    sorted_depth_levels <- depth_levels[order(as.numeric(sub("M", "", depth_levels)))]
+    bench$depth <- factor(bench$depth, levels = sorted_depth_levels)
+    
+    # Convert to factor 
     bench <- bench %>%
       mutate(across(c(reference, DMRtool, direction, top, collapse_approach, 
-                      depth, min_cpgs, min_counts), as.factor))
+                      min_cpgs, min_counts), as.factor))
     
     # print(head(bench))
     # print(str(bench))
@@ -791,11 +837,8 @@ metricsTabServer <- function(id) {
           }
         }
       }
-      
       return(aucroc_complete_data)
     })
-    
-    
     
     # create_aucroc_complete_data <- function(data, tools, dmrtool) {
     #   aucroc_complete_data <- data.frame()
@@ -823,7 +866,9 @@ metricsTabServer <- function(id) {
     
     # Function to generate AUC-ROC plot with facet_wrap
     create_aucroc_complete_plot <- function(aucroc_complete_data) {
-      print(aucroc_complete_data)
+      # print(aucroc_complete_data)
+      aucroc_complete_data$tool <- gsub("_", " ", aucroc_complete_data$tool)
+      
       ggplot(aucroc_complete_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
         # ROC Curve Lines
         geom_line(size = 1) +
@@ -889,6 +934,13 @@ metricsTabServer <- function(id) {
     ############################################################################ 
     ## Interactive AUCROC plot
     # Dropdowns and checkboxes AUCROC
+    updateSelectInput(session, "aucroc_depth_select",
+                      choices = sort(unique(bench$depth)),
+                      selected = sort(unique(bench$depth))[1]) 
+    updateSelectInput(session, "aucroc_approach_select", 
+                      choices = sort(unique(bench$collapse_approach)), 
+                      selected = sort(unique(bench$collapse_approach))[1])
+    
     updateSelectInput(session, "aucroc_tool_select", 
                       choices = sort(unique(bench$tool)), 
                       selected = sort(unique(bench$tool))[1])
@@ -897,15 +949,28 @@ metricsTabServer <- function(id) {
                       choices = sort(unique(bench$DMRtool)), 
                       selected = sort(unique(bench$DMRtool))[1])
     
-    # Create a function to generate the heatmap
-    create_aucroc_data <- function(data, tool, dmrtool) {
+    # Create a reactive function for AUCROC data
+    create_aucroc_data <- reactive({
+      req(input$aucroc_depth_select, 
+          input$aucroc_approach_select, 
+          input$aucroc_tool_select, 
+          input$aucroc_dmrtool_select)
+      
       aucroc_data <- data.frame()
       fractions <- c(0.0001, 0.001, 0.01, 0.05)
+
       for (fraction in unique(fractions)) {
-        filt_df <- data %>%
-          filter(expected_fraction %in% c(0, fraction) & 
-                   DMRtool == dmrtool & 
-                   tool == !!tool)
+        filt_df <- bench %>%
+          filter(depth == input$aucroc_depth_select,
+                 collapse_approach == input$aucroc_approach_select,
+                 expected_fraction %in% c(0, fraction),
+                 DMRtool == input$aucroc_dmrtool_select,
+                 tool == input$aucroc_tool_select)
+
+        # Ensure both 0 and fraction are present before running ROC analysis
+        if (length(unique(filt_df$expected_fraction)) != 2) {
+          next  # Skip to the next iteration
+        }
         
         if (nrow(filt_df) > 0) {
           roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
@@ -915,23 +980,25 @@ metricsTabServer <- function(id) {
             thresholds = rev(roc_curve$thresholds),
             auc = rev(roc_curve$auc),
             fraction = fraction,
-            tool = tool
+            tool = input$aucroc_tool_select
           )
           aucroc_data <- rbind(aucroc_data, tmp)
         }
       }
       return(aucroc_data)
-    }
+    })
     
     # Function to generate AUC-ROC plot
     create_aucroc_plot <- function(aucroc_data) {
+      print(head(aucroc_data))
+      print(str(aucroc_data))
       # Tooltip text for lines (FPR, TPR, fraction)
       aucroc_data <- aucroc_data %>%
         mutate(tooltip_line = paste("FPR:", round(fpr, 3), "<br>TPR:", round(tpr, 3), "<br>Fraction:", fraction))
       
       # Tooltip text for points (AUC value)
       aucroc_data <- aucroc_data %>%
-        mutate(tooltip_point = paste("AUC:", round(auc, 3)))
+        mutate(tooltip_point = paste("AUC:", round(auc, 4)))
       
       ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
         # ROC Curve Lines
@@ -952,13 +1019,12 @@ metricsTabServer <- function(id) {
     
     # Render output AUCROC plot
     output$aucroc_plot <- renderPlotly({
-      req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
-      aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
+      aucroc_data <- create_aucroc_data()
       req(nrow(aucroc_data) > 0)  
       plot <- create_aucroc_plot(aucroc_data)
       ggplotly(plot, tooltip = "text") %>%
         config(toImageButtonOptions = list(format = "svg",
-                                           filename = paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
+                                           filename = paste("auc_depth_",input$aucroc_depth_select, "_", input$aucroc_approach_select, "_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
         ))
     })
     
@@ -981,11 +1047,10 @@ metricsTabServer <- function(id) {
     # Save dataframe AUCROC plot as csv
     output$download_aucroc_df <- downloadHandler(
       filename = function() {
-        paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
+        paste("auc_depth_",input$aucroc_depth_select, "_", input$aucroc_approach_select, "_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
       },
       content = function(file) {
-        req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
-        aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
+        aucroc_data <- create_aucroc_data()
         req(nrow(aucroc_data) > 0)  
         write.csv(aucroc_data, file, row.names = FALSE)
       }
@@ -993,126 +1058,15 @@ metricsTabServer <- function(id) {
     
 
     ############################################################################ 
-    ## Heatmap
-    # Dropdowns and checkboxes heatmap
-    updateCheckboxGroupInput(session, "heatmap_tools_select", 
-                             choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))    
-    updateSelectInput(session, "heatmap_dmrtool_select", 
-                      choices = sort(unique(bench$DMRtool)), 
-                      selected = sort(unique(bench$DMRtool))[1])    
-    
-    
-    # Create a function to generate the heatmap
-    create_heatmap_plot <- function(data, tools, dmrtool) {
-      # Filter data based on user selection
-      plot_data <- data %>%
-        filter(DMRtool == dmrtool, 
-               expected_fraction != 0, 
-               tool %in% tools) %>%
-        group_by(tool, expected_fraction) %>%
-        summarize(
-          RMSE = 1 - mean(rmse(expected_fraction, nbl), na.rm = TRUE),
-          .groups = "drop"
-        )
-      
-      # Rank tools by median RMSE
-      median_diff <- plot_data %>%
-        group_by(tool) %>%
-        summarize(Mean = abs(mean(RMSE))) %>%
-        arrange(desc(Mean))
-      
-      # Reorder tools globally
-      plot_data <- plot_data %>%
-        mutate(tool = factor(tool, levels = median_diff$tool))
-      
-      
-      # Define a function to determine text color based on RMSE value
-      get_text_color <- function(rmse_value) {
-        # Handle NA values: default to black text for missing values
-        if (is.na(rmse_value)) {
-          return("black") 
-        }
-        
-        # If RMSE is low, the tile is white and should have black text
-        if (rmse_value <= 0.5) {
-          return("black")
-        } else {
-          return("white")
-        }
-      }
-      
-      
-      # Create a new column for the labels, where NA values are converted to the string 'NA'
-      plot_data$label <- ifelse(is.na(plot_data$RMSE), "NA", round(plot_data$RMSE, 4))
-      
-      # Precompute text colors for each RMSE value
-      plot_data$text_color <- sapply(plot_data$RMSE, get_text_color)
-      
-      
-      # Create and return the heatmap plot
-      ggplot(plot_data, aes(x = tool, y = factor(expected_fraction), fill = RMSE)) +
-        geom_tile() +
-        geom_text(aes(
-          label = label, 
-          color = text_color  # Apply dynamic text color based on tile fill
-        ), size = 4) + 
-        scale_fill_gradient(low = "white", high = "#2f425e", limits = c(0,1) ) + # Greyscale color scale
-        scale_color_identity() + 
-        #scale_x_discrete(labels = function(x) str_replace_all(x, "_", " "))+
-        labs(
-          x = "",
-          y = "Tumoral Fraction"
-        ) +
-        theme(
-          axis.text.x = element_text(size = 12, angle = 45, hjust = 1, color = "gray10"),
-          panel.background = element_blank(),
-          panel.border = element_blank(),
-          axis.text.y = element_text(size = 12, color = "gray10"),
-          axis.title.x = element_text(size = 14 , color = "gray10"),
-          axis.title.y = element_text(size = 14, color = "gray10"),
-          legend.title = element_text(size = 14, color = "gray10"),
-          legend.text = element_text(size = 12, color = "gray10"),
-          axis.ticks = element_line(color = "gray50")
-        )
-    }
-    
-    # Render heatmap
-    output$heatmap <- renderPlot({
-      req(input$heatmap_tools_select, input$heatmap_dmrtool_select) # Ensure inputs are provided
-      create_heatmap_plot(bench, input$heatmap_tools_select, input$heatmap_dmrtool_select)
-    })
-    
-    # Save heatmap using the function
-    download_heatmap_plot <- function(ext) {
-      downloadHandler(
-        filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_", Sys.Date(), ".", ext, sep = ""),
-        content = function(file) {
-          req(input$heatmap_tools_select, input$heatmap_dmrtool_select)
-          plot <- create_heatmap_plot(bench, input$heatmap_tools_select, input$heatmap_dmrtool_select)
-          ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = ext)
-          
-        }
-      )
-    }
-    output$download_heatmap_svg <- download_heatmap_plot("svg")
-    output$download_heatmap_pdf <- download_heatmap_plot("pdf")    
-    
-    # Save dataframe heatmap as csv
-    output$download_heatmap_df <- downloadHandler(
-      filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_", Sys.Date(), ".csv", sep = ""),
-      content = function(file) {
-        data <- bench %>%
-          filter(DMRtool == input$heatmap_dmrtool_select, expected_fraction != 0, tool %in% input$heatmap_tools_select) %>%
-          group_by(tool, expected_fraction) %>%
-          summarize(RMSE = 1 - mean(rmse(expected_fraction, nbl), na.rm = TRUE), .groups = "drop")
-        write.csv(data, file, row.names = FALSE)
-      }
-    )
-    
-    ############################################################################ 
-    ## Rank tools 
+    ## General Rank tools 
     # Dropdowns and checkboxes Rank tools
+    updateSelectInput(session, "rank_depth_select",
+                      choices = sort(unique(bench$depth)),
+                      selected = sort(unique(bench$depth))[1]) 
+    updateSelectInput(session, "rank_approach_select", 
+                      choices = sort(unique(bench$collapse_approach)), 
+                      selected = sort(unique(bench$collapse_approach))[1])
+    
     updateCheckboxGroupInput(session, "rank_tools_select", 
                              choices = sort(unique(bench$tool)), 
                              selected = sort(unique(bench$tool)))
@@ -1226,12 +1180,12 @@ metricsTabServer <- function(id) {
           y = ""
         ) +
         theme_benchmarking +  
-       #scale_y_discrete(expand = expansion(mult = 0.05)) +
+        #scale_y_discrete(expand = expansion(mult = 0.05)) +
         #scale_y_discrete(labels = function(x) str_replace_all(x, "_", " "))+
         custom_color_manual 
     }
     
-
+    
     # Render ggplotly rank plots
     output$rank <- renderPlotly({
       data <- filtered_data_ranking(bench, input$rank_tools_select,input$rank_dmrtools_select )
@@ -1241,7 +1195,7 @@ metricsTabServer <- function(id) {
       ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
         config(toImageButtonOptions = list(format = "svg",
                                            filename = paste("tools_vs_",input$rank_metric_select,"_", Sys.Date())
-                                           ))
+        ))
     })
     
     # Download rank plots via svg or pdf 
@@ -1275,8 +1229,138 @@ metricsTabServer <- function(id) {
     )
     
     
+    ############################################################################ 
+    ## Heatmap
+    # Dropdowns and checkboxes heatmap
+    updateSelectInput(session, "heatmap_depth_select",
+                      choices = sort(unique(bench$depth)),
+                      selected = sort(unique(bench$depth))[1]) 
+    updateSelectInput(session, "heatmap_approach_select", 
+                      choices = sort(unique(bench$collapse_approach)), 
+                      selected = sort(unique(bench$collapse_approach))[1])
+    
+    updateCheckboxGroupInput(session, "heatmap_tools_select", 
+                             choices = sort(unique(bench$tool)), 
+                             selected = sort(unique(bench$tool)))    
+    updateSelectInput(session, "heatmap_dmrtool_select", 
+                      choices = sort(unique(bench$DMRtool)), 
+                      selected = sort(unique(bench$DMRtool))[1])    
+    
+    # Filter data for heatmap
+    create_heatmap_data <- reactive({
+      req(input$heatmap_depth_select, 
+          input$heatmap_approach_select, 
+          input$heatmap_tools_select, 
+          input$heatmap_dmrtool_select)
+      
+      data <- bench %>%
+        filter(DMRtool == input$heatmap_dmrtool_select,
+               expected_fraction != 0, 
+               tool %in% input$heatmap_tools_select,
+               depth == input$heatmap_depth_select,
+               collapse_approach == input$heatmap_approach_select) %>%
+        group_by(tool,expected_fraction) %>%  # Group by tool and tumoral fraction
+        summarize(RMSE = rmse(expected_fraction, nbl), .groups = "drop")
+    
+      return(data)
+    })
+    
+    # Create a function to generate the heatmap
+    create_heatmap_plot <- function(plot_data) {
+      # Rank tools by median RMSE
+      median_diff <- plot_data %>%
+        group_by(tool) %>%
+        filter(expected_fraction==0.0001) %>%
+        arrange(RMSE)
+      
+      # Reorder tools globally
+      plot_data <- plot_data %>%
+        mutate(tool = factor(tool, levels = median_diff$tool))
+      
+      
+      # Define a function to determine text color based on RMSE value
+      get_text_color <- function(rmse_value) {
+        # Handle NA values: default to black text for missing values
+        if (is.na(rmse_value)) {
+          return("black") 
+        }
+        # If RMSE is low, the tile is white and should have black text
+        if (rmse_value <= 0.5) {
+          return("black")
+        } else {
+          return("white")
+        }
+      }
+      
+      # Create a new column for the labels, where NA values are converted to the string 'NA'
+      plot_data$label <- ifelse(is.na(plot_data$RMSE), "NA", round(plot_data$RMSE, 5))
+      # Precompute text colors for each RMSE value
+      plot_data$text_color <- sapply(plot_data$RMSE, get_text_color)
+      
+      
+      # Create and return the heatmap plot
+      ggplot(plot_data, aes(x = tool, y = factor(expected_fraction), fill = RMSE)) +
+        geom_tile() +
+        geom_text(aes(
+          label = label, 
+          color = text_color  # Apply dynamic text color based on tile fill
+        ), size = 4) + 
+        scale_fill_gradient(low = "white", high = "#2f425e", limits = c(0,1) ) + # Greyscale color scale
+        scale_color_identity() + 
+        scale_x_discrete(labels = function(x) str_replace_all(x, "_", " "))+
+        labs(
+          x = "",
+          y = "Tumoral Fraction"
+        ) +
+        theme(
+          axis.text.x = element_text(size = 12, angle = 45, hjust = 1, color = "gray10"),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.text.y = element_text(size = 12, color = "gray10"),
+          axis.title.x = element_text(size = 14 , color = "gray10"),
+          axis.title.y = element_text(size = 14, color = "gray10"),
+          legend.title = element_text(size = 14, color = "gray10"),
+          legend.text = element_text(size = 12, color = "gray10"),
+          axis.ticks = element_line(color = "gray50")
+        )
+    }
+    
+    # Render heatmap
+    output$heatmap <- renderPlot({
+      plot_data <- create_heatmap_data()
+      create_heatmap_plot(plot_data)
+    })
+    # lower RMSE appear first (left side).
     
     
+    # Save heatmap using the function
+    download_heatmap_plot <- function(ext) {
+      downloadHandler(
+        filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_depth_select, "_", input$heatmap_approach_select, Sys.Date(), ".", ext, sep = ""),
+        content = function(file) {
+          plot_data <- create_heatmap_data()
+          plot <- create_heatmap_plot(plot_data)
+          ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = ext)
+          
+        }
+      )
+    }
+    output$download_heatmap_svg <- download_heatmap_plot("svg")
+    output$download_heatmap_pdf <- download_heatmap_plot("pdf")    
+    
+    # Save dataframe heatmap as csv
+    output$download_heatmap_df <- downloadHandler(
+      filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_depth_select, "_", input$heatmap_approach_select, Sys.Date(), ".csv", sep = ""),
+      content = function(file) {
+        plot_data <- create_heatmap_data()
+        write.csv(plot_data, file, row.names = FALSE)
+      }
+    )
+    
+    
+    ############################################################################ 
+    ## Heatmap
+    # Dropdowns and checkboxes heatmap    
     
   }) # Close moduleServer
 } # Close metricsTabServer    
