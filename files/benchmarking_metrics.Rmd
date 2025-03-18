@@ -20,6 +20,7 @@ library(tidyverse)
 library(stringr)
 library(funkyheatmap)
 library(pROC)
+library(ggpubr)
 ```
 
 ## Import the datasets and filter it
@@ -37,7 +38,7 @@ In this chunk we will merge all the results generated for each DMR selection too
 dir_path <- "C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking/"
 
 # Get a list of all CSV files in the directory
-#csv_files <- list.files(paste0(dir_path,"results/"), pattern = "Results_.*", full.names = TRUE)
+# csv_files <- list.files(paste0(dir_path,"results/"), pattern = "Results_.*", full.names = TRUE)
 
 # Read and bind all CSV files
 # combined_data <- do.call(rbind, lapply(csv_files, function(file) {
@@ -46,7 +47,7 @@ dir_path <- "C:/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchm
 # }))
 
 # Save the combined file
-#write.csv(combined_data, file = paste0(dir_path,"results/results_nbl_cfRRBS.csv"), row.names = FALSE)
+# write.csv(combined_data, file = paste0(dir_path,"results/results_nbl_cfRRBS.csv"), row.names = FALSE)
 ```
 
 The next step is to merge the benchmarking results file with the metadata file, where we will select 3 columns that are crucial for our analyses: sample, expected tumoral (Exp.nbl) fraction and the sequencing depth. Finally, as you can see from the combined_data file, there are 3 different reference datasets used for this analysis. For our experiment, we will select only one reference (11 healthy vs 9nbl) cause this reference is totally independent from the samples used to generate the in-silico simulated mixtures.
@@ -70,9 +71,6 @@ bench$sample <- str_trim(bench$sample, side = c("both", "left", "right"))
 bench$tool <- str_trim(bench$tool, side = c("both", "left", "right"))
 #bench$sample <- bench$sample %>% str_replace("_R1_001_val_1_bismark_bt2_pe", "")
 bench <- as.data.frame(unique(bench))
-
-#write.csv(bench, file = paste0(dir_path,"bench.csv"), row.names = FALSE)
-
 ```
 
 ## Specify the metrics to use
@@ -145,10 +143,11 @@ for (seqdepth in unique_depths) {
       # Filter for the specific depth and fraction
       plot_data <- bench %>%
         filter(depth == seqdepth & expected_fraction == fraction &
-               collapse_approach == approach)
+               collapse_approach == approach) %>% group_by(DMRtool)
       
       # Rank the tools by median difference
-      median_diff <- plot_data %>% 
+      median_diff <- bench %>% 
+        filter(depth == seqdepth & expected_fraction == fraction) %>%
         group_by(tool, DMRtool) %>% 
         summarise(Diff = abs(median(expected_fraction) - median(nbl)), .groups = "drop") %>%
         group_by(tool) %>%
@@ -300,10 +299,10 @@ for (seqdepth in unique_depths) {
         mutate(tool = factor(tool, levels = median_diff$tool))
       
       # Generate the plot
-      p <- ggplot(plot_data, aes(x = RMSE, y = tool , color = DMRtool, shape = DMRtool)) +
+      p <- ggplot(plot_data, aes(x = RMSE, y = tool, color = DMRtool, shape = DMRtool)) +
         geom_point(size = 3, alpha = 0.8) +
         labs(
-          title = paste("RMSE vs Tool | Fraction:", fraction, "| Depth:", seqdepth, "| Approach:", approach),
+          title = paste("RMSE vs Tool | Fraction:", fraction, "| Depth:", depth, "| Approach:", approach),
           x = "RMSE",
           y = ""
         )
@@ -350,14 +349,14 @@ for (seqdepth in unique_depths) {
     for (dmrtool in unique_dmrtools) {
       aucroc_data <- data.frame()
 
-      for (deconv in unique(bench$tool)) {
+      for (deconv in unique(df$tool)) {
 
         for (fraction in fractions) {
           filt_df <- bench %>%
-            filter(expected_fraction %in% c(0,fraction), 
-                   DMRtool == dmrtool,
-                   collapse_approach == approach,
-                   depth == seqdepth,
+            filter(expected_fraction %in% c(0,fraction) & 
+                   DMRtool == dmrtool &
+                   collapse_approach == approach &
+                   depth == seqdepth &
                    tool == deconv)
           # Skip if there are not exactly two levels in expected_fraction (i.e., both 0 and fraction)
           if (length(unique(filt_df$expected_fraction)) != 2) {
@@ -392,15 +391,105 @@ for (seqdepth in unique_depths) {
         )
       
       # Save the plot as an image
-      output_file <- file.path(approach_dir, paste0("auc", "_depth_",
-                                                    seqdepth, "_", approach,
-                                                    "_", dmrtool, ".png"))
+      output_file <- file.path(approach_dir, paste0("auc", "_depth_", seqdepth, "_", approach, "_", dmrtool, ".png"))
       ggsave(output_file, plot = p, width = 8, height = 6)
     }
   }
 }
 
 ```
+
+### Limit of Detection (LoD)
+
+The tumoral limit of detection (LoD) in the context of cellular deconvolution tools refers to the lowest tumor fraction in a sample at which a deconvolution method can reliably distinguish and quantify tumor-derived signals from background noise.
+
+It is typically determined by assessing the performance of the tool across a range of tumor fractions (e.g., 1%, 5%, 10%) and identifying the minimum proportion at which tumor-derived cell types can be consistently detected with acceptable accuracy and precision.
+
+We will investigate and compute the LoD by the statistical significance of a one-sided Welch’s test between the estimated tumor fractions of the samples at every dilution level (e.g. 1%, 5% etc) and the control samples (0% tumor fraction).
+
+
+```{r}
+# Create the main directory to save the plots
+output_dir <- paste0(dir_path, "plots/LoD")
+if (!dir.exists(output_dir)) dir.create(output_dir)
+
+# Get unique values of sequencing depth, collapse approach, and expected_fraction
+unique_depths <- unique(bench$depth)
+unique_dmrtools <- unique(bench$DMRtool)
+unique_approaches <- unique(bench$collapse_approach)
+unique_fractions <- unique(bench$expected_fraction)
+unique_fractions <- subset(unique_fractions, unique_fractions != 0)
+my_comparisons <- lapply(sort(unique_fractions), function(fraction) c("0", as.character(fraction)))
+
+# Loop over sequencing depth
+for (seqdepth in unique_depths) {
+  
+  # Create a subdirectory for this depth (optional)
+  depth_dir <- file.path(output_dir, paste0("depth_", seqdepth))
+  if (!dir.exists(depth_dir)) dir.create(depth_dir)
+  
+  # Loop over collapse approach
+  for (approach in unique_approaches) {
+    
+    # Create a subdirectory for this collapse approach (optional)
+    approach_dir <- file.path(depth_dir, approach)
+    if (!dir.exists(approach_dir)) dir.create(approach_dir)
+    
+    for (dmrtool in unique_dmrtools) {
+
+      for (deconv in unique(bench$tool)) {
+          filt_df <- bench %>%
+            filter(DMRtool == dmrtool &
+                   collapse_approach == approach &
+                   depth == seqdepth,
+                   tool == deconv)
+          
+          # filt_df2 <- filt_df
+          # filt_df2[filt_df2$expected_fraction==0.0001,"expected_fraction"] <- 0.6
+          stats <- compare_means(nbl ~ expected_fraction, 
+                             data = filt_df,
+                             #method = "t.test",
+                             method = "wilcox.test",
+                             ref.group = "0",  # Reference group set to "0"
+                             p.adjust.method = "BH") 
+               
+          p <- filt_df %>%
+            group_by(tool) %>%
+            ggplot(aes(x = as.factor(expected_fraction), y = nbl)) +
+            geom_boxplot() +
+            labs(
+              title = paste("LoD | Tool:", deconv,"| DMR tool:", dmrtool,"| Approach:",approach,"| Depth:",seqdepth),
+              x = "",
+              y = "Estimated tumoral fraction (%)"
+            ) +
+            theme(
+              axis.text.x = element_text(angle = 45, hjust = 1)) +
+            # geom_pwc(
+            #   method = "t_test",
+            #   label = "p.adj.format",
+            #   #label = "p.adj.signif",
+            #   p.adjust.method = "BH",
+            #   ref.group = 0
+            # )
+            stat_compare_means(comparisons = my_comparisons,
+                                   #method = "t.test",
+                               method = "wilcox.test",
+                                   method.args = list(alternative = "less", var.equal = F),
+                                   label = "p.format")
+                                   #label = "p.signif")
+          
+          
+          
+          
+          # Save the plot as an image
+          output_file <- file.path(approach_dir, paste0("LoD_",deconv,"_depth_", seqdepth, "_", approach, "_", dmrtool, ".png"))
+          ggsave(output_file, plot = p, width = 8, height = 6)
+      }
+    }
+  }
+}
+```
+
 
 
 ### Plot final ranks

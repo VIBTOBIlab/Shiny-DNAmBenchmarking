@@ -31,12 +31,14 @@ metricsTabUI <- function(id) {
                         choices = NULL,
                         selected = NULL
                       ),
+    
                       checkboxGroupInput(
                         ns("boxplot_tools_select"),
                         label = "Deconvolution Tools",
                         choices = NULL,  
                         selected = NULL
                       ),
+                      checkboxInput(ns("boxplot_tools_select_all"),label =tags$em("Select All/None"), value = TRUE),
                       checkboxGroupInput(
                         ns("boxplot_dmrtools_select"),
                         label = "DMR Tools",
@@ -50,6 +52,7 @@ metricsTabUI <- function(id) {
                       # downloadButton(ns("download_boxplot_TF_svg"), "Download as SVG"),
                       # downloadButton(ns("download_boxplot_TF_pdf"), "Download as PDF"),
                       downloadButton(ns("download_boxplot_TF_df"), "Download data"),
+                      textOutput("warning_message_boxplot_TF"),
                       br(), br(), br()
                     )
                   ),
@@ -123,6 +126,7 @@ metricsTabUI <- function(id) {
                                   choices = NULL,
                                   selected = NULL
                                 ),
+                                checkboxInput(ns("aucroc_complete_tools_select_all"),label =tags$em("Select All/None"), value = TRUE),
                                 selectInput(
                                   ns("aucroc_complete_dmrtool_select"),
                                   label = "DMR Tool",
@@ -183,7 +187,7 @@ metricsTabUI <- function(id) {
         
         tabPanel(title = "Tools",
                   # RMSE Comparison section
-                  h3("Tool ranks based on RMSE per tumoral fraction"),
+                  h3("Tools RMSE"),
                   sidebarLayout(
                     sidebarPanel(width = 3,
                       selectInput(
@@ -210,6 +214,7 @@ metricsTabUI <- function(id) {
                         choices = NULL,  
                         selected = NULL
                       ),
+                      checkboxInput(ns("rmse_comparison_tools_select_all"),label =tags$em("Select All/None"), value = TRUE),
                       checkboxGroupInput(
                         ns("rmse_comparison_dmrtools_select"),
                         label = "DMR Tools",
@@ -254,6 +259,7 @@ metricsTabUI <- function(id) {
                        choices = NULL,  
                        selected = NULL
                      ),
+                     checkboxInput(ns("rank_tools_select_all"),label =tags$em("Select All/None"), value = TRUE),
                      checkboxGroupInput(
                        ns("rank_dmrtools_select"),
                        label = "DMR Tools",
@@ -273,7 +279,7 @@ metricsTabUI <- function(id) {
         ), # Close 'Tools' section
         tabPanel(title = 'DMRtool',
                  # Heatmap section
-                 h3("Heatmap of Tumoral Fraction vs Tools"),
+                 h3("Heatmap of tumoral fraction vs tools"),
                  sidebarLayout(
                    sidebarPanel(width = 3,
                     selectInput(
@@ -294,7 +300,8 @@ metricsTabUI <- function(id) {
                        choices = NULL,  
                        selected = NULL
                      ),
-                     selectInput(
+                    checkboxInput(ns("heatmap_tools_select_all"),label =tags$em("Select All/None"), value = TRUE),
+                    selectInput(
                        ns("heatmap_dmrtool_select"),
                        label = "DMR Tool",
                        choices = NULL, 
@@ -313,9 +320,50 @@ metricsTabUI <- function(id) {
 
       ), # Close 'DMRtool' section 
       tabPanel(title = "Mean vs Median"),
-      tabPanel(title = "LoD")
-      
-               
+      tabPanel(title = "LoD",
+               h3("Limit of detection"),
+               sidebarLayout(
+                 sidebarPanel(width = 3,
+                              selectInput(
+                                ns("lod_depth_select"),
+                                label = "Depth",
+                                choices = NULL,
+                                selected = NULL
+                              ),
+                              selectInput(
+                                ns("lod_approach_select"),
+                                label = "Approach",
+                                choices = NULL,
+                                selected = NULL
+                              ),
+                              selectInput(
+                                ns("lod_tool_select"),
+                                label = "Deconvolution Tool",
+                                choices = NULL,  
+                                selected = NULL
+                              ),
+                              selectInput(
+                                ns("lod_dmrtool_select"),
+                                label = "DMR Tool",
+                                choices = NULL, 
+                                selected = NULL
+                              ),
+                              selectInput(
+                                ns("lod_plabel_select"),
+                                label = "P-value Label",
+                                choices = c("p", "p.adj", "p.adj.signif"),
+                                selected = "padj.signif"
+                              )
+                 ),
+                 mainPanel(width = 9,
+                           plotOutput(ns("lod"), height = "600px"),
+                           downloadButton(ns("download_lod_svg"), "Download as SVG"),
+                           downloadButton(ns("download_lod_pdf"), "Download as PDF"),
+                           downloadButton(ns("download_lod_df"), "Download data"),
+                           br(), br()
+                 )
+               )
+      ) # Close 'LoD' section
       ),# Close tabsetPanel
       
       # Go to top of the page
@@ -445,14 +493,27 @@ metricsTabServer <- function(id) {
                       choices = sort(unique(bench$expected_fraction[bench$expected_fraction != 0])), 
                       selected = sort(unique(bench$expected_fraction[bench$expected_fraction != 0]))[1])
     
-    updateCheckboxGroupInput(session, "boxplot_tools_select", 
-                             choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))
+    # updateCheckboxGroupInput(session, "boxplot_tools_select", 
+    #                          choices = sort(unique(bench$tool)), 
+    #                          selected = sort(unique(bench$tool)))
     updateCheckboxGroupInput(session, "boxplot_dmrtools_select", 
                              choices = sort(unique(bench$DMRtool)), 
                              selected = sort(unique(bench$DMRtool)))
     
+    observe({
+      current_choices <- sort(unique(bench$tool))  # Get all available tools
+      
+      # Update the checkbox group based on select all/none toggle
+      updateCheckboxGroupInput(
+        session, "boxplot_tools_select",
+        choices = current_choices,
+        selected = if (input$boxplot_tools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+      )
+    })
+    
+    
 
+    
     # Reactive expression for filtered data boxplot
     filtered_data_boxplot <- reactive({
       req(input$boxplot_depth_select, input$boxplot_approach_select, input$boxplot_fraction_select,
@@ -466,7 +527,6 @@ metricsTabServer <- function(id) {
                DMRtool %in% input$boxplot_dmrtools_select,             # Filter by DMRtools
                expected_fraction != 0) # Exclude expected_fraction == 0
     })
-    
     
     # Function to create the boxplot
     create_boxplot_TF <- function(data, depth, approach, fraction ) {
@@ -485,7 +545,7 @@ metricsTabServer <- function(id) {
       # Reorder the tools globally
       data <- data %>%
         mutate(tool = factor(tool, levels = median_diff$tool))
-
+      
       # Create hover text for jitter points
       # data <- data %>%
       #   mutate(hover_text = paste0("Tool: ", tool, "<br>",
@@ -504,8 +564,8 @@ metricsTabServer <- function(id) {
         ) + theme_benchmarking +
         theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
         custom_color_manual + custom_fill_manual
-      }
-
+    }
+    
     # Render the boxplot in UI using the function
     output$boxplot_TF <- renderPlotly({
       data <- filtered_data_boxplot()
@@ -516,7 +576,7 @@ metricsTabServer <- function(id) {
         config(toImageButtonOptions = list(format = "svg",
                                            filename = paste("boxplot_",input$boxplot_depth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_fraction_select, "_", Sys.Date())
         ))
-      })
+    })
     
     # Save boxplot as svg and pdf
     # download_boxplot <- function(ext) {
@@ -544,6 +604,8 @@ metricsTabServer <- function(id) {
         write.csv(data, file, row.names = FALSE)
       }
     )
+
+    
     
     ############################################################################ 
     ## NRMSE plot
@@ -665,12 +727,24 @@ metricsTabServer <- function(id) {
                       choices = sort(unique(bench$expected_fraction[bench$expected_fraction != 0])), 
                       selected = sort(unique(bench$expected_fraction[bench$expected_fraction != 0]))[1])
     
-    updateCheckboxGroupInput(session, "rmse_comparison_tools_select", 
-                             choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))
+    # updateCheckboxGroupInput(session, "rmse_comparison_tools_select", 
+    #                          choices = sort(unique(bench$tool)), 
+    #                          selected = sort(unique(bench$tool)))
     updateCheckboxGroupInput(session, "rmse_comparison_dmrtools_select", 
                              choices = sort(unique(bench$DMRtool)), 
                              selected = sort(unique(bench$DMRtool)))
+    
+    observe({
+      current_choices <- sort(unique(bench$tool))  # Get all available tools
+      
+      # Update the checkbox group based on select all/none toggle
+      updateCheckboxGroupInput(
+        session, "rmse_comparison_tools_select",
+        choices = current_choices,
+        selected = if (input$rmse_comparison_tools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+      )
+    })
+    
     
     # RMSE tool comparison Data Filtering
     filtered_data_rmse_comparison <- reactive({
@@ -694,25 +768,17 @@ metricsTabServer <- function(id) {
         group_by(tool, DMRtool) %>%
         summarise(RMSE = rmse(expected_fraction, nbl), .groups = "drop")
       
-      # Rank the tools by mean RMSE across DMR tools
-      # median_diff <- plot_data %>% 
-      #   group_by(tool) %>%
-      #   summarise(Mean = mean(RMSE, na.rm = TRUE)) %>%
-      #   arrange(Mean)
-      # print(median_diff)
-      
       # Rank the tools by mean RMSE
       ranked_tools <- plot_data %>%
         group_by(tool) %>%
         summarise(MeanRMSE = mean(RMSE, na.rm = TRUE)) %>%
-        arrange(MeanRMSE) %>%
+        arrange(desc(MeanRMSE)) %>%
         pull(tool)  # Extract ordered tool names
       
       # Reorder tools based on calculated ranking
       plot_data <- plot_data %>%
         mutate(tool = factor(tool, levels = ranked_tools)) 
       
-
       # The tools with lower RMSE (better performance) will appear at the top of the y-axis.
       # The tools with higher RMSE (worse performance) will appear at the bottom of the y-axis.
       
@@ -788,12 +854,25 @@ metricsTabServer <- function(id) {
                       choices = sort(unique(bench$collapse_approach)), 
                       selected = sort(unique(bench$collapse_approach))[1])
     
-    updateCheckboxGroupInput(session, "aucroc_complete_tools_select", 
-                             choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))
+    # updateCheckboxGroupInput(session, "aucroc_complete_tools_select", 
+    #                          choices = sort(unique(bench$tool)), 
+    #                          selected = sort(unique(bench$tool)))
     updateSelectInput(session, "aucroc_complete_dmrtool_select", 
                       choices = sort(unique(bench$DMRtool)), 
                       selected = sort(unique(bench$DMRtool))[1])
+    
+    observe({
+      current_choices <- sort(unique(bench$tool))  # Get all available tools
+      
+      # Update the checkbox group based on select all/none toggle
+      updateCheckboxGroupInput(
+        session, "aucroc_complete_tools_select",
+        choices = current_choices,
+        selected = if (input$aucroc_complete_tools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+      )
+    })
+    
+    
     
     # Create a reactive function for AUCROC complete data
     create_aucroc_complete_data <- reactive({
@@ -1017,6 +1096,22 @@ metricsTabServer <- function(id) {
         ) + theme_benchmarking
     }
     
+    # # Render output AUCROC plot
+    # output$aucroc_plot <- renderUI({
+    #   aucroc_data <- create_aucroc_data()
+    #   
+    #   if (nrow(aucroc_data) == 0) {
+    #     return(HTML("⚠ Warning: Selected deconvolution tools cannot be visualized due to missing or incomplete data."))
+    #   }
+    #   
+    #   plot <- create_aucroc_plot(aucroc_data)
+    #   plotlyOutput <- ggplotly(plot, tooltip = "text") %>%
+    #     config(toImageButtonOptions = list(format = "svg",
+    #                                        filename = paste("auc_depth_", input$aucroc_depth_select, "_", input$aucroc_approach_select, "_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
+    #     ))
+    #   return(plotlyOutput)
+    # })
+    
     # Render output AUCROC plot
     output$aucroc_plot <- renderPlotly({
       aucroc_data <- create_aucroc_data()
@@ -1028,6 +1123,7 @@ metricsTabServer <- function(id) {
         ))
     })
     
+
     # Save AUCROC using the function
     # download_aucroc_plot <- function(ext) {
     #   downloadHandler(
@@ -1055,10 +1151,11 @@ metricsTabServer <- function(id) {
         write.csv(aucroc_data, file, row.names = FALSE)
       }
     )
-    
 
+    
+    
     ############################################################################ 
-    ## General Rank tools 
+    ## Final ranking of the tools 
     # Dropdowns and checkboxes Rank tools
     updateSelectInput(session, "rank_depth_select",
                       choices = sort(unique(bench$depth)),
@@ -1067,9 +1164,9 @@ metricsTabServer <- function(id) {
                       choices = sort(unique(bench$collapse_approach)), 
                       selected = sort(unique(bench$collapse_approach))[1])
     
-    updateCheckboxGroupInput(session, "rank_tools_select", 
-                             choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))
+    # updateCheckboxGroupInput(session, "rank_tools_select", 
+    #                          choices = sort(unique(bench$tool)), 
+    #                          selected = sort(unique(bench$tool)))
     updateCheckboxGroupInput(session, "rank_dmrtools_select", 
                              choices = sort(unique(bench$DMRtool)), 
                              selected = sort(unique(bench$DMRtool)))
@@ -1077,6 +1174,16 @@ metricsTabServer <- function(id) {
                       choices =  c("normAUC", "normRMSE", "normSCC", "Score"), 
                       selected = c("normAUC", "normRMSE", "normSCC", "Score")[1])
     
+    observe({
+      current_choices <- sort(unique(bench$tool))  # Get all available tools
+      
+      # Update the checkbox group based on select all/none toggle
+      updateCheckboxGroupInput(
+        session, "rank_tools_select",
+        choices = current_choices,
+        selected = if (input$rank_tools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+      )
+    })
     
     # Rank tool Data Filtering
     filtered_data_ranking <- function(bench, tools, dmrtools) {
@@ -1239,12 +1346,24 @@ metricsTabServer <- function(id) {
                       choices = sort(unique(bench$collapse_approach)), 
                       selected = sort(unique(bench$collapse_approach))[1])
     
-    updateCheckboxGroupInput(session, "heatmap_tools_select", 
-                             choices = sort(unique(bench$tool)), 
-                             selected = sort(unique(bench$tool)))    
+    # updateCheckboxGroupInput(session, "heatmap_tools_select", 
+    #                          choices = sort(unique(bench$tool)), 
+    #                          selected = sort(unique(bench$tool)))    
     updateSelectInput(session, "heatmap_dmrtool_select", 
                       choices = sort(unique(bench$DMRtool)), 
                       selected = sort(unique(bench$DMRtool))[1])    
+    
+    observe({
+      current_choices <- sort(unique(bench$tool))  # Get all available tools
+      
+      # Update the checkbox group based on select all/none toggle
+      updateCheckboxGroupInput(
+        session, "heatmap_tools_select",
+        choices = current_choices,
+        selected = if (input$heatmap_tools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+      )
+    })
+    
     
     # Filter data for heatmap
     create_heatmap_data <- reactive({
@@ -1336,7 +1455,7 @@ metricsTabServer <- function(id) {
     # Save heatmap using the function
     download_heatmap_plot <- function(ext) {
       downloadHandler(
-        filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_depth_select, "_", input$heatmap_approach_select, Sys.Date(), ".", ext, sep = ""),
+        filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_depth_select, "_", input$heatmap_approach_select, "_",Sys.Date(), ".", ext, sep = ""),
         content = function(file) {
           plot_data <- create_heatmap_data()
           plot <- create_heatmap_plot(plot_data)
@@ -1350,7 +1469,7 @@ metricsTabServer <- function(id) {
     
     # Save dataframe heatmap as csv
     output$download_heatmap_df <- downloadHandler(
-      filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_depth_select, "_", input$heatmap_approach_select, Sys.Date(), ".csv", sep = ""),
+      filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_depth_select, "_", input$heatmap_approach_select, "_", Sys.Date(), ".csv", sep = ""),
       content = function(file) {
         plot_data <- create_heatmap_data()
         write.csv(plot_data, file, row.names = FALSE)
@@ -1359,9 +1478,130 @@ metricsTabServer <- function(id) {
     
     
     ############################################################################ 
-    ## Heatmap
-    # Dropdowns and checkboxes heatmap    
+    ## LoD
+    # Dropdowns and checkboxes LoD    
+    updateSelectInput(session, "lod_depth_select",
+                      choices = sort(unique(bench$depth)),
+                      selected = sort(unique(bench$depth))[1]) 
+    updateSelectInput(session, "lod_approach_select", 
+                      choices = sort(unique(bench$collapse_approach)), 
+                      selected = sort(unique(bench$collapse_approach))[1])
     
+    updateSelectInput(session, "lod_tool_select",
+                      choices = sort(unique(bench$tool)),
+                      selected = sort(unique(bench$tool))[1])    
+    updateSelectInput(session, "lod_dmrtool_select", 
+                      choices = sort(unique(bench$DMRtool)), 
+                      selected = sort(unique(bench$DMRtool))[1])  
+    
+    updateSelectInput(session, "lod_plabel_select", 
+                      choices = c("p", "p.adj", "p.adj.signif"),
+                      selected = "p.adj.signif")
+    
+    # Filter data for LoD
+    create_lod_data <- reactive({
+      req(input$lod_depth_select, 
+          input$lod_approach_select, 
+          input$lod_tool_select, 
+          input$lod_dmrtool_select)
+
+      data <- bench %>%
+        filter(DMRtool == input$lod_dmrtool_select,
+               collapse_approach == input$lod_approach_select,
+               depth == input$lod_depth_select,
+               tool == input$lod_tool_select)
+      return(data)
+    })
+    
+    # Perform t-test/wilcox test 
+    stat_results <- function(data) {
+      stats <- data %>%
+        wilcox_test(nbl ~ expected_fraction, 
+                    ref.group = "0", 
+                    alternative = "less") %>%
+        adjust_pvalue(method = "BH") %>%
+        mutate(p = formatC(p, format = "e", digits = 1),
+               p.adj = formatC(p.adj, format = "e", digits = 1))
+      
+      # Number of comparisons
+      num_comparisons <- nrow(stats)
+      
+      # Get max and min y-values
+      max_nbl <- max(data$nbl, na.rm = TRUE)  
+      min_nbl <- min(data$nbl, na.rm = TRUE)  
+      
+      # Assign y.position dynamically
+      stats <- stats %>%
+        arrange(as.numeric(group2)) %>%
+        mutate(
+          y.position = seq(from = max_nbl * 1.1,  # Start slightly above max
+                           to = max_nbl * 1.8,   # Space out comparisons
+                           length.out = num_comparisons)
+        )
+      
+      return(stats)
+    }
+    
+    # Create a function to generate the lod
+    create_lod_plot <- function(data) {
+      unique_fractions <- unique(data$expected_fraction)
+      unique_fractions <- subset(unique_fractions, unique_fractions != 0)
+      
+      stats <- stat_results(data)
+      print(as.data.frame(stats))
+      
+      # Plot the data 
+      plot <- ggplot(data, aes(x = as.factor(expected_fraction), y = nbl)) +
+        geom_boxplot() +
+        labs(
+          title = "",
+          x = "Expected Fraction",
+          y = "Estimated Tumoral Fraction (%)"
+        ) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+        stat_pvalue_manual(stats, label = input$lod_plabel_select) +
+        theme_benchmarking
+      
+      return(plot)
+      
+    }
+
+    # Output plot 
+    output$lod <- renderPlot({
+      data <- create_lod_data()
+      #print(tapply(data$nbl, data$expected_fraction, var, na.rm = TRUE)) 
+      create_lod_plot(data)
+    })
+    
+
+    # Save lod plot as svg and pdf
+    download_lod <- function(ext) {
+      downloadHandler(
+        filename = function() paste("LoD_", input$lod_tool_select, "_depth_", input$lod_depth_select, "_", input$lod_approach_select,"_", input$lod_dmrtool_select, "_" , Sys.Date(), ".", ext, sep = ""),
+        content = function(file) {
+          data <- create_lod_data()
+          req(nrow(data) > 0)
+          plot <- create_lod_plot(data)
+          
+          ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = ext)
+        }
+      )
+    }
+    output$download_lod_svg <- download_lod("svg")
+    output$download_lod_pdf <- download_lod("pdf")
+    
+    
+    # Save dataframe lod as csv
+    output$download_lod_df <- downloadHandler(
+      filename = function() paste("LoD_", input$lod_tool_select, "_depth_", input$lod_depth_select, "_", input$lod_approach_select,"_", input$lod_dmrtool_select, "_" , Sys.Date(), ".csv", sep = ""),
+      content = function(file) {
+        data <- create_lod_data()
+        stats <- stat_results(data)  # Generate stats before writing
+        write.csv(as.data.frame(stats), file, row.names = FALSE)     
+        }
+    )
+    
+       
   }) # Close moduleServer
 } # Close metricsTabServer    
     
