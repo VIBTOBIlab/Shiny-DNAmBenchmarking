@@ -250,8 +250,8 @@ metricsTabUI <- function(id) {
                       selectInput(
                         ns("rank_metric_select"), 
                         label = "Metric",
-                        choices = c("normAUC", "normRMSE", "normSCC", "meanScore"),
-                        selected = "normAUC"
+                        choices = c("meanAUC", "RMSE", "SCC", "Score"),
+                        selected = "meanAUC"
                       ),
                      checkboxGroupInput(
                        ns("rank_tools_select"),
@@ -577,21 +577,6 @@ metricsTabServer <- function(id) {
                                            filename = paste("boxplot_",input$boxplot_depth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_fraction_select, "_", Sys.Date())
         ))
     })
-    
-    # Save boxplot as svg and pdf
-    # download_boxplot <- function(ext) {
-    #   downloadHandler(
-    #     filename = function() paste("boxplots_tools_fraction_", input$boxplot_fraction_select, "_", Sys.Date(), ".", ext, sep = ""),
-    #     content = function(file) {
-    #       data <- filtered_data_boxplot()
-    #       req(nrow(data) > 0)
-    #       ggsave(file, plot = create_boxplot_TF(data, as.numeric(input$boxplot_fraction_select)),
-    #              width = 10, height = 6, dpi = 300, device = ext)
-    #     }
-    #   )
-    # }
-    # output$download_boxplot_TF_svg <- download_boxplot("svg")
-    # output$download_boxplot_TF_pdf <- download_boxplot("pdf")  
     
     # Save dataframe boxplot as csv
     output$download_boxplot_TF_df <- downloadHandler(
@@ -919,30 +904,6 @@ metricsTabServer <- function(id) {
       return(aucroc_complete_data)
     })
     
-    # create_aucroc_complete_data <- function(data, tools, dmrtool) {
-    #   aucroc_complete_data <- data.frame()
-    #   fractions <- c(0.0001, 0.001, 0.01, 0.05)
-    #   for (tool in tools) {
-    #     for (fraction in unique(fractions)) {
-    #       filt_df <- data %>%
-    #         filter(expected_fraction %in% c(0, fraction) & DMRtool == dmrtool & tool == !!tool)
-    #       if (nrow(filt_df) > 0) {
-    #         roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
-    #         tmp <- data.frame(
-    #           fpr = 1 - rev(roc_curve$specificities),
-    #           tpr = rev(roc_curve$sensitivities),
-    #           thresholds = rev(roc_curve$thresholds),
-    #           auc = rev(roc_curve$auc),
-    #           fraction = fraction,
-    #           tool = tool
-    #         )
-    #         aucroc_complete_data <- rbind(aucroc_complete_data, tmp)
-    #       }
-    #     }
-    #   }
-    #   return(aucroc_complete_data)
-    # }
-    
     # Function to generate AUC-ROC plot with facet_wrap
     create_aucroc_complete_plot <- function(aucroc_complete_data) {
       # print(aucroc_complete_data)
@@ -1171,8 +1132,8 @@ metricsTabServer <- function(id) {
                              choices = sort(unique(bench$DMRtool)), 
                              selected = sort(unique(bench$DMRtool)))
     updateSelectInput(session, "rank_metric_select", 
-                      choices =  c("normAUC", "normRMSE", "normSCC", "Score"), 
-                      selected = c("normAUC", "normRMSE", "normSCC", "Score")[1])
+                      choices =  c("meanAUC", "RMSE", "SCC", "Score"), 
+                      selected = c("meanAUC", "RMSE", "SCC", "Score")[1])
     
     observe({
       current_choices <- sort(unique(bench$tool))  # Get all available tools
@@ -1185,86 +1146,150 @@ metricsTabServer <- function(id) {
       )
     })
     
-    # Rank tool Data Filtering
-    filtered_data_ranking <- function(bench, tools, dmrtools) {
-      # Filter the input data based on selected tools and DMR tools
-      bench <- bench %>% 
-        filter(tool %in% tools, DMRtool %in% dmrtools)
+    # Merge AUC-ROC, RMSE, SCC
+    merge_metrics_rank <- reactive({
+      req(input$rank_depth_select, # Ensure inputs exist before running
+          input$rank_approach_select,
+          input$rank_dmrtools_select,
+          input$rank_tools_select)  
       
-      print(str(bench))
-      print(head(bench))
-      
-      # Compute AUC-ROC
+      # Initialize an empty dataframe
       aucroc_data <- data.frame()
       fractions_auc <- unique(bench[bench$expected_fraction != 0, "expected_fraction"])
+      miss <- c() # Initialize missing tool tracker
       
-      for (fraction in fractions_auc) {
-        df <- bench %>% filter(expected_fraction %in% c(0, fraction))
-        for (deconv in unique(df$tool)) {
-          filt_df <- df %>% filter(tool == deconv)
-          for (dmrtool in unique(filt_df$DMRtool)) {
-            fin_df <- filt_df %>% filter(DMRtool == dmrtool)
-            
-            roc_curve <- roc.obj(fin_df$expected_fraction, fin_df$nbl)
-            tmp <- data.frame(
-              tool = deconv,
-              DMRtool = dmrtool,
-              meanAUC = mean(rev(roc_curve$auc)),
-              fraction = fraction
-            )
-            aucroc_data <- rbind(aucroc_data, tmp)
-          }
-        }
+      filt_df <- bench %>%
+        filter(depth == input$rank_depth_select,
+               collapse_approach == input$rank_approach_select,
+               DMRtool %in% input$rank_dmrtools_select, 
+               tool %in% input$rank_tools_select)
+      
+      # Loop only through selected user inputs
+      for (dmrtool in input$rank_dmrtools_select) {
+        for (tool in input$rank_tools_select) {
+          for (fraction in fractions_auc) {
+                
+                filt_df2 <- filt_df %>%
+                  filter(expected_fraction %in% c(0, fraction),
+                         DMRtool == dmrtool,
+                         tool == !!tool)
+                
+                if (length(unique(filt_df2$expected_fraction)) != 2) {
+                  miss <- c(miss, tool)
+                  next
+                }
+                
+                roc_curve <- roc.obj(filt_df2$expected_fraction, filt_df2$nbl)
+                tmp <- data.frame(
+                  fpr = 1-rev(roc_curve$specificities),  # False Positive Rate
+                  tpr = rev(roc_curve$sensitivities),  # True Positive Rate
+                  thresholds = rev(roc_curve$thresholds),
+                  auc = rev(roc_curve$auc),
+                  fraction = fraction,
+                  tool = tool,
+                  DMRtool = dmrtool,
+                  collapse_approach = input$rank_approach_select,
+                  depth = input$rank_depth_select
+                )
+                aucroc_data <- rbind(aucroc_data, tmp)
+              }
+            }
       }
-      
+
+      # Compute mean AUC Grouped Performance
       classif_performance_auc <- aucroc_data %>%
-        group_by(tool, DMRtool) %>%
-        summarize(meanAUC = mean(meanAUC))
-      
-      # Compute RMSE for nonzero fractions
-      nonzero_fraction <- bench %>%
+        group_by(fraction, tool, DMRtool, collapse_approach, depth) %>%
+        summarize(AUC = mean(auc), .groups = 'drop') %>% 
+        group_by(tool, DMRtool, collapse_approach, depth) %>%
+        summarize(meanAUC = mean(AUC), .groups = 'drop')
+
+      # Compute RMSE for fractions > 0
+      nonzero_fraction <- filt_df %>%
         filter(expected_fraction != 0) %>%
-        group_by(tool, DMRtool) %>%
-        summarize(RMSE = rmse(expected_fraction, nbl))
+        group_by(tool, DMRtool, collapse_approach, depth) %>%
+        summarize(RMSE = rmse(expected_fraction, nbl), .groups = 'drop')
+
+      # Compute Spearman's rank correlation coefficient (SCC) on all fractions
+      all_fractions <- filt_df %>%
+        group_by(tool, DMRtool, depth, collapse_approach) %>%
+        summarize(SCC = scc(expected_fraction, nbl), .groups = 'drop')
       
-      # Compute SCC for all fractions
-      all_fractions <- bench %>%
-        group_by(tool, DMRtool) %>%
-        summarize(SCC = scc(expected_fraction, nbl))
+      # Merge all computed metrics
+      merged_metrics <- merge(all_fractions, nonzero_fraction, by = c("tool", "DMRtool", "collapse_approach", "depth"))
+      merged_metrics <- merge(merged_metrics, classif_performance_auc, by = c("tool", "DMRtool", "collapse_approach", "depth"))
+      return(merged_metrics)
+    })
+    
+    normalize_metrics <- reactive({ 
+      # Retrieve merged metrics from reactive function
+      merged_metrics <- merge_metrics_rank()
       
-      # Merge the computed metrics
-      merged_metrics <- merge(all_fractions, nonzero_fraction, by = c("tool", "DMRtool"))
-      merged_metrics <- merge(merged_metrics, classif_performance_auc, by = c("tool", "DMRtool"))
-      
-      # Normalize the metrics
+      # Normalize all the metrics based on user-selected inputs
       normalized_list <- list()
-      for (selection in unique(merged_metrics$DMRtool)) {
-        tmp <- na.omit(merged_metrics[merged_metrics$DMRtool == selection, ])
+      miss <- list()
+      
+      for (dmrtool in input$rank_dmrtools_select) {
+        tmp <- merged_metrics %>%
+          filter(DMRtool == dmrtool,
+                 collapse_approach == input$rank_approach_select,
+                 depth == input$rank_depth_select)
+        
+        # Skip if df is empty
+        if (dim(tmp)[1] == 0) {
+          miss <- c(miss, deconv)
+          next
+        }
+        
+        tmp <- tmp %>%
+          mutate(
+            SCC = ifelse(is.na(SCC), 0, SCC),  # Replace NAs in SCC with 0
+            RMSE = ifelse(is.na(RMSE), 1, RMSE),   # Replace NAs in RMSE with 1
+            AUC = ifelse(is.na(meanAUC), 0, meanAUC)
+          )
+        
         tmp$normSCC <- (tmp$SCC - min(tmp$SCC)) / (max(tmp$SCC) - min(tmp$SCC))
         tmp$normRMSE <- 1 - (tmp$RMSE - min(tmp$RMSE)) / (max(tmp$RMSE) - min(tmp$RMSE))
         tmp$normAUC <- (tmp$meanAUC - min(tmp$meanAUC)) / (max(tmp$meanAUC) - min(tmp$meanAUC))
-        normalized_list[[selection]] <- tmp[, c("tool", "DMRtool", "normSCC", "normRMSE", "normAUC")]
+        
+
+        # Append the normalized subset to the list
+        key <- paste(dmrtool, input$rank_depth_select, input$rank_approach_select, sep = "_")
+        normalized_list[[key]] <- tmp[, c("tool", "DMRtool", "collapse_approach", "depth", 
+                                          "meanAUC", "RMSE", "SCC", "normAUC", "normSCC", "normRMSE" )]
       }
       
+      
+      # Combine all normalized subsets into a single data frame
       normalized_df <- do.call(rbind, normalized_list)
       
-      # Create a combined metrics 'Score' (using the formula you provided)
-      nzeros <- nrow(bench[bench$expected_fraction == 0,])
-      nnonzeros <- nrow(bench[bench$expected_fraction != 0,])
+      # Create a combined metric score
+      filt_df <- bench %>%
+        filter(depth == input$rank_depth_select,
+               collapse_approach == input$rank_approach_select,
+               DMRtool %in% input$rank_dmrtools_select, 
+               tool %in% input$rank_tools_select)
+      
+      nzeros <- nrow(filt_df[filt_df$expected_fraction == 0,])
+      nnonzeros <- nrow(filt_df[filt_df$expected_fraction != 0,])
       tot <- nzeros + nnonzeros
       
       normalized_df$Score <- 
-        normalized_df$normAUC + 
+        normalized_df$normAUC +
         (nnonzeros / tot) * (normalized_df$normRMSE) + 
         normalized_df$normSCC
-      
+
+      #print(head(normalized_df))
       return(normalized_df)
-    }
+      
     
+      })
     
     # Create a function to generate rank plots
-    create_plot_ranking <- function(data, metric) {
-      data <- data %>%
+    create_plot_ranking <- function(metric) {
+      merged_metrics <- merge_metrics_rank()
+      normalized_df <- normalize_metrics()
+      
+      data <- normalized_df %>%
         mutate(tooltip_text = paste(metric,":", round(.data[[metric]], 3), 
                                     "<br>Tool:", tool, 
                                     "<br>DMRtool:", DMRtool))
@@ -1272,9 +1297,9 @@ metricsTabServer <- function(id) {
       # Calculate mean score if not already available (or use from existing data)
       mean_score <- data %>%
         group_by(tool) %>%
-        summarise(Mean = mean(.data[[metric]], na.rm = TRUE)) %>%
-        arrange(desc(Mean))
-      
+        summarise(Mean=sum(.data[[metric]])/length(input$rank_dmrtools_select)) %>%
+        arrange(if (metric == "RMSE") desc(Mean) else Mean)  # Reverse order for RMSE
+
       # Reorder the tools globally without adding 'meanScore' column to the dataframe
       data <- data %>%
         mutate(tool = factor(tool, levels = mean_score$tool))
@@ -1287,55 +1312,33 @@ metricsTabServer <- function(id) {
           y = ""
         ) +
         theme_benchmarking +  
-        #scale_y_discrete(expand = expansion(mult = 0.05)) +
-        #scale_y_discrete(labels = function(x) str_replace_all(x, "_", " "))+
+        scale_y_discrete(labels = function(x) str_replace_all(x, "_", " "))+
         custom_color_manual 
     }
     
     
     # Render ggplotly rank plots
     output$rank <- renderPlotly({
-      data <- filtered_data_ranking(bench, input$rank_tools_select,input$rank_dmrtools_select )
-      req(nrow(data) > 0)
-      
-      plot <- create_plot_ranking(data, input$rank_metric_select)
+      plot <- create_plot_ranking(input$rank_metric_select)
       ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
         config(toImageButtonOptions = list(format = "svg",
-                                           filename = paste("tools_vs_",input$rank_metric_select,"_", Sys.Date())
-        ))
+                                           filename = paste("rank_",input$rank_metric_select,"_depth_",input$rank_depth_select, "_",input$rank_approach_select,"_",Sys.Date())
+      ))
     })
-    
-    # Download rank plots via svg or pdf 
-    # download_rank_plot <- function(ext) {
-    #   downloadHandler(
-    #     filename = function() {
-    #       paste("tools_vs_",input$rank_metric_select,"_", Sys.Date(), ".", ext, sep = "")
-    #     },
-    #     content = function(file) {
-    #       data <- filtered_data_ranking(bench, input$rank_tools_select, input$rank_dmrtools_select)
-    #       req(nrow(data) > 0)
-    #       ggsave(file, plot = create_plot_ranking(data, input$rank_metric_select),
-    #              width = 10, height = 6, dpi = 300, device = ext)
-    #     }
-    #   )
-    # }
-    # 
-    # output$download_rank_svg <- download_rank_plot("svg")
-    # output$download_rank_pdf <- download_rank_plot("pdf")
     
     # Download data of rank plots
     output$download_rank_df <- downloadHandler(
       filename = function() {
-        paste("tools_vs_",input$rank_metric_select, Sys.Date(), ".csv", sep = "")
+        paste("rank_",input$rank_metric_select,"_depth_",input$rank_depth_select, "_",input$rank_approach_select,"_",Sys.Date(), ".csv", sep = "")
       },
       content = function(file) {
-        data <- filtered_data_ranking(bench, input$rank_tools_select, input$rank_dmrtools_select)
-        req(nrow(data) > 0)
-        write.csv(data, file, row.names = FALSE)
+        merged_metrics <- merge_metrics_rank()
+        normalized_df <- normalize_metrics()
+        df <- normalized_df %>% select(-normAUC, -normSCC, -normRMSE)
+        write.csv(df, file, row.names = FALSE)
       }
     )
-    
-    
+
     ############################################################################ 
     ## Heatmap
     # Dropdowns and checkboxes heatmap
