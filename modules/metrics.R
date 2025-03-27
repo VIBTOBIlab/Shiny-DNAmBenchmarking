@@ -49,8 +49,6 @@ metricsTabUI <- function(id) {
                     mainPanel( width = 9,
                       plotlyOutput(ns("boxplot_TF"), height = "600px"),
                       br(),
-                      # downloadButton(ns("download_boxplot_TF_svg"), "Download as SVG"),
-                      # downloadButton(ns("download_boxplot_TF_pdf"), "Download as PDF"),
                       downloadButton(ns("download_boxplot_TF_df"), "Download data"),
                       textOutput("warning_message_boxplot_TF"),
                       br(), br(), br()
@@ -92,8 +90,6 @@ metricsTabUI <- function(id) {
                     mainPanel(width = 9,
                       plotlyOutput(ns("nrmse_plot"), height = "600px"),
                       br(),
-                      # downloadButton(ns("download_nrmse_plot_svg"), "Download as SVG"),
-                      # downloadButton(ns("download_nrmse_plot_pdf"), "Download as PDF"),
                       downloadButton(ns("download_nrmse_plot_df"), "Download data"),
                       br(), br(), br()
                     )
@@ -175,8 +171,6 @@ metricsTabUI <- function(id) {
                    mainPanel(width = 9,
                              plotlyOutput(ns("aucroc_plot"), height = "400px", width = "600px"),
                              br(),
-                             # downloadButton(ns("download_aucroc_svg"), "Download as SVG"),
-                             # downloadButton(ns("download_aucroc_pdf"), "Download as PDF"),
                              downloadButton(ns("download_aucroc_df"), "Download data"),
                              br(), br(), br()
                    )
@@ -225,8 +219,6 @@ metricsTabUI <- function(id) {
                     mainPanel(width = 9,
                       plotlyOutput(ns("rmse_comparison"), height = "600px"),
                       br(),
-                      # downloadButton(ns("download_rmse_comparison_svg"), "Download as SVG"),
-                      # downloadButton(ns("download_rmse_comparison_pdf"), "Download as PDF"),
                       downloadButton(ns("download_rmse_comparison_df"), "Download data"),
                       br(), br(),
                     )
@@ -269,13 +261,21 @@ metricsTabUI <- function(id) {
                    ),
                    mainPanel(width = 9,
                              plotlyOutput(ns("rank"), height = "600px"),
-                             # downloadButton(ns("download_rank_svg"), "Download as SVG"),
-                             # downloadButton(ns("download_rank_pdf"), "Download as PDF"),
                              downloadButton(ns("download_rank_df"), "Download data"),
-                     
-                     br(), br()
-                   )
-                 )
+                             br(), br(), br()
+                   ) #,
+                 ) #,
+                 # sidebarLayout(
+                 #   sidebarPanel(width = 3),
+                 #   mainPanel(width = 9,
+                 #             plotOutput(ns("rank_static"), height = "900px"),
+                 #             downloadButton(ns("download_rank_static_svg"), "Download as SVG"),
+                 #             downloadButton(ns("download_rank_static_pdf"), "Download as PDF"),
+                 #             downloadButton(ns("download_rank_static_df"), "Download data"),
+                 #             br(), br()
+                 #   )
+                 # )
+
         ), # Close 'Tools' section
         tabPanel(title = 'DMRtool',
                  # Heatmap section
@@ -319,7 +319,6 @@ metricsTabUI <- function(id) {
                  )
 
       ), # Close 'DMRtool' section 
-      tabPanel(title = "Mean vs Median"),
       tabPanel(title = "LoD",
                h3("Limit of detection"),
                sidebarLayout(
@@ -392,29 +391,6 @@ metricsTabServer <- function(id) {
     bench <- subset(bench,bench$reference=="reference_11healthy_9nbl" &
                       bench$expected_fraction %in% c(0,0.0001,0.001,0.003,0.007,0.01,0.025,0.05,0.1,0.25,0.5))
 
-    # Change names of references and tools
-    # bench <- bench %>%
-    #   mutate(
-    #     # Replacing tool names 
-    #     tool = case_when(
-    #       tool == "EpiDISH_RPC" ~ "RPC",
-    #       tool == "EpiDISH_CP_eq" ~ "Houseman's CP/QP w/equality",
-    #       tool == "EpiDISH_CP_ineq" ~ "Houseman's CP/QP w/inequality",
-    #       tool == "meth_atlas" ~ "MethAtlas",
-    #       tool == "Methyl_Resolver" ~ "MethylResolver",
-    #       tool == "PRMeth" ~ "NMF",
-    #       TRUE ~ tool
-    #     ),
-    #     # Replacing reference values 
-    #     reference = case_when(
-    #       reference == "reference_11healthy_10nbl" ~ "all available cell lines",
-    #       reference == "reference_11healthy_1nbl" ~ "matched cell line",
-    #       reference == "reference_11healthy_9nbl" ~ "all cell lines except matched",
-    #       reference == "reference_11healthy_4nbl" ~ "all adrenergic cell lines except matched",
-    #       TRUE ~ reference  
-    #     )
-    #   )
-    
     # Clean and format data 
     bench$nbl <- round(bench$nbl, 4) 
     bench$sample <- str_trim(bench$sample, side = c("both", "left", "right"))
@@ -434,10 +410,7 @@ metricsTabServer <- function(id) {
       mutate(across(c(reference, DMRtool, direction, top, collapse_approach, 
                       min_cpgs, min_counts), as.factor))
     
-    # print(head(bench))
-    # print(str(bench))
-    
-    # 2. Functions
+    ## 2. Functions
     # RMSE
     rmse <- function(actual, predicted) {
       round(sqrt(mean((actual - predicted)^2)),4)
@@ -456,29 +429,7 @@ metricsTabServer <- function(id) {
       roc_obj <- roc(true_labels, predicted_scores)
       return(roc_obj)
     }
-    
-    
-    # # MCC
-    # mcc <- function(y_true,y_pred) {
-    #   TP <- as.numeric(sum(y_true > 0 & y_pred > 0 ))
-    #   TN <- as.numeric(sum(y_true == 0 & y_pred == 0))
-    #   FP <- as.numeric(sum(y_true == 0 & y_pred > 0))
-    #   FN <- as.numeric(sum(y_true > 0 & y_pred == 0))
-    #   
-    #   numerator <- (TP * TN) - (FP * FN)
-    #   denominator <- sqrt((TP + FP) * (TP + FN) * (TN + FP) * (TN + FN))
-    #   if (denominator == 0) return(0)
-    #   return(numerator / denominator)
-    # }
-    # aupr.obj <- function(true_labels, predicted_scores) {
-    #   true_labels[true_labels>0] <- 1
-    #   
-    #   # Calculate precision-recall curve and AUPR
-    #   pr <- pr.curve(scores.class0 = predicted_scores, weights.class0 = true_labels, curve = T)
-    #   
-    #   return(pr)
-    # }
-
+  
     ## 3. Visualizations Benchmarking Results
     ############################################################################
     ## Boxplot predictions for each tumoral fraction
@@ -510,9 +461,6 @@ metricsTabServer <- function(id) {
         selected = if (input$boxplot_tools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
       )
     })
-    
-    
-
     
     # Reactive expression for filtered data boxplot
     filtered_data_boxplot <- reactive({
@@ -590,8 +538,6 @@ metricsTabServer <- function(id) {
       }
     )
 
-    
-    
     ############################################################################ 
     ## NRMSE plot
     # Dropdowns and checkboxes nRMSE plot 
@@ -621,8 +567,6 @@ metricsTabServer <- function(id) {
                tool == input$nrmse_tool_select, 
                DMRtool %in% input$nrmse_dmrtools_select,
                expected_fraction != 0) # Exclude expected_fraction == 0
-      # print(head(data))
-      # print(str(data))
       return(data)
     })    
     
@@ -670,21 +614,6 @@ metricsTabServer <- function(id) {
         )
     })
     
-    # Save nrmse plot as svg and pdf
-    # download_nrmse_plot <- function(ext) {
-    #   downloadHandler(
-    #     filename = function() paste(input$nrmse_tool_select, "_vs_fractions_nrmse_", Sys.Date(), ".", ext, sep = ""),
-    #     content = function(file) {
-    #       data <- filtered_data_nrmse()
-    #       req(nrow(data) > 0)
-    #       ggsave(file, plot = create_plot_nrmse(data, input$nrmse_tool_select, input$nrmse_dmrtools_select),
-    #              width = 10, height = 6, dpi = 300, device = ext)
-    #     }
-    #   )
-    # }
-    # output$download_nrmse_plot_svg <- download_nrmse_plot("svg")
-    # output$download_nrmse_plot_pdf <- download_nrmse_plot("pdf")
-    
     # Save dataframe nrmse plot as csv
     output$download_nrmse_plot_df <- downloadHandler(
       filename = function() {
@@ -729,7 +658,6 @@ metricsTabServer <- function(id) {
         selected = if (input$rmse_comparison_tools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
       )
     })
-    
     
     # RMSE tool comparison Data Filtering
     filtered_data_rmse_comparison <- reactive({
@@ -784,7 +712,16 @@ metricsTabServer <- function(id) {
           y = "",
           color = "DMRtool",
           shape = "DMRtool"
-        ) + theme_benchmarking + scale_x_continuous(expand = expansion(mult = 0.05)) + 
+        ) + theme_benchmarking + 
+        theme(#legend.text = element_text(size = 13),
+          #legend.title = element_text(size = 14),
+          #axis.title.x = element_text(size = 15),
+          axis.ticks.y = element_blank(),
+          axis.line.y = element_blank(),
+          panel.grid.major.y = element_line(color = "lightgrey", linewidth = 0.4),
+          panel.grid.minor.y = element_blank()
+        ) +
+        scale_x_continuous(expand = expansion(mult = 0.05)) + 
         custom_color_manual
       }
     
@@ -798,23 +735,6 @@ metricsTabServer <- function(id) {
                                            filename = paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select),"_depth_",input$rmse_comparison_depth_select,"_", Sys.Date())
         ))
     })
-    
-    # Save RMSE comparison plot using the function
-    # download_rmse_comparison_plot <- function(ext) {
-    #   downloadHandler(
-    #     filename = function() paste("ranking_tools_fraction_", as.numeric(input$rmse_comparison_fraction_select), "_", Sys.Date(), ".", ext, sep = ""),
-    #     content = function(file) {
-    #       data <- filtered_data_rmse_comparison()
-    #       req(nrow(data) > 0)
-    #       plot <- create_rmse_comparison_plot(data, input$rmse_comparison_tools_select, input$rmse_comparison_fraction_select, input$rmse_comparison_dmrtools_select)
-    # 
-    #       ggsave(file, plot = plot,
-    #              width = 10, height = 6, dpi = 300, device = ext)
-    #     }
-    #   )
-    # }
-    # output$download_rmse_comparison_svg <- download_rmse_comparison_plot("svg")
-    # output$download_rmse_comparison_pdf <- download_rmse_comparison_plot("pdf")
     
     # Save dataframe rmse comparison plot as csv
     output$download_rmse_comparison_df <- downloadHandler(
@@ -856,8 +776,6 @@ metricsTabServer <- function(id) {
         selected = if (input$aucroc_complete_tools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
       )
     })
-    
-    
     
     # Create a reactive function for AUCROC complete data
     create_aucroc_complete_data <- reactive({
@@ -971,6 +889,7 @@ metricsTabServer <- function(id) {
         write.csv(aucroc_complete_data, file, row.names = FALSE)
       }
     )
+    
     ############################################################################ 
     ## Interactive AUCROC plot
     # Dropdowns and checkboxes AUCROC
@@ -1057,22 +976,6 @@ metricsTabServer <- function(id) {
         ) + theme_benchmarking
     }
     
-    # # Render output AUCROC plot
-    # output$aucroc_plot <- renderUI({
-    #   aucroc_data <- create_aucroc_data()
-    #   
-    #   if (nrow(aucroc_data) == 0) {
-    #     return(HTML("⚠ Warning: Selected deconvolution tools cannot be visualized due to missing or incomplete data."))
-    #   }
-    #   
-    #   plot <- create_aucroc_plot(aucroc_data)
-    #   plotlyOutput <- ggplotly(plot, tooltip = "text") %>%
-    #     config(toImageButtonOptions = list(format = "svg",
-    #                                        filename = paste("auc_depth_", input$aucroc_depth_select, "_", input$aucroc_approach_select, "_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
-    #     ))
-    #   return(plotlyOutput)
-    # })
-    
     # Render output AUCROC plot
     output$aucroc_plot <- renderPlotly({
       aucroc_data <- create_aucroc_data()
@@ -1083,23 +986,6 @@ metricsTabServer <- function(id) {
                                            filename = paste("auc_depth_",input$aucroc_depth_select, "_", input$aucroc_approach_select, "_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
         ))
     })
-    
-
-    # Save AUCROC using the function
-    # download_aucroc_plot <- function(ext) {
-    #   downloadHandler(
-    #     filename = function() paste("aucroc_tumor_fractions_", input$aucroc_tool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".", ext, sep=""),
-    #     content = function(file) {
-    #       req(input$aucroc_tool_select, input$aucroc_dmrtool_select)
-    #       aucroc_data <- create_aucroc_data(bench, input$aucroc_tool_select, input$aucroc_dmrtool_select)
-    #       req(nrow(aucroc_data) > 0)  
-    #       plot <- create_aucroc_plot(aucroc_data)
-    #       ggsave(file, plot = plot, width = 6, height = 6, dpi = 300, device = ext)
-    #     }
-    #   )
-    # }
-    # output$download_aucroc_svg <- download_aucroc_plot("svg")
-    # output$download_aucroc_pdf <- download_aucroc_plot("pdf")
     
     # Save dataframe AUCROC plot as csv
     output$download_aucroc_df <- downloadHandler(
@@ -1112,8 +998,6 @@ metricsTabServer <- function(id) {
         write.csv(aucroc_data, file, row.names = FALSE)
       }
     )
-
-    
     
     ############################################################################ 
     ## Final ranking of the tools 
@@ -1236,7 +1120,7 @@ metricsTabServer <- function(id) {
         
         # Skip if df is empty
         if (dim(tmp)[1] == 0) {
-          miss <- c(miss, deconv)
+          miss <- c(miss, dmrtool)
           next
         }
         
@@ -1257,8 +1141,7 @@ metricsTabServer <- function(id) {
         normalized_list[[key]] <- tmp[, c("tool", "DMRtool", "collapse_approach", "depth", 
                                           "meanAUC", "RMSE", "SCC", "normAUC", "normSCC", "normRMSE" )]
       }
-      
-      
+
       # Combine all normalized subsets into a single data frame
       normalized_df <- do.call(rbind, normalized_list)
       
@@ -1278,10 +1161,7 @@ metricsTabServer <- function(id) {
         (nnonzeros / tot) * (normalized_df$normRMSE) + 
         normalized_df$normSCC
 
-      #print(head(normalized_df))
       return(normalized_df)
-      
-    
       })
     
     # Create a function to generate rank plots
@@ -1304,6 +1184,9 @@ metricsTabServer <- function(id) {
       data <- data %>%
         mutate(tool = factor(tool, levels = mean_score$tool))
       
+      # Tools with best performance are placed on top.
+      # Tools with worst performance are placed at the bottom. 
+      
       ggplot(data, aes(y = as.factor(tool), x = .data[[metric]], color = DMRtool, text = tooltip_text)) +
         geom_point(size = 3, alpha = 0.8) +
         labs(
@@ -1311,9 +1194,18 @@ metricsTabServer <- function(id) {
           x = metric,
           y = ""
         ) +
+        scale_x_continuous(breaks = scales::pretty_breaks(n = 5)) +  
         theme_benchmarking +  
-        scale_y_discrete(labels = function(x) str_replace_all(x, "_", " "))+
-        custom_color_manual 
+        theme(#legend.text = element_text(size = 13),
+              #legend.title = element_text(size = 14),
+              #axis.title.x = element_text(size = 15),
+              axis.ticks.y = element_blank(),
+              axis.line.y = element_blank(),
+              panel.grid.major.y = element_line(color = "lightgrey", linewidth = 0.4),
+              panel.grid.minor.y = element_blank()
+        ) +
+        scale_y_discrete(labels = function(x) str_replace_all(x, "_", " ")) +
+        custom_color_manual
     }
     
     
@@ -1339,6 +1231,226 @@ metricsTabServer <- function(id) {
       }
     )
 
+
+    ############################################################################ 
+    # ## Final ranking of the tools static
+    # 
+    # # Merge AUC-ROC, RMSE, SCC
+    # merge_metrics_rank_static <- reactive({
+    #   
+    #   filt_df <- bench %>% 
+    #     filter(!is.na(tool), !is.na(DMRtool))
+    #   
+    #   # Initialize an empty dataframe
+    #   aucroc_data <- data.frame()
+    #   fractions_auc <- unique(bench[bench$expected_fraction != 0, "expected_fraction"])
+    #   miss <- c() # Initialize missing tool tracker
+    #   
+    #   # Loop only through selected user inputs
+    #   for (dmrtool in unique(bench$DMRtool)) {
+    #     for (tool in unique(bench$tool)) {
+    #       for (fraction in fractions_auc) {
+    #         
+    #         filt_df2 <- filt_df %>%
+    #           filter(expected_fraction %in% c(0, fraction),
+    #                  DMRtool == dmrtool,
+    #                  tool == !!tool)
+    #         
+    #         if (length(unique(filt_df2$expected_fraction)) != 2) {
+    #           miss <- c(miss, tool)
+    #           next
+    #         }
+    #         
+    #         roc_curve <- roc.obj(filt_df2$expected_fraction, filt_df2$nbl)
+    #         tmp <- data.frame(
+    #           fpr = 1-rev(roc_curve$specificities),  # False Positive Rate
+    #           tpr = rev(roc_curve$sensitivities),  # True Positive Rate
+    #           thresholds = rev(roc_curve$thresholds),
+    #           auc = rev(roc_curve$auc),
+    #           fraction = fraction,
+    #           tool = tool,
+    #           DMRtool = dmrtool
+    #         )
+    #         aucroc_data <- rbind(aucroc_data, tmp)
+    #       }
+    #     }
+    #   }
+    # 
+    #   # Compute mean AUC Grouped Performance
+    #   classif_performance_auc <- aucroc_data %>%
+    #     group_by(fraction, tool, DMRtool) %>%
+    #     summarize(AUC = mean(auc), .groups = 'drop') %>% 
+    #     group_by(tool, DMRtool) %>%
+    #     summarize(meanAUC = mean(AUC), .groups = 'drop')
+    #   
+    #   # Compute RMSE for fractions > 0
+    #   nonzero_fraction <- filt_df %>%
+    #     filter(expected_fraction != 0) %>%
+    #     group_by(tool, DMRtool, depth, collapse_approach) %>%
+    #     summarize(RMSE = replace_na(rmse(expected_fraction, nbl),1), .groups = 'drop') %>%
+    #     group_by(tool,DMRtool) %>%
+    #     summarize(meanRMSE = mean(RMSE), .groups = 'drop')
+    #     
+    #   # Compute Spearman's rank correlation coefficient (SCC) on all fractions
+    #   all_fractions <- filt_df %>%
+    #     group_by(tool, DMRtool, depth, collapse_approach) %>%
+    #     summarize(SCC = replace_na(scc(expected_fraction, nbl),0), .groups = 'drop') %>%         
+    #     group_by(tool,DMRtool) %>%         
+    #     summarize(meanSCC = mean(SCC))
+    #   
+    #   # Merge all computed metrics
+    #   merged_metrics <- merge(all_fractions, nonzero_fraction, by = c("tool", "DMRtool"))
+    #   merged_metrics <- merge(merged_metrics, classif_performance_auc, by = c("tool", "DMRtool"))
+    #   return(merged_metrics)
+    # })
+    # 
+    # normalize_metrics_static <- reactive({ 
+    #   # Retrieve merged metrics from reactive function
+    #   merged_metrics <- merge_metrics_rank_static()
+    #   
+    #   # Normalize all the metrics based on user-selected inputs
+    #   normalized_list <- list()
+    #   miss <- list()
+    #   
+    #   for (dmrtool in unique(bench$DMRtool)) {
+    #     tmp <- merged_metrics %>%
+    #       filter(DMRtool == dmrtool)
+    #     
+    #     # Skip if df is empty
+    #     if (dim(tmp)[1] == 0) {
+    #       miss <- c(miss, dmrtool)
+    #       next
+    #     }
+    #     
+    #     tmp <- tmp %>%
+    #       mutate(
+    #         SCC = ifelse(is.na(meanSCC), 0, meanSCC),  # Replace NAs in SCC with 0
+    #         RMSE = ifelse(is.na(meanRMSE), 1, meanRMSE),   # Replace NAs in RMSE with 1
+    #         AUC = ifelse(is.na(meanAUC), 0, meanAUC)
+    #       )
+    #     
+    #     tmp$normSCC <- (tmp$SCC - min(tmp$SCC)) / (max(tmp$SCC) - min(tmp$SCC))
+    #     tmp$normRMSE <- 1 - (tmp$RMSE - min(tmp$RMSE)) / (max(tmp$RMSE) - min(tmp$RMSE))
+    #     tmp$normAUC <- (tmp$meanAUC - min(tmp$meanAUC)) / (max(tmp$meanAUC) - min(tmp$meanAUC))
+    #     
+    #     # Append the normalized subset to the list
+    #     normalized_list[[dmrtool]] <- tmp[, c("tool", "DMRtool", 
+    #                                       "meanAUC", "meanRMSE", "meanSCC", "normAUC", "normSCC", "normRMSE" )]
+    #     }
+    #   
+    #   # Combine all normalized subsets into a single data frame
+    #   normalized_df <- do.call(rbind, normalized_list)
+    # 
+    #   normalized_df <- normalized_df %>%
+    #     rename(RMSE = meanRMSE, SCC = meanSCC)
+    #   
+    #   # Create a combined metric score
+    #   nzeros <- nrow(bench[bench$expected_fraction == 0,])
+    #   nnonzeros <- nrow(bench[bench$expected_fraction != 0,])
+    #   tot <- nzeros + nnonzeros
+    #   
+    #   normalized_df$Score <- 
+    #     normalized_df$normAUC +
+    #     (nnonzeros / tot) * (normalized_df$normRMSE) + 
+    #     normalized_df$normSCC
+    #   
+    #   return(normalized_df)
+    # 
+    # })
+    # 
+    # create_metric_plot <- function(metric_name, data) {
+    #   # Determine sort direction
+    #   desc_order <- metric_name != "RMSE"
+    # 
+    #   metric_data <- data %>%
+    #     select(tool, DMRtool, !!sym(metric_name)) %>%
+    #     rename(Value = !!sym(metric_name))
+    # 
+    #   # Sort tools manually
+    #   tool_levels <- metric_data %>%
+    #     group_by(tool) %>%
+    #     summarize(Value = mean(Value, na.rm = TRUE), .groups = "drop") %>%
+    #     arrange(if (desc_order) Value else desc(Value)) %>%
+    #     pull(tool)
+    # 
+    #   # Apply tool order explicitly
+    #   metric_data$tool <- factor(metric_data$tool, levels = tool_levels)
+    # 
+    #   ggplot(metric_data, aes(x = Value, y = tool, color = DMRtool)) +
+    #     geom_point(size = 3, alpha = 0.85) +
+    #     labs(
+    #       #title = metric_name,
+    #       x = metric_name,
+    #       y = ""
+    #     ) +
+    #     theme_benchmarking +
+    #     #theme(panel.border = element_rect(color = 'black', fill = NA, linewidth = 0.5)) +
+    #     scale_x_continuous(breaks = scales::pretty_breaks(n = 5)) +  
+    #     scale_y_discrete(labels = function(x) str_replace_all(x, "_", " ")) +
+    #     custom_color_manual+
+    #     theme(legend.text = element_text(size = 13),
+    #           legend.title = element_text(size = 14),
+    #           axis.title.x = element_text(size = 15),
+    #           axis.ticks.y = element_blank(),
+    #           axis.line.y = element_blank(),
+    #           panel.grid.major.y = element_line(color = "lightgrey", linewidth = 0.4),
+    #           panel.grid.minor.y = element_blank()
+    #     )
+    #   }
+    # 
+    # create_static_ranking_plot <- function() {
+    #   merged_metrics <- merge_metrics_rank_static()
+    #   normalized_df <- normalize_metrics_static()
+    # 
+    #   p1 <- create_metric_plot("meanAUC", normalized_df)
+    #   p2 <- create_metric_plot("RMSE", normalized_df)
+    #   p3 <- create_metric_plot("SCC", normalized_df)
+    #   p4 <- create_metric_plot("Score", normalized_df)
+    # 
+    #   (p1 + p2) / 
+    #     patchwork::plot_spacer() / 
+    #     (p3 + p4) +
+    #     plot_layout(
+    #       guides = "collect",
+    #       heights = c(1, 0.05, 1)  # Row 1, spacer, Row 2
+    #     ) & 
+    #     theme(legend.position = "top")
+    #   
+    # }
+    # 
+    # output$rank_static <- renderPlot({
+    #   create_static_ranking_plot()
+    #   
+    # })
+    # 
+    # # Save rank static using the function
+    # download_rank_static_plot <- function(ext) {
+    #   downloadHandler(
+    #     filename = function() paste("rank_static_",Sys.Date(),".", ext, sep = ""),
+    #     content = function(file) {
+    # 
+    #       plot <- create_static_ranking_plot()
+    #       ggsave(file, plot = plot, width = 14, height = 10, dpi = 300, device = ext)
+    #       
+    #     }
+    #   )
+    # }
+    # output$download_rank_static_svg <- download_rank_static_plot("svg")
+    # output$download_rank_static_pdf <- download_rank_static_plot("pdf")    
+    # 
+    # # Download data of rank plots
+    # output$download_rank_static_df <- downloadHandler(
+    #   filename = function() {
+    #     paste("rank_static_",Sys.Date(), ".csv", sep = "")
+    #   },
+    #   content = function(file) {
+    #     merged_metrics <- merge_metrics_rank_static()
+    #     normalized_df <- normalize_metrics_static()
+    #     # df <- normalized_df %>% select(-normAUC, -normSCC, -normRMSE)
+    #     write.csv(normalized_df, file, row.names = FALSE)
+    #   }
+    # )
+    
     ############################################################################ 
     ## Heatmap
     # Dropdowns and checkboxes heatmap
@@ -1366,7 +1478,6 @@ metricsTabServer <- function(id) {
         selected = if (input$heatmap_tools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
       )
     })
-    
     
     # Filter data for heatmap
     create_heatmap_data <- reactive({
@@ -1419,7 +1530,6 @@ metricsTabServer <- function(id) {
       # Precompute text colors for each RMSE value
       plot_data$text_color <- sapply(plot_data$RMSE, get_text_color)
       
-      
       # Create and return the heatmap plot
       ggplot(plot_data, aes(x = tool, y = factor(expected_fraction), fill = RMSE)) +
         geom_tile() +
@@ -1443,7 +1553,7 @@ metricsTabServer <- function(id) {
           axis.title.y = element_text(size = 14, color = "gray10"),
           legend.title = element_text(size = 14, color = "gray10"),
           legend.text = element_text(size = 12, color = "gray10"),
-          axis.ticks = element_line(color = "gray50")
+          axis.ticks = element_blank()
         )
     }
     
@@ -1561,9 +1671,10 @@ metricsTabServer <- function(id) {
           x = "Expected Fraction",
           y = "Estimated Tumoral Fraction (%)"
         ) +
-        theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-        stat_pvalue_manual(stats, label = input$lod_plabel_select) +
-        theme_benchmarking
+        theme_benchmarking +
+        theme(#axis.text.x = element_text(angle = 45, hjust = 1),
+              axis.ticks.x = element_blank()) +
+        stat_pvalue_manual(stats, label = input$lod_plabel_select) 
       
       return(plot)
       

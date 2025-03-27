@@ -18,7 +18,7 @@ for (pkg in packages) {
 
 # Set shiny server options
 #options("shiny.host"='10.32.8.17')
-#options("shiny.port"=8888)
+options("shiny.port"=8888)
 
 # Set library packages directory
 readRenviron(".Renviron")
@@ -38,12 +38,11 @@ library(stringr)
 library(forcats)
 library(ggpubr)
 library(rstatix)
-
+library(patchwork)
 library(bslib)
 library(reshape2)
 library(plotly) 
-
-
+library(scales)
 library(philentropy)
 library(LaplacesDemon)
 library(Metrics)
