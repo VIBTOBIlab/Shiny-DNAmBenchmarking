@@ -58,7 +58,7 @@ library(sever)
 
 
 # Source the module files
-source("modules/home.R")
+source("modules/home_static.R")
 source("modules/metrics.R")
 source("modules/contact.R")
 
