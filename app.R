@@ -4,17 +4,17 @@
 ####################################################################################
 
 # Install packages
-packages <- c("shiny", "bslib", "reshape2", "plotly", "philentropy", "LaplacesDemon", 
-              "Metrics", "dplyr", "ggplot2", "readr", "tidyr", "stringr", "forcats", 
-              "pROC", "spsComps", "conflicted", "htmltools", "quarto", "sever")
+# packages <- c("shiny", "bslib", "reshape2", "plotly", "philentropy", "LaplacesDemon", 
+#               "Metrics", "dplyr", "ggplot2", "readr", "tidyr", "stringr", "forcats", 
+#               "pROC", "spsComps", "conflicted", "htmltools", "quarto", "sever")
 
 # Check and install missing packages
-for (pkg in packages) {
-  if (!requireNamespace(pkg, quietly = TRUE)) {
-    install.packages(pkg)
-  }
-  library(pkg, character.only = TRUE)
-}
+# for (pkg in packages) {
+#   if (!requireNamespace(pkg, quietly = TRUE)) {
+#     install.packages(pkg)
+#   }
+#   library(pkg, character.only = TRUE)
+# }
 
 # Set shiny server options
 #options("shiny.host"='10.32.8.17')
@@ -46,11 +46,14 @@ library(scales)
 library(philentropy)
 library(LaplacesDemon)
 library(Metrics)
-#library(funkyheatmap) 
+library(furrr)
+library(future)
+library(purrr)
+plan(multicore)
 
+library(spsComps)
+library(pROC)
 
-# library(pROC)
-# library(spsComps) 
 library(conflicted)
 library(htmltools)
 library(quarto)
@@ -86,11 +89,6 @@ ui <- navbarPage(
   homeTabUI("home"),  
   metricsTabUI("metrics"),
   contactTabUI("contact"),
-  
-  # tags$footer(
-  #   class = "footer",
-  #   tags$img(src = "VIB.png", alt = "Logo", title = "VIB")
-  # ) 
   
 )
 

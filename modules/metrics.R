@@ -133,9 +133,9 @@ metricsTabUI <- function(id) {
                    mainPanel(width = 9,
                              plotOutput(ns("aucroc_complete_plot"), height = "800px"),
                              br(),
-                             downloadButton(ns("download_aucroc_complete_df"), "Download data"),
                              downloadButton(ns("download_aucroc_complete_svg"), "Download as SVG"),
                              downloadButton(ns("download_aucroc_complete_pdf"), "Download as PDF"),
+                             downloadButton(ns("download_aucroc_complete_df"), "Download data"),
                              br(), br(), br()
                    )
                  ),
@@ -378,47 +378,13 @@ metricsTabServer <- function(id) {
   moduleServer(id, function(input, output, session) {
     
     ## 1. Import Data and Preprocessing
-    # Load the data
-    combined_data <- read.csv("results/results_nbl_cfRRBS.csv")
-    
-    metadata <- read.csv("files/samples_metadata_nbl_cfRRBS.csv",sep = "\t")[,c("Sample","Exp.nbl","Depth")]
-    colnames(metadata) <- c("sample","expected_fraction","depth")
-    
-    # Combine data with metadata 
-    bench <- as.data.frame(merge(combined_data, metadata, by = "sample"))
-    
-    # Subset bench
-    bench <- subset(bench,bench$reference=="reference_11healthy_9nbl" &
-                      bench$expected_fraction %in% c(0,0.0001,0.001,0.003,0.007,0.01,0.025,0.05,0.1,0.25,0.5))
-
-    # Clean and format data 
-    bench$nbl <- round(bench$nbl, 4) 
-    bench$sample <- str_trim(bench$sample, side = c("both", "left", "right"))
-    bench$tool <- str_trim(bench$tool, side = c("both", "left", "right"))
-    bench <- as.data.frame(unique(bench))
-    
-    # Convert depth to Millions notation and add "M"
-    bench$depth <- paste0(bench$depth / 1e6, "M")
-    
-    # Sort the levels of depth
-    depth_levels <- unique(bench$depth)
-    sorted_depth_levels <- depth_levels[order(as.numeric(sub("M", "", depth_levels)))]
-    bench$depth <- factor(bench$depth, levels = sorted_depth_levels)
-    
-    # Convert to factor 
-    bench <- bench %>%
-      mutate(across(c(reference, DMRtool, direction, top, collapse_approach, 
-                      min_cpgs, min_counts), as.factor))
+    # Code moved to global.R
     
     ## 2. Functions
     # RMSE
     rmse <- function(actual, predicted) {
       round(sqrt(mean((actual - predicted)^2)),4)
     }
-    # Normalized RMSE (NRMSE)
-    # nrmse <- function(actual, predicted) {
-    #   round(sqrt(mean((actual - predicted))^2)/mean(actual),4)
-    # }
     # Spearman's rank correlation coefficient (SCC)
     scc <- function(actual, predicted) {
       cor(actual, predicted, method = "spearman")
@@ -575,8 +541,8 @@ metricsTabServer <- function(id) {
         #filter(DMRtool %in% dmrtools) %>%
         group_by(DMRtool, expected_fraction) %>%
         summarize(NRMSE = rmse(expected_fraction, nbl) / mean(expected_fraction), .groups = "drop") # Calculate mean RMSE
-      print(head(nrmse_data))
-      print(str(nrmse_data))
+      # print(head(nrmse_data))
+      # print(str(nrmse_data))
       return(nrmse_data)
     }
   
@@ -777,51 +743,106 @@ metricsTabServer <- function(id) {
       )
     })
     
-    # Create a reactive function for AUCROC complete data
+
     create_aucroc_complete_data <- reactive({
-      req(input$aucroc_complete_depth_select, 
-          input$aucroc_complete_approach_select, 
-          input$aucroc_complete_tools_select, 
+      req(input$aucroc_complete_depth_select,
+          input$aucroc_complete_approach_select,
+          input$aucroc_complete_tools_select,
           input$aucroc_complete_dmrtool_select)
       
-      # Initialize empty dataframe
-      aucroc_complete_data <- data.frame()
-      fractions <- c(0.0001, 0.001, 0.01, 0.05)
-      miss <- c()  # Initialize missing tool tracker
+      # Pre-filter the dataset once
+      filtered_bench <- bench %>%
+        filter(depth == input$aucroc_complete_depth_select,
+               collapse_approach == input$aucroc_complete_approach_select,
+               DMRtool == input$aucroc_complete_dmrtool_select)
       
-      # Loop through tools and fractions to generate ROC data
-      for (tool in input$aucroc_complete_tools_select) {
-        for (fraction in unique(fractions)) {
-          filt_df <- bench %>%
-            filter(depth == input$aucroc_complete_depth_select,
-                   collapse_approach == input$aucroc_complete_approach_select,
-                   expected_fraction %in% c(0, fraction), 
-                   DMRtool == input$aucroc_complete_dmrtool_select,
-                   tool == !!tool
-                   )
-          # Ensure both 0 and fraction are present before running ROC analysis
-          if (length(unique(filt_df$expected_fraction)) != 2) {
-            miss <- c(miss, tool)  # Keep track of skipped cases
-            next  # Skip to the next iteration
-          }
-          
-          if (nrow(filt_df) > 0) {
-            roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
-            tmp <- data.frame(
-              fpr = 1 - rev(roc_curve$specificities),
-              tpr = rev(roc_curve$sensitivities),
-              thresholds = rev(roc_curve$thresholds),
-              auc = rev(roc_curve$auc),
-              fraction = fraction,
-              tool = tool
-            )
-            aucroc_complete_data <- rbind(aucroc_complete_data, tmp)
-          }
-        }
+      # Define all combinations of tools × fractions
+      fractions <- c(0.0001, 0.001, 0.01, 0.05)
+      combinations <- expand.grid(
+        tool = input$aucroc_complete_tools_select,
+        fraction = fractions,
+        stringsAsFactors = FALSE
+      )
+      
+      # Function to compute ROC curve for each tool-fraction pair
+      get_auc_data <- function(tool, fraction) {
+        filt_df <- filtered_bench %>%
+          filter(expected_fraction %in% c(0, fraction),
+                 tool == !!tool)
+        
+        if (length(unique(filt_df$expected_fraction)) != 2 || nrow(filt_df) == 0) return(NULL)
+        
+        roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
+        
+        data.frame(
+          fpr = 1 - rev(roc_curve$specificities),
+          tpr = rev(roc_curve$sensitivities),
+          thresholds = rev(roc_curve$thresholds),
+          auc = rev(roc_curve$auc),
+          fraction = fraction,
+          tool = tool
+        )
       }
-      return(aucroc_complete_data)
+      
+      # Run the AUC calculation in parallel
+      future_pmap_dfr(
+        list(combinations$tool, combinations$fraction),
+        get_auc_data,
+        .options = furrr_options(seed = TRUE)
+      )
     })
     
+    
+    
+    # # Create a reactive function for AUCROC complete data
+    # create_aucroc_complete_data <- reactive({
+    #   req(input$aucroc_complete_depth_select,
+    #       input$aucroc_complete_approach_select,
+    #       input$aucroc_complete_tools_select,
+    #       input$aucroc_complete_dmrtool_select)
+    # 
+    #   # Initialize empty dataframe
+    #   aucroc_complete_data <- data.frame()
+    #   fractions <- c(0.0001, 0.001, 0.01, 0.05)
+    #   miss <- c()  # Initialize missing tool tracker
+    # 
+    #   # Loop through tools and fractions to generate ROC data
+    #   for (tool in input$aucroc_complete_tools_select) {
+    #     for (fraction in unique(fractions)) {
+    #       filt_df <- bench %>%
+    #         filter(depth == input$aucroc_complete_depth_select,
+    #                collapse_approach == input$aucroc_complete_approach_select,
+    #                expected_fraction %in% c(0, fraction),
+    #                DMRtool == input$aucroc_complete_dmrtool_select,
+    #                tool == !!tool
+    #                )
+    #       # Ensure both 0 and fraction are present before running ROC analysis
+    #       if (length(unique(filt_df$expected_fraction)) != 2) {
+    #         miss <- c(miss, tool)  # Keep track of skipped cases
+    #         next  # Skip to the next iteration
+    #       }
+    # 
+    #       if (nrow(filt_df) > 0) {
+    #         roc_curve <- roc.obj(filt_df$expected_fraction, filt_df$nbl)
+    #         tmp <- data.frame(
+    #           fpr = 1 - rev(roc_curve$specificities),
+    #           tpr = rev(roc_curve$sensitivities),
+    #           thresholds = rev(roc_curve$thresholds),
+    #           auc = rev(roc_curve$auc),
+    #           fraction = fraction,
+    #           tool = tool
+    #         )
+    #         aucroc_complete_data <- rbind(aucroc_complete_data, tmp)
+    #       }
+    #     }
+    #   }
+    #   return(aucroc_complete_data)
+    # })
+    
+    
+    
+    
+
     # Function to generate AUC-ROC plot with facet_wrap
     create_aucroc_complete_plot <- function(aucroc_complete_data) {
       # print(aucroc_complete_data)
@@ -949,8 +970,8 @@ metricsTabServer <- function(id) {
     
     # Function to generate AUC-ROC plot
     create_aucroc_plot <- function(aucroc_data) {
-      print(head(aucroc_data))
-      print(str(aucroc_data))
+      # print(head(aucroc_data))
+      # print(str(aucroc_data))
       # Tooltip text for lines (FPR, TPR, fraction)
       aucroc_data <- aucroc_data %>%
         mutate(tooltip_line = paste("FPR:", round(fpr, 3), "<br>TPR:", round(tpr, 3), "<br>Fraction:", fraction))
@@ -1661,7 +1682,7 @@ metricsTabServer <- function(id) {
       unique_fractions <- subset(unique_fractions, unique_fractions != 0)
       
       stats <- stat_results(data)
-      print(as.data.frame(stats))
+      #print(as.data.frame(stats))
       
       # Plot the data 
       plot <- ggplot(data, aes(x = as.factor(expected_fraction), y = nbl)) +
