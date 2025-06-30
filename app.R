@@ -3,61 +3,14 @@
 # More information on the pipeline: https://github.ugent.be/DePreterLab
 ####################################################################################
 
-# Install packages
-# packages <- c("shiny", "bslib", "reshape2", "plotly", "philentropy", "LaplacesDemon", 
-#               "Metrics", "dplyr", "ggplot2", "readr", "tidyr", "stringr", "forcats", 
-#               "pROC", "spsComps", "conflicted", "htmltools", "quarto", "sever")
-
-# Check and install missing packages
-# for (pkg in packages) {
-#   if (!requireNamespace(pkg, quietly = TRUE)) {
-#     install.packages(pkg)
-#   }
-#   library(pkg, character.only = TRUE)
-# }
-
 # Set shiny server options
 #options("shiny.host"='10.32.8.17')
 options("shiny.port"=8888)
 
 # Set library packages directory
-readRenviron(".Renviron")
+#readRenviron(".Renviron")
 .libPaths(c(path.expand(Sys.getenv("R_LIBS_USER")), .libPaths()))
 print(.libPaths())
-
-
-# Load necessary libraries
-library(shiny)
-
-#library(tidyverse)  # Includes dplyr, ggplot2, stringr, etc. --> problems on CMB shiny server
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(readr)
-library(stringr)
-library(forcats)
-library(ggpubr)
-library(rstatix)
-library(patchwork)
-library(bslib)
-library(reshape2)
-library(plotly) 
-library(scales)
-library(philentropy)
-library(LaplacesDemon)
-library(Metrics)
-library(furrr)
-library(future)
-library(purrr)
-plan(multicore)
-
-library(spsComps)
-library(pROC)
-
-library(conflicted)
-library(htmltools)
-library(quarto)
-library(sever)
 
 
 # Source the module files
