@@ -2,10 +2,29 @@ rrbsTabUI <- function(id) {
   ns <- NS(id)
   tabPanel(
     "RRBS",
+
+    # Table of Contents
+    tags$div(class = "toc-container",
+             h3("Table of Contents"),
+             tags$ul(class = "toc-list",
+                     tags$li(tags$a(href = "#boxplots_rrbs", "Boxplots of the predictions for each tumoral fraction")),
+                     tags$li(tags$a(href = "#nrmse_rrbs", "Performance (nRMSE)")),
+                     tags$li(tags$a(href = "#aucroc_rrbs", "AUC-ROC at different tumoral fractions")),
+                     tags$li(tags$a(href = "#tools-rmse_rrbs", "Tools RMSE")),
+                     tags$li(tags$a(href = "#final_rrbs", "Final ranking of the tools")),
+                     tags$li(tags$a(href = "#heatmap_rrbs", "Heatmap of expected tumoral fraction vs deconvolution tools")),
+                     tags$li(tags$a(href = "#lod_rrbs", "Limit of detection"))
+             )
+    ),
+    tags$hr(), br(),
+  
     
     ############################################################################
     # Boxplots section
-    h3("Boxplots of the predictions for each tumoral fraction"),
+    tags$div(id = "boxplots_rrbs",
+             h4("Boxplots of the predictions for each tumoral fraction")
+    ),
+
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -32,7 +51,7 @@ rrbsTabUI <- function(id) {
                      choices = NULL,
                      selected = NULL
                      ),
-                   checkboxInput(ns("boxplot_deconvtools_select_all"),label =tags$em("Select All/None"), value = TRUE),
+                   checkboxInput(ns("boxplot_deconvtools_select_all"),label = tags$em("Select All/None"), value = TRUE),
                    checkboxGroupInput(
                      ns("boxplot_dmrtools_select"),
                      label = "DMR Tools",
@@ -54,7 +73,10 @@ rrbsTabUI <- function(id) {
     
     ############################################################################
     # nRMSE section
-    h3("Performance (nRMSE)"),
+    tags$div(id = "nrmse_rrbs", 
+             h4("Performance (nRMSE)")
+    ),
+    
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -92,8 +114,12 @@ rrbsTabUI <- function(id) {
     ),
     tags$hr(), br(), br(),
 
+    ############################################################################
     # AUC-ROC of tools at 4 low tumoral fractions
-    h3("AUC-ROC at different tumoral fractions"),
+    tags$div(id = "aucroc_rrbs", 
+             h4("AUC-ROC at different tumoral fractions")
+             ),
+    
     # First main panel for the complete AUC-ROC plot
     sidebarLayout(
       sidebarPanel(width = 3,
@@ -122,13 +148,18 @@ rrbsTabUI <- function(id) {
                      choices = NULL,
                      selected = NULL
                    )
+                   # radioButtons("aucroc_complete_dmrtool_select", 
+                   #              label = "DMR Tool", 
+                   #              choices = NULL,
+                   #              selected = NULL)
+                   
       ),
       mainPanel(width = 9,
                 plotOutput(ns("aucroc_complete_plot"), height = "800px"),
                 br(),
+                downloadButton(ns("download_aucroc_complete_df"), "Download data"),
                 downloadButton(ns("download_aucroc_complete_svg"), "Download as SVG"),
                 downloadButton(ns("download_aucroc_complete_pdf"), "Download as PDF"),
-                downloadButton(ns("download_aucroc_complete_df"), "Download data"),
                 br(), br(), br()
       )
     ),
@@ -173,7 +204,9 @@ rrbsTabUI <- function(id) {
     
     ############################################################################
     # RMSE Comparison section
-    h3("Tools RMSE"),
+    tags$div(id = "tools-rmse_rrbs", 
+             h4("Tools RMSE")
+             ),
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -212,12 +245,17 @@ rrbsTabUI <- function(id) {
                 plotlyOutput(ns("rmse_comparison"), height = "600px"),
                 br(),
                 downloadButton(ns("download_rmse_comparison_df"), "Download data"),
-                br(), br(),
+                br(), br(), br()
       )
     ),
+    tags$hr(), br(), br(),
     
+  
     ############################################################################
-    h3("Final ranking of the tools"),
+    # final ranking section
+    tags$div(id = "final_rrbs", 
+             h4("Final ranking of the tools")
+    ), 
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -254,24 +292,30 @@ rrbsTabUI <- function(id) {
       ),
       mainPanel(width = 9,
                 plotlyOutput(ns("rank"), height = "600px"),
+                br(),
                 downloadButton(ns("download_rank_df"), "Download data"),
                 br(), br(), br()
-      ) ,
+      ) 
     ) ,
+    
+    tags$hr(), br(), br(),
+    
     # sidebarLayout(
     #   sidebarPanel(width = 3),
     #   mainPanel(width = 9,
     #             plotOutput(ns("rank_static"), height = "900px"),
+    #             downloadButton(ns("download_rank_static_df"), "Download data"),
     #             downloadButton(ns("download_rank_static_svg"), "Download as SVG"),
     #             downloadButton(ns("download_rank_static_pdf"), "Download as PDF"),
-    #             downloadButton(ns("download_rank_static_df"), "Download data"),
     #             br(), br()
     #   )
     # ),
     
     ############################################################################
     # Heatmap section
-    h3("Heatmap of tumoral fraction vs deconvolution tools"),
+    tags$div(id = "heatmap_rrbs", 
+             h4("Heatmap of expected tumoral fraction vs deconvolution tools")
+             ),
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -303,16 +347,20 @@ rrbsTabUI <- function(id) {
       mainPanel(width = 9,
                 plotOutput(ns("heatmap"), height = "600px"),
                 br(),
+                downloadButton(ns("download_heatmap_df"), "Download data"),
                 downloadButton(ns("download_heatmap_svg"), "Download as SVG"),
                 downloadButton(ns("download_heatmap_pdf"), "Download as PDF"),
-                downloadButton(ns("download_heatmap_df"), "Download data"),
                 br(), br()
       )
     ),
+    tags$hr(), br(), br(),
+    
     
     ############################################################################
     # LoD section
-    h3("Limit of detection"),
+    tags$div(id = "lod_rrbs", 
+             h4("Limit of detection")
+             ),
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -348,12 +396,16 @@ rrbsTabUI <- function(id) {
       ),
       mainPanel(width = 9,
                 plotOutput(ns("lod"), height = "600px"),
+                br(),
+                downloadButton(ns("download_lod_df"), "Download data"),
                 downloadButton(ns("download_lod_svg"), "Download as SVG"),
                 downloadButton(ns("download_lod_pdf"), "Download as PDF"),
-                downloadButton(ns("download_lod_df"), "Download data"),
-                br(), br()
+                br(), br(), br()
       )
-    )
+    ), 
+    
+    # footer 
+    footer_citation()  
     
     ##end
   )
@@ -366,9 +418,7 @@ rrbsTabUI <- function(id) {
 # Optionally define server logic for this module (if needed)
 rrbsTabServer <- function(id) {
 moduleServer(id, function(input, output, session) {
-# Add server-side code here
-  
-  
+
   ## 1. Filter dataset
   bench <- subset(tot_bench, tot_bench$seq_method == "rrbs")
   
@@ -379,7 +429,7 @@ moduleServer(id, function(input, output, session) {
 
   output$download_rrbs_df <- downloadHandler(
     filename = function() {
-      paste("rrbs", "_", Sys.Date(), ".csv", sep = "")
+      paste0("rrbs", "_", Sys.Date(), ".csv", sep = "")
     },
     content = function(file) {
       write.csv(bench, file, row.names = FALSE)
@@ -407,13 +457,13 @@ moduleServer(id, function(input, output, session) {
   # Dropdowns and checkboxes boxplot 
   updateSelectInput(session, "boxplot_seqdepth_select", 
                     choices = sort(unique(bench$seq_depth)), 
-                    selected = sort(unique(bench$seq_depth))[1])
+                    selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] )
   updateSelectInput(session, "boxplot_approach_select", 
                     choices = sort(unique(bench$collapse_approach)), 
                     selected = sort(unique(bench$collapse_approach))[1])
   updateSelectInput(session, "boxplot_exptf_select", 
                     choices = sort(unique(bench$expected_tf[bench$expected_tf != 0])), 
-                    selected = sort(unique(bench$expected_tf[bench$expected_tf != 0]))[1])
+                    selected = if (0.1 %in% bench$expected_tf) 0.1 else sort(unique(bench$expected_tf[bench$expected_tf != 0]))[1] )
   
   # updateCheckboxGroupInput(session, "boxplot_deconvtools_select", 
   #                          choices = sort(unique(bench$deconv_tool)), 
@@ -459,8 +509,6 @@ moduleServer(id, function(input, output, session) {
     # Tools with the smallest mean difference (more accurate) are placed first.
     # Tools with the largest mean difference (less accurate) are placed last.
     
-    #print(median_diff)
-    
     # Reorder the tools globally
     data <- data %>%
       mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool))
@@ -479,7 +527,7 @@ moduleServer(id, function(input, output, session) {
       scale_x_discrete(labels = function(x) str_replace_all(x, "_", " ")) +
       labs(
         x = "",
-        y = "Tumoral fraction"
+        y = "Predicted Tumoral Fraction"
       ) + theme_benchmarking +
       theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
       custom_color_manual + custom_fill_manual
@@ -489,20 +537,18 @@ moduleServer(id, function(input, output, session) {
   output$boxplot_TF <- renderPlotly({
     data <- filtered_data_boxplot()
     req(nrow(data) > 0)
-    head(data)
-    str(data)
     plot <- create_boxplot_TF(data, input$boxplot_seqdepth_select, input$boxplot_approach_select, as.numeric(input$boxplot_exptf_select))
     ggplotly(plot) %>% 
       layout(boxmode= "group") %>% 
-      config(toImageButtonOptions = list(format = "svg",
-                                         filename = paste("boxplot_",input$boxplot_seqdepth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date())
+      config(toImageButtonOptions = list(format = "pdf",
+                                         filename = paste0("boxplot_",input$boxplot_seqdepth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date())
       ))
   })
   
   # Save dataframe boxplot as csv
   output$download_boxplot_TF_df <- downloadHandler(
     filename = function() {
-      paste("boxplot_",input$boxplot_seqdepth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date(), ".csv", sep = "")
+      paste0("boxplot_",input$boxplot_seqdepth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date(), ".csv", sep = "")
     },
     content = function(file) {
       data <- filtered_data_boxplot()
@@ -518,14 +564,11 @@ moduleServer(id, function(input, output, session) {
   # Dropdowns and checkboxes nRMSE plot 
   updateSelectInput(session, "nrmse_seqdepth_select", 
                     choices = sort(unique(bench$seq_depth)), 
-                    selected = sort(unique(bench$seq_depth))[1])
+                    selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] )
   updateSelectInput(session, "nrmse_approach_select", 
                     choices = sort(unique(bench$collapse_approach)), 
                     selected = sort(unique(bench$collapse_approach))[1])
-  updateSelectInput(session, "nrmse_exptf_select", 
-                    choices = sort(unique(bench$expected_tf[bench$expected_tf != 0])), 
-                    selected = sort(unique(bench$expected_tf[bench$expected_tf != 0]))[1])
-  
+
   updateSelectInput(session, "nrmse_deconvtool_select", 
                     choices = sort(unique(bench$deconv_tool)), 
                     selected = sort(unique(bench$deconv_tool))[1])
@@ -544,14 +587,14 @@ moduleServer(id, function(input, output, session) {
              expected_tf != 0) # Exclude expected_tf == 0
     return(data)
   })    
+  head(filtered_data_nrmse)
+  str(filtered_data_nrmse)
   
   compute_nrmse_data <- function(data) {
     nrmse_data <- data %>%
       #filter(DMRtool %in% dmrtools) %>%
       group_by(dmr_tool, expected_tf) %>%
       summarize(NRMSE = rmse(expected_tf, predicted_tf) / mean(expected_tf), .groups = "drop") # Calculate mean RMSE
-    # print(head(nrmse_data))
-    # print(str(nrmse_data))
     return(nrmse_data)
   }
   
@@ -559,15 +602,15 @@ moduleServer(id, function(input, output, session) {
   create_plot_nrmse <- function(data) {
     
     data <- data %>%
-      mutate(tooltip_text = paste("dmr_tool:", dmr_tool, 
-                                  "<br>Expected Fraction:", expected_tf, 
-                                  "<br>NRMSE:", round(NRMSE, 4)))
+      mutate(tooltip_text = paste0("dmr_tool: ", dmr_tool, 
+                                  "<br>Expected Fraction: ", expected_tf, 
+                                  "<br>NRMSE: ", round(NRMSE, 4)))
     
     # Plot 
     ggplot(data, aes(x = factor(expected_tf), y = NRMSE, color = dmr_tool, text = tooltip_text)) +
       geom_point(size = 3, alpha = 0.8,  position = position_jitter(width = 0, height = 0)) +
       labs(
-        #title = paste("nRMSE for Tool:", tool),
+        #title = paste0("nRMSE for Tool: ", tool),
         x = "Expected fraction",
         y = "NRMSE",
         color = "dmr_tool",
@@ -585,14 +628,14 @@ moduleServer(id, function(input, output, session) {
     plot <- create_plot_nrmse(nrmse_data)
     ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
       config(toImageButtonOptions = list(format = c("svg"),
-                                         filename = paste("NRMSE_",input$nrmse_deconvtool_select, "_depth_",input$nrmse_seqdepth_select,"_approach_",input$nrmse_approach_select,"_", Sys.Date()))
+                                         filename = paste0("NRMSE_",input$nrmse_deconvtool_select, "_depth_",input$nrmse_seqdepth_select,"_approach_",input$nrmse_approach_select,"_", Sys.Date()))
       )
   })
   
   # Save dataframe nrmse plot as csv
   output$download_nrmse_plot_df <- downloadHandler(
     filename = function() {
-      paste("NRMSE_",input$nrmse_deconvtool_select, "_depth_",input$nrmse_seqdepth_select,"_approach_",input$nrmse_approach_select,"_", Sys.Date(),".csv", sep = "")
+      paste0("NRMSE_",input$nrmse_deconvtool_select, "_depth_",input$nrmse_seqdepth_select,"_approach_",input$nrmse_approach_select,"_", Sys.Date(),".csv", sep = "")
     },
     content = function(file) {
       data <- filtered_data_nrmse()
@@ -608,7 +651,7 @@ moduleServer(id, function(input, output, session) {
   # Dropdowns and checkboxes AUCROC complete plot
   updateSelectInput(session, "aucroc_complete_seqdepth_select", 
                     choices = sort(unique(bench$seq_depth)), 
-                    selected = sort(unique(bench$seq_depth))[1])
+                    selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] )
   updateSelectInput(session, "aucroc_complete_approach_select", 
                     choices = sort(unique(bench$collapse_approach)), 
                     selected = sort(unique(bench$collapse_approach))[1])
@@ -616,9 +659,13 @@ moduleServer(id, function(input, output, session) {
   # updateCheckboxGroupInput(session, "aucroc_complete_deconvtools_select", 
   #                          choices = sort(unique(bench$deconv_tool)), 
   #                          selected = sort(unique(bench$deconv_tool)))
-  updateSelectInput(session, "aucroc_complete_dmrtool_select", 
-                    choices = sort(unique(bench$dmr_tool)), 
+  updateSelectInput(session, "aucroc_complete_dmrtool_select",
+                    choices = sort(unique(bench$dmr_tool)),
                     selected = sort(unique(bench$dmr_tool))[1])
+  
+  # updateRadioButtons(session, "aucroc_complete_dmrtool_select",
+  #                    choices = sort(unique(bench$dmr_tool)),
+  #                    selected = sort(unique(bench$dmr_tool))[1])
   
   observe({
     current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
@@ -669,7 +716,7 @@ moduleServer(id, function(input, output, session) {
         auc = rev(roc_curve$auc),
         fraction = fraction,
         deconv_tool = deconv_tool
-      )
+        )
     }
     
     # Run the AUC calculation in parallel
@@ -710,10 +757,6 @@ moduleServer(id, function(input, output, session) {
   
   # Render output AUCROC plot
   output$aucroc_complete_plot <- renderPlot({
-    req(input$aucroc_complete_seqdepth_select, 
-        input$aucroc_complete_approach_select, 
-        input$aucroc_complete_deconvtools_select, 
-        input$aucroc_complete_dmrtool_select)
     aucroc_complete_data <- create_aucroc_complete_data()
     req(nrow(aucroc_complete_data) > 0)  
     create_aucroc_complete_plot(aucroc_complete_data)
@@ -722,7 +765,7 @@ moduleServer(id, function(input, output, session) {
   # Save AUCROC using the function
   download_aucroc_complete_plot <- function(ext) {
     downloadHandler(
-      filename = function() paste("auc_depth_",input$aucroc_complete_seqdepth_select, "_",input$aucroc_complete_approach_select, "_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".", ext, sep=""),
+      filename = function() paste0("auc_depth_",input$aucroc_complete_seqdepth_select, "_",input$aucroc_complete_approach_select, "_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".", ext, sep=""),
       content = function(file) {
         req(input$aucroc_complete_deconvtools_select, input$aucroc_complete_dmrtool_select)
         aucroc_complete_data <- create_aucroc_complete_data()
@@ -738,7 +781,7 @@ moduleServer(id, function(input, output, session) {
   # Save dataframe AUCROC plot as csv
   output$download_aucroc_complete_df <- downloadHandler(
     filename = function() {
-      paste("auc_depth_",input$aucroc_complete_seqdepth_select, "_",input$aucroc_complete_approach_select, "_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".csv", sep="")
+      paste0("auc_depth_",input$aucroc_complete_seqdepth_select, "_",input$aucroc_complete_approach_select, "_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".csv", sep="")
     },
     content = function(file) {
       req(input$aucroc_complete_deconvtools_select, input$aucroc_complete_dmrtool_select)
@@ -754,7 +797,7 @@ moduleServer(id, function(input, output, session) {
   # Dropdowns and checkboxes AUCROC
   updateSelectInput(session, "aucroc_seqdepth_select",
                     choices = sort(unique(bench$seq_depth)),
-                    selected = sort(unique(bench$seq_depth))[1]) 
+                    selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] ) 
   updateSelectInput(session, "aucroc_approach_select", 
                     choices = sort(unique(bench$collapse_approach)), 
                     selected = sort(unique(bench$collapse_approach))[1])
@@ -812,11 +855,11 @@ moduleServer(id, function(input, output, session) {
     # print(str(aucroc_data))
     # Tooltip text for lines (FPR, TPR, fraction)
     aucroc_data <- aucroc_data %>%
-      mutate(tooltip_line = paste("FPR:", round(fpr, 3), "<br>TPR:", round(tpr, 3), "<br>Fraction:", fraction))
+      mutate(tooltip_line = paste0("FPR: ", round(fpr, 3), "<br>TPR: ", round(tpr, 3), "<br>Fraction: ", fraction))
     
     # Tooltip text for points (AUC value)
     aucroc_data <- aucroc_data %>%
-      mutate(tooltip_point = paste("AUC:", round(auc, 4)))
+      mutate(tooltip_point = paste0("AUC: ", round(auc, 4)))
     
     ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
       # ROC Curve Lines
@@ -842,14 +885,14 @@ moduleServer(id, function(input, output, session) {
     plot <- create_aucroc_plot(aucroc_data)
     ggplotly(plot, tooltip = "text") %>%
       config(toImageButtonOptions = list(format = "svg",
-                                         filename = paste("auc_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_approach_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
+                                         filename = paste0("auc_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_approach_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
       ))
   })
   
   # Save dataframe AUCROC plot as csv
   output$download_aucroc_df <- downloadHandler(
     filename = function() {
-      paste("auc_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_approach_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
+      paste0("auc_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_approach_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
     },
     content = function(file) {
       aucroc_data <- create_aucroc_data()
@@ -864,13 +907,13 @@ moduleServer(id, function(input, output, session) {
   # Dropdowns and checkboxes RMSE comparison plot 
   updateSelectInput(session, "rmse_comparison_seqdepth_select", 
                     choices = sort(unique(bench$seq_depth)), 
-                    selected = sort(unique(bench$seq_depth))[1])
+                    selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] )
   updateSelectInput(session, "rmse_comparison_approach_select", 
                     choices = sort(unique(bench$collapse_approach)), 
                     selected = sort(unique(bench$collapse_approach))[1])
   updateSelectInput(session, "rmse_comparison_expectedtf_select", 
                     choices = sort(unique(bench$expected_tf[bench$expected_tf != 0])), 
-                    selected = sort(unique(bench$expected_tf[bench$expected_tf != 0]))[1])
+                    selected = if (0.1 %in% bench$expected_tf) 0.1 else sort(unique(bench$expected_tf[bench$expected_tf != 0]))[1] )
   
   # updateCheckboxGroupInput(session, "rmse_comparison_deconvtools_select", 
   #                          choices = sort(unique(bench$deconv_tool)), 
@@ -929,16 +972,16 @@ moduleServer(id, function(input, output, session) {
     # Reorder the tools globally
     plot_data <- plot_data %>%
       # mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool)) %>%
-      mutate(tooltip_text = paste("dmr_tool:", dmr_tool, 
-                                  "<br>deconv_tool:", deconv_tool,
-                                  "<br>RMSE:", round(RMSE, 4)))
+      mutate(tooltip_text = paste0("dmr_tool: ", dmr_tool, 
+                                  "<br>deconv_tool: ", deconv_tool,
+                                  "<br>RMSE: ", round(RMSE, 4)))
     
     # Generate the plot
     ggplot(plot_data, aes(x = RMSE, y = deconv_tool, color = dmr_tool, text = tooltip_text)) +
       geom_point(size = 3, alpha = 0.8, position = position_jitter(width = 0, height = 0) ) +
       scale_y_discrete(labels = function(y) str_replace_all(y, "_", " ")) +
       labs(
-        #title = paste("RMSE vs Tool (Expected Fraction:", fraction, ")"),
+        #title = paste0("RMSE vs Tool (Expected Fraction: ", fraction, ")"),
         x = "RMSE",
         y = "",
         color = "dmr_tool",
@@ -962,14 +1005,14 @@ moduleServer(id, function(input, output, session) {
     req(nrow(data) > 0)
     plot <- create_rmse_comparison_plot(data)
     ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
-      config(toImageButtonOptions = list(format = "svg",
-                                         filename = paste("ranking_deconvtools_fraction_", as.numeric(input$rmse_comparison_expectedtf_select),"_depth_",input$rmse_comparison_seqdepth_select,"_", Sys.Date())
+      config(toImageButtonOptions = list(format = c("svg","pdf"),
+                                         filename = paste0("ranking_deconvtools_fraction_", as.numeric(input$rmse_comparison_expectedtf_select),"_depth_",input$rmse_comparison_seqdepth_select,"_", Sys.Date())
       ))
   })
   
   # Save dataframe rmse comparison plot as csv
   output$download_rmse_comparison_df <- downloadHandler(
-    filename = function() paste("ranking_deconvtools_fraction_", as.numeric(input$rmse_comparison_expectedtf_select), "_depth_", input$rmse_comparison_seqdepth_select,"_", Sys.Date(), ".csv", sep = ""),
+    filename = function() paste0("ranking_deconvtools_fraction_", as.numeric(input$rmse_comparison_expectedtf_select), "_depth_", input$rmse_comparison_seqdepth_select,"_", Sys.Date(), ".csv", sep = ""),
     content = function(file) {
       data <- filtered_data_rmse_comparison() %>%
         group_by(deconv_tool, dmr_tool) %>%
@@ -986,7 +1029,7 @@ moduleServer(id, function(input, output, session) {
   # Dropdowns and checkboxes Rank tools
   updateSelectInput(session, "rank_seqdepth_select",
                     choices = sort(unique(bench$seq_depth)),
-                    selected = sort(unique(bench$seq_depth))[1]) 
+                    selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] ) 
   updateSelectInput(session, "rank_approach_select", 
                     choices = sort(unique(bench$collapse_approach)), 
                     selected = sort(unique(bench$collapse_approach))[1])
@@ -1116,7 +1159,7 @@ moduleServer(id, function(input, output, session) {
       
       
       # Append the normalized subset to the list
-      key <- paste(dmr_tool, input$rank_seqdepth_select, input$rank_approach_select, sep = "_")
+      key <- paste0(dmr_tool, input$rank_seqdepth_select, input$rank_approach_select, sep = "_")
       normalized_list[[key]] <- tmp[, c("deconv_tool", "dmr_tool", "collapse_approach", "seq_depth", 
                                         "meanAUC", "RMSE", "SCC", "normAUC", "normSCC", "normRMSE" )]
     }
@@ -1149,9 +1192,9 @@ moduleServer(id, function(input, output, session) {
     normalized_df <- normalize_metrics()
     
     data <- normalized_df %>%
-      mutate(tooltip_text = paste(metric,":", round(.data[[metric]], 3), 
-                                  "<br>deconv_tool:", deconv_tool, 
-                                  "<br>dmr_tool:", dmr_tool))
+      mutate(tooltip_text = paste0(metric,": ", round(.data[[metric]], 3), 
+                                  "<br>deconv_tool: ", deconv_tool, 
+                                  "<br>dmr_tool: ", dmr_tool))
     
     # Calculate mean score if not already available (or use from existing data)
     mean_score <- data %>%
@@ -1169,7 +1212,7 @@ moduleServer(id, function(input, output, session) {
     ggplot(data, aes(y = as.factor(deconv_tool), x = .data[[metric]], color = dmr_tool, text = tooltip_text)) +
       geom_point(size = 3, alpha = 0.8) +
       labs(
-        #title = paste("Tools Ranked by", metric),
+        #title = paste0("Tools Ranked by ", metric),
         x = metric,
         y = ""
       ) +
@@ -1193,14 +1236,14 @@ moduleServer(id, function(input, output, session) {
     plot <- create_plot_ranking(input$rank_metric_select)
     ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
       config(toImageButtonOptions = list(format = "svg",
-                                         filename = paste("rank_",input$rank_metric_select,"_depth_",input$rank_seqdepth_select, "_",input$rank_approach_select,"_",Sys.Date())
+                                         filename = paste0("rank_",input$rank_metric_select,"_depth_",input$rank_seqdepth_select, "_",input$rank_approach_select,"_",Sys.Date())
       ))
   })
   
   # Download data of rank plots
   output$download_rank_df <- downloadHandler(
     filename = function() {
-      paste("rank_",input$rank_metric_select,"_depth_",input$rank_seqdepth_select, "_",input$rank_approach_select,"_",Sys.Date(), ".csv", sep = "")
+      paste0("rank_",input$rank_metric_select,"_depth_",input$rank_seqdepth_select, "_",input$rank_approach_select,"_",Sys.Date(), ".csv", sep = "")
     },
     content = function(file) {
       merged_metrics <- merge_metrics_rank()
@@ -1405,7 +1448,7 @@ moduleServer(id, function(input, output, session) {
   # # Save rank static using the function
   # download_rank_static_plot <- function(ext) {
   #   downloadHandler(
-  #     filename = function() paste("rank_static_",Sys.Date(),".", ext, sep = ""),
+  #     filename = function() paste0("rank_static_",Sys.Date(),".", ext, sep = ""),
   #     content = function(file) {
   # 
   #       plot <- create_static_ranking_plot()
@@ -1420,7 +1463,7 @@ moduleServer(id, function(input, output, session) {
   # # Download data of rank plots
   # output$download_rank_static_df <- downloadHandler(
   #   filename = function() {
-  #     paste("rank_static_",Sys.Date(), ".csv", sep = "")
+  #     paste0("rank_static_",Sys.Date(), ".csv", sep = "")
   #   },
   #   content = function(file) {
   #     merged_metrics <- merge_metrics_rank_static()
@@ -1436,7 +1479,7 @@ moduleServer(id, function(input, output, session) {
   # Dropdowns and checkboxes heatmap
   updateSelectInput(session, "heatmap_seqdepth_select",
                     choices = sort(unique(bench$seq_depth)),
-                    selected = sort(unique(bench$seq_depth))[1]) 
+                    selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] ) 
   updateSelectInput(session, "heatmap_approach_select", 
                     choices = sort(unique(bench$collapse_approach)), 
                     selected = sort(unique(bench$collapse_approach))[1])
@@ -1522,7 +1565,7 @@ moduleServer(id, function(input, output, session) {
       scale_x_discrete(labels = function(x) str_replace_all(x, "_", " "))+
       labs(
         x = "",
-        y = "Tumoral Fraction"
+        y = "Expected Tumoral Fraction"
       ) +
       theme(
         axis.text.x = element_text(size = 12, angle = 45, hjust = 1, color = "gray10"),
@@ -1534,7 +1577,8 @@ moduleServer(id, function(input, output, session) {
         legend.title = element_text(size = 14, color = "gray10"),
         legend.text = element_text(size = 12, color = "gray10"),
         axis.ticks = element_blank()
-      )
+      )+ 
+      annotate("segment", x = 0.5, xend = 0.5, y = 0.5, yend = length(unique(plot_data$expected_tf)) + 0.5, color = "black", size = 1)     
   }
   
   # Render heatmap
@@ -1547,7 +1591,7 @@ moduleServer(id, function(input, output, session) {
   # Save heatmap using the function
   download_heatmap_plot <- function(ext) {
     downloadHandler(
-      filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_",Sys.Date(), ".", ext, sep = ""),
+      filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_",Sys.Date(), ".", ext, sep = ""),
       content = function(file) {
         plot_data <- create_heatmap_data()
         plot <- create_heatmap_plot(plot_data)
@@ -1561,7 +1605,7 @@ moduleServer(id, function(input, output, session) {
   
   # Save dataframe heatmap as csv
   output$download_heatmap_df <- downloadHandler(
-    filename = function() paste("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_", Sys.Date(), ".csv", sep = ""),
+    filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_", Sys.Date(), ".csv", sep = ""),
     content = function(file) {
       plot_data <- create_heatmap_data()
       write.csv(plot_data, file, row.names = FALSE)
@@ -1575,7 +1619,7 @@ moduleServer(id, function(input, output, session) {
   # Dropdowns and checkboxes LoD    
   updateSelectInput(session, "lod_seqdepth_select",
                     choices = sort(unique(bench$seq_depth)),
-                    selected = sort(unique(bench$seq_depth))[1]) 
+                    selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] ) 
   updateSelectInput(session, "lod_approach_select", 
                     choices = sort(unique(bench$collapse_approach)), 
                     selected = sort(unique(bench$collapse_approach))[1])
@@ -1680,7 +1724,7 @@ moduleServer(id, function(input, output, session) {
   # Save lod plot as svg and pdf
   download_lod <- function(ext) {
     downloadHandler(
-      filename = function() paste("LoD_", input$lod_deconvtool_select, "_depth_", input$lod_seqdepth_select, "_", input$lod_approach_select,"_", input$lod_dmrtool_select, "_" , Sys.Date(), ".", ext, sep = ""),
+      filename = function() paste0("LoD_", input$lod_deconvtool_select, "_depth_", input$lod_seqdepth_select, "_", input$lod_approach_select,"_", input$lod_dmrtool_select, "_" , Sys.Date(), ".", ext, sep = ""),
       content = function(file) {
         data <- create_lod_data()
         req(nrow(data) > 0)
@@ -1696,16 +1740,14 @@ moduleServer(id, function(input, output, session) {
   
   # Save dataframe lod as csv
   output$download_lod_df <- downloadHandler(
-    filename = function() paste("LoD_", input$lod_deconvtool_select, "_depth_", input$lod_seqdepth_select, "_", input$lod_approach_select,"_", input$lod_dmrtool_select, "_" , Sys.Date(), ".csv", sep = ""),
+    filename = function() paste0("LoD_", input$lod_deconvtool_select, "_depth_", input$lod_seqdepth_select, "_", input$lod_approach_select,"_", input$lod_dmrtool_select, "_" , Sys.Date(), ".csv", sep = ""),
     content = function(file) {
       data <- create_lod_data()
       stats <- perform_custom_wilcox_tests(data, my_comparisons)
       write.csv(stats, file, row.names = FALSE)
     }
   )
-  
-  print(head(bench))
-  print(str(bench))
+
   ## end 
   
   })

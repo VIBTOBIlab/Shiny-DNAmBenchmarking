@@ -5,9 +5,9 @@ source("modules/wgbs.R")
 metricsTabUI <- function(id) {
   ns <- NS(id)
   tabPanel(
-    "Metrics",
+    "Plots",
     fluidPage(
-      h2("Benchmarking Metrics"),
+      h3("Benchmarking plots", style = "font-weight: bold; color: #343a40;"),
       p("We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores."),
       p("Below, you can find the computed metrics and visualizations."),
       br(),
@@ -29,8 +29,7 @@ metricsTabUI <- function(id) {
 metricsTabServer <- function(id) {
   moduleServer(id, function(input, output, session) {
 
-    
-    
+
     ## 1. Import Data and Preprocessing
     # Code moved to global.R
     
@@ -53,7 +52,7 @@ metricsTabServer <- function(id) {
     # Extra modules
     rrbsTabServer("RRBS")  
     wgbsTabServer("WGBS")
-    
+      
        
   }) # Close moduleServer
 } # Close metricsTabServer    

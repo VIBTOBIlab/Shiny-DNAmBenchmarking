@@ -1,54 +1,72 @@
-/* Set the background to white for the app */
-body {
-  background-color: #ffffff; /* White background */
+/* =======================================================================
+   Global Styles
+   -----------------------------------------------------------------------
+   Applies to the entire page. Enables smooth scrolling behavior when 
+   clicking anchor links or using navigation that targets in-page IDs.
+======================================================================= */
+html {
+  scroll-behavior: smooth;
 }
 
-/* Navbar (title and tab panels) styling */
+
+/* =======================================================================
+   Navigation Bar Styling
+   -----------------------------------------------------------------------
+   Customizes the top navigation bar's appearance:
+   - Background color and border
+   - Link colors (default and on hover)
+   - Font size for nav links
+======================================================================= */
 .navbar-default {
-  background-color: #343a40; /* Darker gray background */
-  border: none; /* Remove border */
+  background-color: #242b30;   /* Dark gray-blue background */
+  border-color: #2c3e50;       /* Slightly lighter border */
 }
 
-.navbar-default .navbar-brand {
-  color: #ffffff; /* White text for the title */
-  font-weight: bold;
-}
-
-.navbar-default .navbar-brand:hover {
-  color: #dcdcdc; /* Lighter gray on hover for the title */
-}
-
-/* Tab panels (links) styling */
+.navbar-default .navbar-brand,
 .navbar-default .navbar-nav > li > a {
-  background-color: #343a40; /* Darker gray background */
-  color: #ffffff; /* White text */
+  color: #ecf0f1;              /* Light gray text */
 }
 
-.navbar-default .navbar-nav > li > a:hover,
-.navbar-default .navbar-nav > .active > a {
-  background-color: #495057; /* Slightly lighter gray for hover or active tab */
-  color: #ffffff; /* Keep text white */
+.navbar-default .navbar-brand:hover,
+.navbar-default .navbar-nav > li > a:hover {
+  color: #ffffff;              /* White text on hover */
 }
 
-/* Paragraphs */
-p {
-  text-align: justify; 
+.navbar .navbar-nav > li > a {
+  font-size: 14px;             /* Slightly larger font for readability */
 }
 
 
+/* =======================================================================
+   Tab Panel Styling
+   -----------------------------------------------------------------------
+   Adjusts the layout and typography of tabbed content areas:
+   - Adds padding around content for spacing
+   - Increases font size and line height for readability
+   - Adds top margin to each tab pane to separate from nav
+======================================================================= */
+.tab-content {
+  padding: 40px;               /* Space inside the tab panel */
+  font-size: 16px;             /* Larger text */
+  line-height: 1.6;            /* More readable line spacing */
+}
 
-/* Footer Styling */
-.footer {
+.tab-pane {
+  margin-top: 10px;            /* Space above each tab content area */
+}
+
+
+/* =======================================================================
+   Table of Contents Styling (Placeholder)
+   -----------------------------------------------------------------------
+   You can add custom styles here if your UI includes a table of contents
+   or anchor-based navigation panel.
+======================================================================= */
+/* Example:
+#toc {
   position: fixed;
-  bottom: 0;
-  width: 100%;
-  background-color: transparent; /* Transparent footer */
-  text-align: center; /* Center the content horizontally */
-  padding: 10px 0; /* Add some spacing around the footer */
+  top: 100px;
+  right: 20px;
+  font-size: 14px;
 }
-
-.footer img {
-  height: 20px !important; /* Icon size height */
-  width: auto !important; /* Maintain aspect ratio */
-  display: inline-block; /* Ensures proper alignment */
-}
+*/

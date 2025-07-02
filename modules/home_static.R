@@ -35,29 +35,10 @@ homeTabUI <- function(id) {
       ),
       
       
-      br(), br(),br(), h3("Citation"), br(), tags$hr(),
+      br(), br(),br(), h3("Citation"), br(),
       
-      div(
-        style = "text-align: center; margin-top: 20px;",
-        tags$div(
-          style = "margin-top: 10px; text-align: center",
-          tags$a(
-            href = "https://github.com/VIBTOBIlab",
-            HTML("<i class='fa fa-github'></i> GitHub"),
-            style = "text-decoration: none; color: #555;"
-          ),
-          tags$a(
-            href = "https://depreterlab.sites.vib.be/en#/",
-            HTML("<i class='fa fa-link'></i> TOBI Website"),
-            style = "margin-left: 10px; text-decoration: none; color: #555;"
-          ),
-          tags$a(
-            href = "mailto:sofvdvel.vandevelde@ugent.be",
-            HTML("<i class='fa fa-envelope'></i> Email"),
-            style = "margin-left: 10px; text-decoration: none; color: #555;"
-          )
-        )
-      ),
+      # footer
+      footer_citation(),
       
       # Optional: Replace with CSS-based scrolling behavior if needed
       br(), br(), spsGoTop("default")
