@@ -1,4 +1,4 @@
-# Shiny Application for Interactive DNAmBenchmarking
+# Shiny Application DNAmBenchmarking
 
 This repository provides the codebase  for a **[Shiny web application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/)** designed to interactively explore the data and results in the following scientific publication:
 
