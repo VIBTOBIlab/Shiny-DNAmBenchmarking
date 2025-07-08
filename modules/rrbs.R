@@ -8,11 +8,11 @@ rrbsTabUI <- function(id) {
              h3("Table of Contents"),
              tags$ul(class = "toc-list",
                      tags$li(tags$a(href = "#boxplots_rrbs", "Boxplots of the predictions for each tumoral fraction")),
-                     tags$li(tags$a(href = "#nrmse_rrbs", "Performance (nRMSE)")),
+                     tags$li(tags$a(href = "#nrmse_rrbs", "Performance (NRMSE)")),
+                     tags$li(tags$a(href = "#heatmap_rrbs", "Heatmap of expected tumoral fraction vs deconvolution tools")),
                      tags$li(tags$a(href = "#aucroc_rrbs", "AUC-ROC at different tumoral fractions")),
                      tags$li(tags$a(href = "#tools-rmse_rrbs", "Tools RMSE")),
                      tags$li(tags$a(href = "#final_rrbs", "Final ranking of the tools")),
-                     tags$li(tags$a(href = "#heatmap_rrbs", "Heatmap of expected tumoral fraction vs deconvolution tools")),
                      tags$li(tags$a(href = "#lod_rrbs", "Limit of detection"))
              )
     ),
@@ -22,8 +22,9 @@ rrbsTabUI <- function(id) {
     ############################################################################
     # Boxplots section
     tags$div(id = "boxplots_rrbs",
-             h4("Boxplots of the predictions for each tumoral fraction")
-    ),
+             h4("Boxplots of the predictions for each tumoral fraction")),
+    p("The plot shows predicted tumoral fractions as boxplots for each deconvolution tool (grouped by DMR tool), at a selected expected TF (marked by a red dashed line), allowing comparison of prediction accuracy and variability across methods."
+      ),
 
     sidebarLayout(
       sidebarPanel(width = 3,
@@ -72,11 +73,12 @@ rrbsTabUI <- function(id) {
     tags$hr(), br(), br(),
     
     ############################################################################
-    # nRMSE section
+    # NRMSE section
     tags$div(id = "nrmse_rrbs", 
-             h4("Performance (nRMSE)")
+             h4("Performance (NRMSE)")),
+    p("The plot shows NRMSE values for a selected deconvolution tool across expected tumoral fractions (X-axis) and DMR tools (color), allowing comparison of prediction error normalized by expected value, with lower points indicating better performance."
     ),
-    
+
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -115,10 +117,56 @@ rrbsTabUI <- function(id) {
     tags$hr(), br(), br(),
 
     ############################################################################
+    # Heatmap section
+    tags$div(id = "heatmap_rrbs", 
+             h4("Heatmap of expected tumoral fraction vs deconvolution tools")),
+    p("The plot shows log-scaled NRMSE values (as both tile color and rounded text) for each deconvolution tool across expected tumoral fractions, with tools ranked left-to-right by their NRMSE at expected TF = 0.0001, where lower values indicate better performance."
+      ),
+    sidebarLayout(
+      sidebarPanel(width = 3,
+                   selectInput(
+                     ns("heatmap_seqdepth_select"),
+                     label = "Depth",
+                     choices = NULL,
+                     selected = NULL
+                   ),
+                   selectInput(
+                     ns("heatmap_approach_select"),
+                     label = "Approach",
+                     choices = NULL,
+                     selected = NULL
+                   ),
+                   checkboxGroupInput(
+                     ns("heatmap_deconvtools_select"),
+                     label = "Deconvolution Tools",
+                     choices = NULL,  
+                     selected = NULL
+                   ),
+                   checkboxInput(ns("heatmap_deconvtools_select_all"),label =tags$em("Select All/None"), value = TRUE),
+                   selectInput(
+                     ns("heatmap_dmrtool_select"),
+                     label = "DMR Tool",
+                     choices = NULL, 
+                     selected = NULL
+                   )
+      ),
+      mainPanel(width = 9,
+                plotOutput(ns("heatmap"), height = "600px"),
+                br(),
+                downloadButton(ns("download_heatmap_df"), "Download data"),
+                downloadButton(ns("download_heatmap_svg"), "Download as SVG"),
+                downloadButton(ns("download_heatmap_pdf"), "Download as PDF"),
+                br(), br()
+      )
+    ),
+    tags$hr(), br(), br(),
+    
+    ############################################################################
     # AUC-ROC of tools at 4 low tumoral fractions
     tags$div(id = "aucroc_rrbs", 
-             h4("AUC-ROC at different tumoral fractions")
-             ),
+             h4("AUC-ROC at different tumoral fractions")),
+    p("The plot shows ROC curves and AUC values for each selected deconvolution tool (faceted), across multiple low tumoral fractions (0.0001 to 0.05), where each line color represents a fraction and higher curves indicate better classification performance."
+    ),
     
     # First main panel for the complete AUC-ROC plot
     sidebarLayout(
@@ -205,8 +253,10 @@ rrbsTabUI <- function(id) {
     ############################################################################
     # RMSE Comparison section
     tags$div(id = "tools-rmse_rrbs", 
-             h4("Tools RMSE")
-             ),
+             h4("Tools RMSE")),
+    p("The plot shows RMSE values for each deconvolution tool (Y-axis) across selected DMR tools (colored points) at a specific expected tumoral fraction, with tools sorted top-to-bottom by their mean RMSE, so that lower (better) RMSE tools appear at the top."
+      ), 
+    
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -254,8 +304,10 @@ rrbsTabUI <- function(id) {
     ############################################################################
     # final ranking section
     tags$div(id = "final_rrbs", 
-             h4("Final ranking of the tools")
-    ), 
+             h4("Final ranking of the tools")), 
+    p("The plot shows performance scores or individual metrics (meanAUC, RMSE, SCC, or Score) for each deconvolution tool (colored by DMR tool) under selected conditions, with tools sorted top-to-bottom by their average performance across DMR tools, where higher is better (except for RMSE, which is reversed)."
+    ),
+    
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -311,56 +363,14 @@ rrbsTabUI <- function(id) {
     #   )
     # ),
     
-    ############################################################################
-    # Heatmap section
-    tags$div(id = "heatmap_rrbs", 
-             h4("Heatmap of expected tumoral fraction vs deconvolution tools")
-             ),
-    sidebarLayout(
-      sidebarPanel(width = 3,
-                   selectInput(
-                     ns("heatmap_seqdepth_select"),
-                     label = "Depth",
-                     choices = NULL,
-                     selected = NULL
-                   ),
-                   selectInput(
-                     ns("heatmap_approach_select"),
-                     label = "Approach",
-                     choices = NULL,
-                     selected = NULL
-                   ),
-                   checkboxGroupInput(
-                     ns("heatmap_deconvtools_select"),
-                     label = "Deconvolution Tools",
-                     choices = NULL,  
-                     selected = NULL
-                   ),
-                   checkboxInput(ns("heatmap_deconvtools_select_all"),label =tags$em("Select All/None"), value = TRUE),
-                   selectInput(
-                     ns("heatmap_dmrtool_select"),
-                     label = "DMR Tool",
-                     choices = NULL, 
-                     selected = NULL
-                   )
-      ),
-      mainPanel(width = 9,
-                plotOutput(ns("heatmap"), height = "600px"),
-                br(),
-                downloadButton(ns("download_heatmap_df"), "Download data"),
-                downloadButton(ns("download_heatmap_svg"), "Download as SVG"),
-                downloadButton(ns("download_heatmap_pdf"), "Download as PDF"),
-                br(), br()
-      )
-    ),
-    tags$hr(), br(), br(),
-    
-    
+
     ############################################################################
     # LoD section
     tags$div(id = "lod_rrbs", 
-             h4("Limit of detection")
-             ),
+             h4("Limit of detection")),
+    p("The plot shows predicted tumoral fractions across increasing expected fractions for a selected tool and DMR method, with boxplots and Wilcoxon test significance markers comparing each level to 0 to assess the lowest fraction at which signal becomes statistically distinguishable from noise."
+    ),
+    
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -645,6 +655,148 @@ moduleServer(id, function(input, output, session) {
     }
   )
   
+  ############################################################################ 
+  ## Heatmap
+  # Dropdowns and checkboxes heatmap
+  updateSelectInput(session, "heatmap_seqdepth_select",
+                    choices = sort(unique(bench$seq_depth)),
+                    selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] ) 
+  updateSelectInput(session, "heatmap_approach_select", 
+                    choices = sort(unique(bench$collapse_approach)), 
+                    selected = sort(unique(bench$collapse_approach))[1])
+  
+  # updateCheckboxGroupInput(session, "heatmap_decovtools_select", 
+  #                          choices = sort(unique(bench$deconv_tool)), 
+  #                          selected = sort(unique(bench$deconv_tool)))    
+  updateSelectInput(session, "heatmap_dmrtool_select", 
+                    choices = sort(unique(bench$dmr_tool)), 
+                    selected = sort(unique(bench$dmr_tool))[1])    
+  
+  observe({
+    current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
+    
+    # Update the checkbox group based on select all/none toggle
+    updateCheckboxGroupInput(
+      session, "heatmap_deconvtools_select",
+      choices = current_choices,
+      selected = if (input$heatmap_deconvtools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+    )
+  })
+  
+  # Filter data for heatmap
+  create_heatmap_data <- reactive({
+    req(input$heatmap_seqdepth_select, 
+        input$heatmap_approach_select, 
+        input$heatmap_deconvtools_select, 
+        input$heatmap_dmrtool_select)
+    
+    data <- bench %>%
+      filter(dmr_tool == input$heatmap_dmrtool_select,
+             expected_tf != 0, 
+             deconv_tool %in% input$heatmap_deconvtools_select,
+             seq_depth == input$heatmap_seqdepth_select,
+             collapse_approach == input$heatmap_approach_select) %>%
+      group_by(deconv_tool,expected_tf) %>%  # Group by tool and tumoral fraction
+      summarize(RMSE = rmse(expected_tf, predicted_tf),
+                NRMSE = RMSE / mean(expected_tf),
+                .groups = "drop")
+    return(data)
+  })
+  
+  # Create a function to generate the heatmap
+  create_heatmap_plot <- function(plot_data) {
+    
+    # Optional: Handle NRMSE == 0
+    plot_data$NRMSE <- ifelse(plot_data$NRMSE == 0, 1e-6, plot_data$NRMSE)
+    
+    # Rank tools by median RMSE
+    median_diff <- plot_data %>%
+      group_by(deconv_tool) %>%
+      filter(expected_tf==0.0001) %>%
+      arrange(NRMSE)
+    #arrange(RMSE) 
+    
+    plot_data$NRMSE <- as.numeric(plot_data$NRMSE)
+    
+    # Reorder tools globally
+    plot_data <- plot_data %>%
+      mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool),
+             expected_tf = factor(expected_tf, levels = sort(unique(expected_tf))),
+             label = ifelse(is.na(NRMSE), "NA", format(NRMSE, scientific = TRUE, digits = 3))
+             #label = ifelse(is.na(NRMSE), "NA", round(NRMSE, 5))
+      )
+    
+    # Define max value for scaling
+    max_val <- max(plot_data$NRMSE, na.rm = TRUE)
+    
+    print(head(plot_data))
+    print(str(plot_data))
+    
+    # Create and return the heatmap plot
+    ggplot(plot_data, aes(x = deconv_tool, y = expected_tf, fill = NRMSE)) +
+      geom_tile() +
+      geom_text(aes(label = label), color = "black", size = 4)+
+      scale_fill_gradient(
+        low = "white", high = "#9c080d",
+        limits = c(1e-6, max_val),
+        trans = "log10",
+        na.value = "gray90",
+        name = "log10(NRMSE)"
+      ) +
+      scale_x_discrete(labels = function(x) str_replace_all(x, "_", " "))+
+      #scale_y_discrete(labels = function(x) format(as.numeric(as.character(x)), scientific = TRUE, digits = 3))+
+      scale_y_discrete(labels = function(x) sprintf("%.2e", as.numeric(as.character(x))))+
+      labs(
+        x = "",
+        y = "Expected Tumoral Fraction"
+      ) +
+      theme(
+        axis.text.x = element_text(size = 12, angle = 45, hjust = 1, color = "gray10"),
+        panel.background = element_blank(),
+        panel.border = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text.y = element_text(size = 12, color = "gray10"),
+        axis.title.x = element_text(size = 14 , color = "gray10"),
+        axis.title.y = element_text(size = 14, color = "gray10", margin = margin(r = 25)), 
+        legend.title = element_text(size = 14, color = "gray10"),
+        legend.text = element_text(size = 12, color = "gray10")
+        )+ 
+      annotate("segment", x = 0.5, xend = 0.5, y = 0.5, yend = length(unique(plot_data$expected_tf)) + 0.5, color = "black", size = 1)     
+  }
+  
+  # Lower NRMSE = better performance (whiter)
+  # Higher NRMSE = worse performance (dark red)
+ 
+  # Render heatmap
+  output$heatmap <- renderPlot({
+    plot_data <- create_heatmap_data()
+    create_heatmap_plot(plot_data)
+  })
+  # tools on the left side of the x-axis are considered better (i.e., lower RMSE), but only at expected_tf == 0.0001.
+  
+  # Save heatmap using the function
+  download_heatmap_plot <- function(ext) {
+    downloadHandler(
+      filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_",Sys.Date(), ".", ext, sep = ""),
+      content = function(file) {
+        plot_data <- create_heatmap_data()
+        plot <- create_heatmap_plot(plot_data)
+        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = ext)
+        
+      }
+    )
+  }
+  output$download_heatmap_svg <- download_heatmap_plot("svg")
+  output$download_heatmap_pdf <- download_heatmap_plot("pdf")    
+  
+  # Save dataframe heatmap as csv
+  output$download_heatmap_df <- downloadHandler(
+    filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_", Sys.Date(), ".csv", sep = ""),
+    content = function(file) {
+      plot_data <- create_heatmap_data()
+      write.csv(plot_data, file, row.names = FALSE)
+    }
+  )
   
   ############################################################################     
   # AUCROC complete plot
@@ -707,7 +859,9 @@ moduleServer(id, function(input, output, session) {
       
       if (length(unique(filt_df$expected_tf)) != 2 || nrow(filt_df) == 0) return(NULL)
       
-      roc_curve <- roc(filt_df$expected_tf, filt_df$predicted_tf)
+      roc_curve <- suppressMessages(
+        roc(filt_df$expected_tf, filt_df$predicted_tf)
+      )
       
       data.frame(
         fpr = 1 - rev(roc_curve$specificities),
@@ -1089,7 +1243,10 @@ moduleServer(id, function(input, output, session) {
             next
           }
           
-          roc_curve <- roc(filt_df2$expected_tf, filt_df2$predicted_tf)
+          roc_curve <- suppressMessages( 
+            roc(filt_df2$expected_tf, filt_df2$predicted_tf)
+          )
+          
           aucroc_data <- rbind(aucroc_data, data.frame(                
             auc = roc_curve$auc,                                       
             fraction = fraction,                                       
@@ -1472,147 +1629,6 @@ moduleServer(id, function(input, output, session) {
   #     write.csv(normalized_df, file, row.names = FALSE)
   #   }
   # )
-  
-  
-  ############################################################################ 
-  ## Heatmap
-  # Dropdowns and checkboxes heatmap
-  updateSelectInput(session, "heatmap_seqdepth_select",
-                    choices = sort(unique(bench$seq_depth)),
-                    selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] ) 
-  updateSelectInput(session, "heatmap_approach_select", 
-                    choices = sort(unique(bench$collapse_approach)), 
-                    selected = sort(unique(bench$collapse_approach))[1])
-  
-  # updateCheckboxGroupInput(session, "heatmap_decovtools_select", 
-  #                          choices = sort(unique(bench$deconv_tool)), 
-  #                          selected = sort(unique(bench$deconv_tool)))    
-  updateSelectInput(session, "heatmap_dmrtool_select", 
-                    choices = sort(unique(bench$dmr_tool)), 
-                    selected = sort(unique(bench$dmr_tool))[1])    
-  
-  observe({
-    current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
-    
-    # Update the checkbox group based on select all/none toggle
-    updateCheckboxGroupInput(
-      session, "heatmap_deconvtools_select",
-      choices = current_choices,
-      selected = if (input$heatmap_deconvtools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
-    )
-  })
-  
-  # Filter data for heatmap
-  create_heatmap_data <- reactive({
-    req(input$heatmap_seqdepth_select, 
-        input$heatmap_approach_select, 
-        input$heatmap_deconvtools_select, 
-        input$heatmap_dmrtool_select)
-    
-    data <- bench %>%
-      filter(dmr_tool == input$heatmap_dmrtool_select,
-             expected_tf != 0, 
-             deconv_tool %in% input$heatmap_deconvtools_select,
-             seq_depth == input$heatmap_seqdepth_select,
-             collapse_approach == input$heatmap_approach_select) %>%
-      group_by(deconv_tool,expected_tf) %>%  # Group by tool and tumoral fraction
-      summarize(RMSE = rmse(expected_tf, predicted_tf), .groups = "drop")
-    
-    return(data)
-  })
-  
-  # Create a function to generate the heatmap
-  create_heatmap_plot <- function(plot_data) {
-    # Rank tools by median RMSE
-    median_diff <- plot_data %>%
-      group_by(deconv_tool) %>%
-      filter(expected_tf==0.0001) %>%
-      arrange(RMSE)
-    
-    # Reorder tools globally
-    plot_data <- plot_data %>%
-      mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool))
-    
-    
-    # Define a function to determine text color based on RMSE value
-    get_text_color <- function(rmse_value) {
-      # Handle NA values: default to black text for missing values
-      if (is.na(rmse_value)) {
-        return("black") 
-      }
-      # If RMSE is low, the tile is white and should have black text
-      if (rmse_value <= 0.5) {
-        return("black")
-      } else {
-        return("white")
-      }
-    }
-    
-    # Create a new column for the labels, where NA values are converted to the string 'NA'
-    plot_data$label <- ifelse(is.na(plot_data$RMSE), "NA", round(plot_data$RMSE, 5))
-    # Precompute text colors for each RMSE value
-    plot_data$text_color <- sapply(plot_data$RMSE, get_text_color)
-    
-    # Create and return the heatmap plot
-    ggplot(plot_data, aes(x = deconv_tool, y = factor(expected_tf), fill = RMSE)) +
-      geom_tile() +
-      geom_text(aes(
-        label = label, 
-        color = text_color  # Apply dynamic text color based on tile fill
-      ), size = 4) + 
-      scale_fill_gradient(low = "white", high = "#9c080d" , limits = c(0,1) ) + # Greyscale color scale ##2f425e"
-      scale_color_identity() + 
-      scale_x_discrete(labels = function(x) str_replace_all(x, "_", " "))+
-      labs(
-        x = "",
-        y = "Expected Tumoral Fraction"
-      ) +
-      theme(
-        axis.text.x = element_text(size = 12, angle = 45, hjust = 1, color = "gray10"),
-        panel.background = element_blank(),
-        panel.border = element_blank(),
-        axis.text.y = element_text(size = 12, color = "gray10"),
-        axis.title.x = element_text(size = 14 , color = "gray10"),
-        axis.title.y = element_text(size = 14, color = "gray10"),
-        legend.title = element_text(size = 14, color = "gray10"),
-        legend.text = element_text(size = 12, color = "gray10"),
-        axis.ticks = element_blank()
-      )+ 
-      annotate("segment", x = 0.5, xend = 0.5, y = 0.5, yend = length(unique(plot_data$expected_tf)) + 0.5, color = "black", size = 1)     
-  }
-  
-  # Render heatmap
-  output$heatmap <- renderPlot({
-    plot_data <- create_heatmap_data()
-    create_heatmap_plot(plot_data)
-  })
-  # tools on the left side of the x-axis are considered better (i.e., lower RMSE), but only at expected_tf == 0.0001.
-  
-  # Save heatmap using the function
-  download_heatmap_plot <- function(ext) {
-    downloadHandler(
-      filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_",Sys.Date(), ".", ext, sep = ""),
-      content = function(file) {
-        plot_data <- create_heatmap_data()
-        plot <- create_heatmap_plot(plot_data)
-        ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = ext)
-        
-      }
-    )
-  }
-  output$download_heatmap_svg <- download_heatmap_plot("svg")
-  output$download_heatmap_pdf <- download_heatmap_plot("pdf")    
-  
-  # Save dataframe heatmap as csv
-  output$download_heatmap_df <- downloadHandler(
-    filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_", Sys.Date(), ".csv", sep = ""),
-    content = function(file) {
-      plot_data <- create_heatmap_data()
-      write.csv(plot_data, file, row.names = FALSE)
-    }
-  )
-  
-  
   
   ############################################################################ 
   ## LoD

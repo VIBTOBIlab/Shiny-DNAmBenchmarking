@@ -34,7 +34,6 @@ library(htmltools)
 library(quarto)
 library(sever)
 library(shinythemes)
-library(shinyBS)
 
 # Set future plan if needed
 # plan(multicore)
@@ -142,3 +141,21 @@ tot_bench <- tot_bench %>%
       mixture_type, seq_method),
     as.factor
   ))
+
+# Rename selected deconvolution tool levels
+tool_map <- c(
+  "EpiDISH_CP_eq" = "Houseman's CP/QP w/equality",
+  "EpiDISH_CP_ineq" = "Houseman's CP/QP w/inequality",
+  "EpiDISH_RPC" = "EpiDISH RPC",
+  "meth_atlas" = "MethAtlas",
+  "Methyl_Resolver" = "MethylResolver"
+)
+
+levels(tot_bench$deconv_tool) <- ifelse(
+  levels(tot_bench$deconv_tool) %in% names(tool_map),
+  tool_map[levels(tot_bench$deconv_tool)],
+  levels(tot_bench$deconv_tool)
+)
+
+print(sessionInfo())
+

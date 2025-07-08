@@ -17,10 +17,9 @@ print(.libPaths())
 options(shiny.maxRequestSize = 50 * 1024^2)
 
 # Package conflict resolution (specify preferred functions)
-conflict_prefer("filter", "dplyr")
-conflict_prefer("auc", "pROC")
-conflict_prefer("layout", "plotly")
-
+conflicted::conflict_prefer("filter", "dplyr")
+conflicted::conflict_prefer("auc", "pROC")
+conflicted::conflict_prefer("layout", "plotly")
 
 #### 2. Source Application Files ####
 
