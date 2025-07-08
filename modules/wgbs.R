@@ -242,7 +242,7 @@ wgbsTabUI <- function(id) {
     br(),
     
     # Second main panel for on specific AUC-ROC interactive plot
-    p("This interactive plot shows ROC curves and AUC values for a selected deconvolution tool across multiple low tumoral fractions (e.g., 0.0001 to 0.05). Each curve represents a different fraction, and the AUC value is indicated at FPR = 0 for each. Hover over lines and points to view detailed sensitivity, specificity, and AUC metrics. Higher AUC values and curves closer to the top-left indicate better classification performance."
+    p("This interactive plot shows ROC curves and AUC values for a selected deconvolution tool across multiple low tumoral fractions (0.0001 to 0.05). Each curve represents a different fraction, and the AUC value is indicated at FPR = 0 for each. Hover over lines and points to view detailed sensitivity, specificity, and AUC metrics. Higher AUC values and curves closer to the top-left indicate better classification performance."
     ), 
     sidebarLayout(
       sidebarPanel(width = 3,
@@ -286,7 +286,13 @@ wgbsTabUI <- function(id) {
                    checkboxInput(ns("aucroc_exptfs_select_all"),label =tags$em("Select All/None"), value = TRUE),
       ),
       mainPanel(width = 9,
-                plotlyOutput(ns("aucroc_plot"), height = "400px", width = "600px"),
+                fluidRow(
+                  column(width = 8,
+                         plotlyOutput(ns("aucroc_plot"), height = "600px", width = "800px")),
+                  column(width = 1), 
+                  column(width = 3,
+                         DT::dataTableOutput(ns("aucroc_table")))
+                ),
                 br(),
                 downloadButton(ns("download_aucroc_df"), "Download data"),
                 br(), br(), br()
@@ -1062,6 +1068,7 @@ wgbsTabServer <- function(id) {
     
     observe({
       current_choices <- sort(unique(bench$expected_tf))  # Get all available tools
+      current_choices <- current_choices[current_choices != 0]
       
       # Update the checkbox group based on select all/none toggle
       updateCheckboxGroupInput(
@@ -1117,17 +1124,32 @@ wgbsTabServer <- function(id) {
     
     # Function to generate AUC-ROC plot
     create_aucroc_plot <- function(aucroc_data) {
-      # print(head(aucroc_data))
-      # print(str(aucroc_data))
+      
       # Tooltip text for lines (FPR, TPR, fraction)
-      aucroc_data <- aucroc_data %>%
-        mutate(tooltip_line = paste0("FPR: ", round(fpr, 3), "<br>TPR: ", round(tpr, 3), "<br>Fraction: ", fraction))
+      # aucroc_data <- aucroc_data %>%
+      #   mutate(tooltip_line = paste0("FPR: ", round(fpr, 3), "<br>TPR: ", round(tpr, 3), "<br>Fraction: ", fraction))
+      # 
+      # # Tooltip text for points (AUC value)
+      # aucroc_data <- aucroc_data %>%
+      #   mutate(tooltip_point = paste0("AUC: ", round(auc, 4)))
+      # 
       
-      # Tooltip text for points (AUC value)
+      # Ensure correct numeric sorting and scientific labeling of fractions
       aucroc_data <- aucroc_data %>%
-        mutate(tooltip_point = paste0("AUC: ", round(auc, 4)))
+        mutate(
+          fraction = as.numeric(as.character(fraction)),  # ensure numeric
+          fraction_label = factor(
+            as.character(fraction),  # preserve original display (e.g., "1e-04", "0.001")
+            levels = as.character(sort(unique(fraction)))  # sort numerically by value, keep original text
+          ),
+          tooltip_line = paste0("FPR: ", round(fpr, 3),
+                                "<br>TPR: ", round(tpr, 3),
+                                "<br>Fraction: ", fraction),
+          tooltip_point = paste0("AUC: ", round(auc, 4))
+        )
       
-      ggplot(aucroc_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
+      
+      ggplot(aucroc_data, aes(x = fpr, y = tpr, color = fraction_label, group = fraction_label)) + 
         # ROC Curve Lines
         geom_line(aes(text = tooltip_line), size = 1) +
         
@@ -1153,6 +1175,35 @@ wgbsTabServer <- function(id) {
         config(toImageButtonOptions = list(format = "svg",
                                            filename = paste0("auc_", input$aucroc_tumortype_select, "_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_approach_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
         ))
+    })
+    
+    # Summary table of AUC values per tumoral fraction
+    output$aucroc_table <- DT::renderDataTable({
+      aucroc_data <- create_aucroc_data()
+      req(nrow(aucroc_data) > 0)
+      
+      # Create display and numeric versions of the fraction
+      auc_summary <- aucroc_data %>%
+        mutate(
+          fraction_numeric = as.numeric(as.character(fraction)),
+          fraction_label = as.character(fraction)  # keep original display format
+        ) %>%
+        group_by(fraction_numeric, fraction_label) %>%
+        summarise(AUC = round(mean(auc), 4), .groups = "drop") %>%
+        arrange(fraction_numeric) %>%
+        select(`Tumoral Fraction` = fraction_label, AUC)
+      
+      DT::datatable(
+        auc_summary,
+        rownames = FALSE,
+        options = list(
+          dom = 't',
+          pageLength = 10,
+          autoWidth = TRUE,
+          ordering = FALSE  # disable sorting, we already pre-sorted correctly
+        ),
+        class = 'compact'
+      )
     })
     
     # Save dataframe AUCROC plot as csv
