@@ -7,6 +7,7 @@ This repository provides the codebase  for a **[Shiny web application](https://s
 > *[Journal]*, 2025
 
 
+
 ## Prerequisites
 Ensure you have either [**Miniconda**](https://docs.conda.io/en/latest/) or **Anaconda** installed before proceeding.
 
@@ -28,7 +29,7 @@ sbatch conda.sh
 
 Alternatively (for manual setup):
 ```bash
-conda env create -f rshiny-4.3.1.yaml
+conda env create -f resources/rshiny-4.3.1.yaml
 conda activate rshiny-4.3.1
 ```
 
@@ -45,22 +46,15 @@ port = 8888)"
 ```
 
 **Parameters to configure:**
-* *appDir*: Use the absolute path to your Shiny app directory.
+* *appDir*: Absolute path to the folder containing the Shiny app (app.R, server.R, ui.R, etc.).
 * *host*: Use '0.0.0.0' to allow external access, or a specific IP (e.g., '10.32.8.17').
 * *port*: Choose an available port (e.g., 8888, 2222, etc.).
-
-
-
-
-
-
 
 
 Once the app is running, access the app from your browser at: 
 ```php 
 http://<host>:<port>
 ```
-
 
 
 ## Support and Contact
