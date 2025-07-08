@@ -40,7 +40,8 @@ screen -S shiny
 ```
 Then inside the screen session:
 ```bash
-R --no-save -e "shiny::runApp(appDir = '/mnt/c/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking', 
+R --no-save -e "shiny::runApp(
+appDir = '/mnt/c/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking', 
 host = '127.0.0.1', 
 port = 8888)"
 ```
