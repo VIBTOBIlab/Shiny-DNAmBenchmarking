@@ -34,7 +34,7 @@ library(htmltools)
 library(quarto)
 library(sever)
 library(shinythemes)
-
+library(DT)
 # Set future plan if needed
 # plan(multicore)
 
@@ -156,6 +156,3 @@ levels(tot_bench$deconv_tool) <- ifelse(
   tool_map[levels(tot_bench$deconv_tool)],
   levels(tot_bench$deconv_tool)
 )
-
-print(sessionInfo())
-
