@@ -239,8 +239,11 @@ wgbsTabUI <- function(id) {
                 br(), br(), br()
       )
     ),
+    br(),
     
     # Second main panel for on specific AUC-ROC interactive plot
+    p("This interactive plot shows ROC curves and AUC values for a selected deconvolution tool across multiple low tumoral fractions (e.g., 0.0001 to 0.05). Each curve represents a different fraction, and the AUC value is indicated at FPR = 0 for each. Hover over lines and points to view detailed sensitivity, specificity, and AUC metrics. Higher AUC values and curves closer to the top-left indicate better classification performance."
+    ), 
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -273,7 +276,14 @@ wgbsTabUI <- function(id) {
                      label = "DMR Tool",
                      choices = NULL,
                      selected = NULL
-                   )
+                   ),
+                   checkboxGroupInput(
+                     ns("aucroc_exptfs_select"),
+                     label = "Tumoral Fractions",
+                     choices = NULL,
+                     selected = NULL
+                   ),
+                   checkboxInput(ns("aucroc_exptfs_select_all"),label =tags$em("Select All/None"), value = TRUE),
       ),
       mainPanel(width = 9,
                 plotlyOutput(ns("aucroc_plot"), height = "400px", width = "600px"),
@@ -1050,16 +1060,29 @@ wgbsTabServer <- function(id) {
                       choices = sort(unique(bench$dmr_tool)), 
                       selected = sort(unique(bench$dmr_tool))[1])
     
+    observe({
+      current_choices <- sort(unique(bench$expected_tf))  # Get all available tools
+      
+      # Update the checkbox group based on select all/none toggle
+      updateCheckboxGroupInput(
+        session, "aucroc_exptfs_select",
+        choices = current_choices,
+        selected = if (input$aucroc_exptfs_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+      )
+    })
+    
     # Create a reactive function for AUCROC data
     create_aucroc_data <- reactive({
-      req(input$aucroc_tumortype_select,
-          input$aucroc_seqdepth_select, 
+      req(input$aucroc_seqdepth_select, 
           input$aucroc_approach_select, 
           input$aucroc_deconvtool_select, 
-          input$aucroc_dmrtool_select)
+          input$aucroc_dmrtool_select,
+          input$aucroc_exptfs_select)
       
       aucroc_data <- data.frame()
-      fractions <- c(0.0001, 0.001, 0.01, 0.05)
+      fractions <- input$aucroc_exptfs_select
+      
+      #fractions <- c(0.0001, 0.001, 0.01, 0.05)
       
       for (fraction in unique(fractions)) {
         filt_df <- bench %>%
