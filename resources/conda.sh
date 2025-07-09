@@ -3,7 +3,7 @@
 #SBATCH --output=logs/conda_create_%j.out
 #SBATCH --error=logs/conda_create_%j.err
 #SBATCH --mem=32G
-#SBATCH --time=02:00:00
+#SBATCH --time=00:30:00
 #SBATCH --nodes=1
 #SBATCH --ntasks=4
 
