@@ -7,10 +7,12 @@ This repository provides the codebase  for a **[Shiny web application](https://s
 > *[Journal]*, 2025
 
 
+<br>
 
 ## Prerequisites
 Ensure you have either [**Miniconda**](https://docs.conda.io/en/latest/) or **Anaconda** installed before proceeding.
 
+<br>
 
 ## Installation Instructions
 
@@ -34,30 +36,62 @@ Alternatively (for manual setup of [rshiny-4.3.1.yaml](./resources/rshiny-4.3.1.
 conda env create -f ./resources/rshiny-4.3.1.yaml
 conda activate rshiny-4.3.1
 ```
+<br>
 
-## Running the Shiny Application
+## Option 1: Run via Command Line
 To launch the application interactively in a detached terminal session using screen:
+### 1. Start a new screen session: 
 ```bash
 screen -S shiny
 ```
-Then inside the screen session:
+### 2. Launch the app inside the screen session:
 ```bash
 conda activate rshiny-4.3.1
 R --no-save -e "shiny::runApp(
-appDir = '/mnt/c/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking', 
+appDir = '/mnt/c/Users/Sofie/OneDrive - UGent/Documents/Projects/Shiny-DNAmBenchmarking', 
 host = '127.0.0.1', 
 port = 8888)"
 ```
+* To detach from the screen: Press Ctrl+A then D.
+* To resume later: screen -r shiny
 
 **Parameters to configure:**
 * *appDir*: Absolute path to the folder containing the Shiny app (app.R, server.R, ui.R, etc.).
 * *host*: Use '0.0.0.0' to allow external access, or a specific IP (e.g., '10.32.8.17').
 * *port*: Choose an available port (e.g., 8888, 2222, etc.).
-
+  
+### 3. Access the app in your browser
 Once the app is running, access the app from your browser at: 
 ```php 
-http://<host>:<port>
+python -m webbrowser http://127.0.0.1:8888
 ```
+
+<br>
+
+## Option 2: Run in RStudio
+If you're working with RStudio, you can launch the app interactively without the terminal:
+### 1. Open RStudio
+Make sure RStudio is launched from a terminal or command line session where the rshiny-4.3.1 Conda environment is activated:
+``` bash
+activate rshiny-4.3.1
+rstudio &
+```
+Alternatively, configure RStudio to use the R binary from your Conda environment (rshiny-4.3.1).
+
+### 2. Open the Repository in RStudio
+Open the **Shiny-DNAmBenchmarking** folder in RStudio as a project or working directory.
+
+### 3. Run the App
+Open **app.R** and click the "Run App" button in the upper-right corner of the RStudio script editor.
+You can also run this command in the R console:
+
+```r
+shiny::runApp()
+```
+This will launch the app in your default web browser.
+
+
+<br>
 
 
 ## Support and Contact
