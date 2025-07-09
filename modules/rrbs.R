@@ -734,16 +734,12 @@ moduleServer(id, function(input, output, session) {
     plot_data <- plot_data %>%
       mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool),
              expected_tf = factor(expected_tf, levels = sort(unique(expected_tf))),
-             label = ifelse(is.na(NRMSE), "NA", format(NRMSE, scientific = TRUE, digits = 3))
-             #label = ifelse(is.na(NRMSE), "NA", round(NRMSE, 5))
-      )
+             label = ifelse(is.na(NRMSE), "NA", formatC(NRMSE, format = "e", digits = 2))
+             )
     
     # Define max value for scaling
     max_val <- max(plot_data$NRMSE, na.rm = TRUE)
-    
-    print(head(plot_data))
-    print(str(plot_data))
-    
+
     # Create and return the heatmap plot
     ggplot(plot_data, aes(x = deconv_tool, y = expected_tf, fill = NRMSE)) +
       geom_tile() +
@@ -751,13 +747,14 @@ moduleServer(id, function(input, output, session) {
       scale_fill_gradient(
         low = "white", high = "#9c080d",
         limits = c(1e-6, max_val),
-        trans = "log10",
+        trans = "log2",
         na.value = "gray90",
-        name = "log10(NRMSE)"
+        labels = scales::label_scientific(digits = 2),         
+        name = "log2(NRMSE)"
       ) +
       scale_x_discrete(labels = function(x) str_replace_all(x, "_", " "))+
-      #scale_y_discrete(labels = function(x) format(as.numeric(as.character(x)), scientific = TRUE, digits = 3))+
-      scale_y_discrete(labels = function(x) sprintf("%.2e", as.numeric(as.character(x))))+
+      scale_y_discrete(labels = function(x) format(as.numeric(as.character(x)), scientific = FALSE, digits = 3))+
+      scale_y_discrete(labels = function(x) x)+
       labs(
         x = "",
         y = "Expected Tumoral Fraction"
