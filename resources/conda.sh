@@ -30,7 +30,7 @@ echo "==============================="
 echo "Starting Conda environment creation"
 echo "Start time: $(date)"
 echo "Working directory: $(pwd)"
-echo "Environment file: rshiny-4.3.1.yaml"
+echo "Environment file: resources/rshiny-4.3.1.yaml"
 echo "==============================="
 
 mkdir -p logs
@@ -40,7 +40,7 @@ echo "System memory snapshot:"
 free -h || vmstat -s
 
 # Create the conda environment
-conda env create -f rshiny-4.3.1.yaml
+conda env create -f resources/rshiny-4.3.1.yaml
 
 echo "==============================="
 echo "Environment successfully created!"
