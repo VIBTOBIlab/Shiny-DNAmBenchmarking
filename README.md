@@ -42,6 +42,7 @@ screen -S shiny
 ```
 Then inside the screen session:
 ```bash
+conda activate rshiny-4.3.1
 R --no-save -e "shiny::runApp(
 appDir = '/mnt/c/Users/Sofie/OneDrive - UGent/Documents/Projects/DecoNFlow_Benchmarking', 
 host = '127.0.0.1', 
@@ -52,7 +53,6 @@ port = 8888)"
 * *appDir*: Absolute path to the folder containing the Shiny app (app.R, server.R, ui.R, etc.).
 * *host*: Use '0.0.0.0' to allow external access, or a specific IP (e.g., '10.32.8.17').
 * *port*: Choose an available port (e.g., 8888, 2222, etc.).
-
 
 Once the app is running, access the app from your browser at: 
 ```php 
