@@ -17,19 +17,21 @@ Ensure you have either [**Miniconda**](https://docs.conda.io/en/latest/) or **An
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/shiny-app-repo.git
-cd shiny-app-repo
+git clone git@github.com:VIBTOBIlab/Shiny-DNAmBenchmarking.git
+cd Shiny-DNAmBenchmarking
 ```
 
 ### 2. Set up the Conda environment
-Run the provided [conda.sh](./conda.sh) script to configure the environment:
+Run the provided [conda.sh](./resources/conda.sh) script to configure the environment:
 ```bash
-sbatch conda.sh
+# If you are in the repo directory
+sbatch ./resources/conda.sh
 ```
 
-Alternatively (for manual setup):
+Alternatively (for manual setup of [rshiny-4.3.1.yaml](./resources/rshiny-4.3.1.yaml)):
 ```bash
-conda env create -f resources/rshiny-4.3.1.yaml
+# If you are in the repo directory
+conda env create -f ./resources/rshiny-4.3.1.yaml
 conda activate rshiny-4.3.1
 ```
 
