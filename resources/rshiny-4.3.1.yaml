@@ -3,81 +3,89 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - r-base=4.3.1
-  - r-shiny
-  - r-shinythemes
-  - r-htmltools
-  - r-htmlwidgets
-  - r-plotly
-  - r-ggplot2
-  - r-ggpubr
-  - r-patchwork
-  - r-scales
-  - r-dplyr
-  - r-purrr
-  - r-readr
-  - r-tidyr
-  - r-stringr
-  - r-forcats
-  - r-metrics
-  - r-furrr
-  - r-future
-  - r-conflicted
-  - r-reshape2
-  - r-philentropy
-  - r-laplacesdemon
-  - r-pROC
-  - r-bslib
-  - r-sever
-  - r-spscomps
-  - r-rstatix
-  - r-quarto
-  - r-jsonlite
-  - r-car
-  - r-cardata
-  - r-hms
-  - r-data.table
-  - r-rmarkdown
-  - r-xtable
-  - r-tibble
-  - r-vctrs
-  - r-stringi
-  - r-systemfonts
-  - r-fontawesome
-  - r-mime
-  - r-yaml
-  - r-cli
-  - r-crayon
-  - r-glue
-  - r-lifecycle
-  - r-magrittr
-  - r-rlang
-  - r-fastmap
-  - r-cachem
-  - r-knitr
-  - r-shinyace
-  - r-rstudioapi
-  - r-httpuv
-  - r-crosstalk
-  - r-broom
-  - r-evaluate
-  - r-xfun
-  - r-processx
-  - r-ps
-  - r-parallelly
-  - r-later
-  - r-assertthat
-  - r-munsell
-  - r-colorspace
-  - r-labeling
-  - r-gtable
-  - r-ragg
-  - r-textshaping
-  - r-backports
-  - r-abind
-  - r-lazyeval
-  - r-philentropy
-  - r-rstatix
-  - r-sever
-  - r-spscomps
-  - r-laplacesdemon
+  - r-base=4.3.1           # Core R language runtime
+
+  # Shiny app framework and UI
+  - r-shiny               # Web application framework for R
+  - r-shinythemes         # Prebuilt themes for Shiny apps
+  - r-bslib               # Bootstrap themes for Shiny/Quarto
+  - r-shinyace            # Code editor (Ace) integration in Shiny
+  - r-sever               # Custom disconnect screen for Shiny (optional)
+  - r-spscomps            # UI components from systemPipeShiny (optional)
+
+  # HTML and web rendering
+  - r-htmltools           # HTML generation tools
+  - r-htmlwidgets         # JavaScript widgets for R
+  - r-fontawesome         # Font Awesome icons
+  - r-systemfonts         # Font discovery and management
+
+  # Data visualization
+  - r-ggplot2             # Core grammar of graphics plotting
+  - r-ggpubr              # Publication-ready plots (based on ggplot2)
+  - r-plotly              # Interactive plots
+  - r-patchwork           # Combine ggplot2 plots
+  - r-scales              # Scaling functions for plots
+  - r-gtable              # Layouts for ggplot2
+  - r-munsell             # Color utilities
+  - r-colorspace          # Color palette manipulation
+  - r-labeling            # Smart labels for plots
+  - r-ragg                # High-quality raster graphics device
+  - r-textshaping         # Text shaping engine for complex scripts
+
+  # Data handling & transformation
+  - r-dplyr               # Data manipulation
+  - r-purrr               # Functional programming tools
+  - r-readr               # Read CSV and text files
+  - r-tidyr               # Tidy data reshaping
+  - r-stringr             # String manipulation
+  - r-stringi             # String processing (ICU engine)
+  - r-forcats             # Factor handling
+  - r-tibble              # Modern data frames
+  - r-data.table          # High-performance data tables
+  - r-reshape2            # Older reshaping package
+  - r-jsonlite            # JSON I/O
+  - r-hms                 # Time-of-day support
+  - r-cardata             # Datasets for regression examples (optional)
+  - r-metrics             # Model evaluation metrics
+  - r-dt                  # Interactive datatables for Shiny
+  - r-philentropy         # Distance/similarity metrics (ML/stats, optional)
+
+  # Modeling and statistics
+  - r-car                 # Companion to Applied Regression
+  - r-pROC                # ROC curve analysis
+  - r-rstatix             # Statistical test wrappers (optional)
+  - r-broom               # Convert models to tidy data frames
+  - r-laplacesdemon       # Bayesian inference and MCMC (optional)
+
+  # Reporting & document generation
+  - r-rmarkdown           # Dynamic reports with Markdown
+  - r-knitr               # Report knitting engine
+  - r-quarto              # Render Quarto documents (optional)
+  - r-xtable              # LaTeX/HTML tables
+  - r-evaluate            # Evaluate code for reports
+  - r-xfun                # Utility functions for report generation
+
+  # Process and parallel support
+  - r-furrr               # Parallel map with purrr
+  - r-future              # Parallel backend for R
+  - r-parallelly          # Helper for parallel execution
+  - r-processx            # Run system processes
+  - r-ps                  # Process management
+  - r-later               # Event loop / async tasks
+  - r-httpuv              # HTTP/WebSocket server used by Shiny
+
+  # System utilities
+  - r-conflicted          # Resolve function name conflicts
+  - r-rstudioapi          # Interact with RStudio IDE
+  - r-cachem              # Cache management
+  - r-fastmap             # Fast key-value store
+  - r-cli                 # Command line interface tools
+  - r-crayon              # Colored terminal output
+  - r-glue                # String interpolation
+  - r-lifecycle           # Lifecycle signals for package dev
+  - r-magrittr            # Pipe operator (%>%)
+  - r-rlang               # Core tidy evaluation
+  - r-assertthat          # Lightweight assertions
+  - r-backports           # Compatibility with older R versions
+  - r-abind               # Combine multidimensional arrays
+  - r-lazyeval            # Lazy (quoted) evaluation
