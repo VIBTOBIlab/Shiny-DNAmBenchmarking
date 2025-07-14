@@ -1,7 +1,7 @@
-################################################################################
+#########################################################################################
 # DecoNFlow Benchmarking - Shiny Web Application
-# More information on the pipeline: https://github.ugent.be/DePreterLab
-################################################################################
+# More information on the pipeline: https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/
+#########################################################################################
 
 #### 1. Shiny Configuration and Environment Setup ####
 
@@ -9,12 +9,15 @@
 #options("shiny.host"='10.32.8.17')
 options("shiny.port" = 8888)
 
-# Configure library paths
-.libPaths(c(path.expand(Sys.getenv("R_LIBS_USER")), .libPaths()))
-print(.libPaths())
-
 # Increase maximum upload size to 50MB
 options(shiny.maxRequestSize = 50 * 1024^2)
+
+# Set global spinner style (instead of repeating in every withSpinner call)
+options(
+  spinner.type = 8,             # Choose a type (1-8). You used type = 8, so you can change this as needed.
+  spinner.color = "#343a40",  # Matches your theme color
+  spinner.delay = "700"       # Specify a delay (in milliseconds) before the spinner is displayed. 
+)
 
 # Package conflict resolution (specify preferred functions)
 conflicted::conflict_prefer("filter", "dplyr")
@@ -58,10 +61,13 @@ ui <- navbarPage(
 )
 
 
+getAnywhere(withSpinner)
+
+
 #### 4. Server Logic ####
 
 server <- function(input, output, session) {
-  
+
   # Activate server logic for each module
   homeTabServer("home")
   metricsTabServer("plots")
@@ -69,7 +75,7 @@ server <- function(input, output, session) {
   contactTabServer("contact")
 }
 
-
 #### 5. Run the Application ####
 
 shinyApp(ui = ui, server = server)
+
