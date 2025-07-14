@@ -1,4 +1,4 @@
-# Source rrbs module
+# Source modules
 source("modules/rrbs.R")
 source("modules/wgbs.R")
 
