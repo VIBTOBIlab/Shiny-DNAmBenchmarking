@@ -2,12 +2,18 @@ wgbsTabUI <- function(id) {
   ns <- NS(id)
   tabPanel(
     "WGBS",
-    title = "WGBS",
-    value = "WGBS",
     
+    fluidPage(
+      h3("Benchmarking plots - WGBS", style = "font-weight: bold; color: #343a40;"),
+      p("We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores."),
+      p("Below, you can find the computed metrics and visualizations."),
+      br(),
+
+    ), 
+
     # Table of Contents
     tags$div(class = "toc-container",
-             h3("Table of Contents"),
+             h4("Table of Contents"),
              tags$ul(class = "toc-list",
                      tags$li(tags$a(href = "#boxplots_wgbs", "Boxplots of the predictions for each tumoral fraction")),
                      tags$li(tags$a(href = "#nrmse_wgbs", "Performance (NRMSE)")),
@@ -424,6 +430,7 @@ wgbsTabUI <- function(id) {
     #             br(), br()
     #             )
     #   ),
+    
 
 
     ############################################################################
@@ -481,6 +488,11 @@ wgbsTabUI <- function(id) {
                 br(), br(), br()
       )
     ), 
+    
+    
+    # Go to top of the page
+    lapply(1:100, function(x) br()),
+    spsGoTop("default"),
     
     # footer 
     footer_citation()

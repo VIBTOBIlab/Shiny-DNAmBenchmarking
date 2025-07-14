@@ -16,6 +16,7 @@ html {
    - Background color and border
    - Link colors (default and on hover)
    - Font size for nav links
+   - Sticky behavior when scrolling
 ======================================================================= */
 .navbar-default {
   background-color: #242b30;   /* Dark gray-blue background */
@@ -34,6 +35,13 @@ html {
 
 .navbar .navbar-nav > li > a {
   font-size: 14px;             /* Slightly larger font for readability */
+}
+
+
+.navbar {
+  position: sticky;           /* Sticky Navbar */
+  top: 0;
+  z-index: 1000;
 }
 
 

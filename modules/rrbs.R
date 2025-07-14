@@ -3,9 +3,17 @@ rrbsTabUI <- function(id) {
   tabPanel(
     "RRBS",
 
+    fluidPage(
+      h3("Benchmarking plots - RRBS", style = "font-weight: bold; color: #343a40;"),
+      p("We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores."),
+      p("Below, you can find the computed metrics and visualizations."),
+      br(),
+      
+    ), 
+    
     # Table of Contents
     tags$div(class = "toc-container",
-             h3("Table of Contents"),
+             h4("Table of Contents"),
              tags$ul(class = "toc-list",
                      tags$li(tags$a(href = "#boxplots_rrbs", "Boxplots of the predictions for each tumoral fraction")),
                      tags$li(tags$a(href = "#nrmse_rrbs", "Performance (NRMSE)")),
@@ -426,6 +434,10 @@ rrbsTabUI <- function(id) {
       )
     ), 
     
+    # Go to top of the page
+    lapply(1:100, function(x) br()),
+    spsGoTop("default"),
+    
     # footer 
     footer_citation()  
     
@@ -440,6 +452,7 @@ rrbsTabUI <- function(id) {
 # Optionally define server logic for this module (if needed)
 rrbsTabServer <- function(id) {
 moduleServer(id, function(input, output, session) {
+
 
   ## 1. Filter dataset
   bench <- subset(tot_bench, tot_bench$seq_method == "rrbs")
