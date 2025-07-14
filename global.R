@@ -6,37 +6,48 @@
 
 #### 1. Load Required Packages ####
 
+# Shiny framework & UI
 library(shiny)
-# library(tidyverse)  # Avoided due to conflicts on CMB Shiny server
+library(shinythemes)
+library(bslib)
+library(sever)
+library(spsComps)
+library(DT)
+library(htmltools)
+library(quarto)
+
+# Plotting & Visualization
 library(ggplot2)
+library(ggpubr)
+library(patchwork)
+library(plotly)
+library(scales)
+library(philentropy)
+library(pROC)
+
+# Data Manipulation & Tidyverse Components
 library(dplyr)
 library(tidyr)
 library(readr)
 library(stringr)
 library(forcats)
-library(ggpubr)
-library(rstatix)
-library(patchwork)
-library(bslib)
 library(reshape2)
-library(plotly)
-library(scales)
-library(philentropy)
-library(LaplacesDemon)
-library(Metrics)
+library(purrr)
 library(furrr)
 library(future)
-library(purrr)
-library(spsComps)
-library(pROC)
+
+# Modeling & Statistics
+library(rstatix)
+library(LaplacesDemon)
+library(Metrics)
+
+# Utilities
 library(conflicted)
-library(htmltools)
-library(quarto)
-library(sever)
-library(shinythemes)
-library(DT)
-# Set future plan if needed
+
+# Optionally set parallel processing
 # plan(multicore)
+
+library(waiter)
 
 
 #### 2. Define Custom Plot Theme and Aesthetics ####
