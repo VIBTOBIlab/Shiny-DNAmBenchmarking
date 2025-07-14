@@ -36,6 +36,29 @@ Alternatively (for manual setup of [rshiny-4.3.1.yaml](./resources/rshiny-4.3.1.
 conda env create -f ./resources/rshiny-4.3.1.yaml
 conda activate rshiny-4.3.1
 ```
+
+### 3. (One-time step) Install required version of `shinycssloaders` from GitHub
+This app uses the `withSpinner()` function from the `shinycssloaders` package with the `delay` parameter — which controls how long to wait before showing a spinner.  
+**However, the CRAN version of the package may not include this argument**, depending on your R version or environment.
+
+To fix this, you must manually install the GitHub version of the package from [daattali/shinycssloaders](https://github.com/daattali/shinycssloaders), which includes full support for the `delay` parameter.
+
+> ℹ️ **Why this is necessary:**  
+> Even though `shinycssloaders` version 1.1.0 is available on CRAN, some environments (especially R 4.3.1 or byte-compiled deployments) may not reflect the latest GitHub changes.  
+> The `delay` argument is only available in development builds like `v1.1.0.9005`.
+
+#### Installation steps:
+```bash
+# Activate your Conda environment
+conda activate rshiny-4.3.1
+# Start R
+R 
+> remotes::install_github("daattali/shinycssloaders", ref = "v1.1.0.9005")
+```
+This step only needs to be done once — unless you reinstall or reset your R environment.
+
+
+
 <br>
 
 ## Option 1: Run via Command Line
