@@ -4,13 +4,12 @@ rrbsTabUI <- function(id) {
     "RRBS",
 
     fluidPage(
+
       h3("Benchmarking plots - RRBS", style = "font-weight: bold; color: #343a40;"),
       p("We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores."),
       p("Below, you can find the computed metrics and visualizations."),
       br(),
-      
-    ), 
-    
+
     # Table of Contents
     tags$div(class = "toc-container",
              h4("Table of Contents"),
@@ -70,7 +69,7 @@ rrbsTabUI <- function(id) {
                    ),
       
       mainPanel(width = 9,
-                plotlyOutput(ns("boxplot_TF"), height = "600px"),
+                withSpinner(plotlyOutput(ns("boxplot_TF"), height = "600px")),
                 br(),
                 downloadButton(ns("download_boxplot_TF_df"), "Download data"),
                 downloadButton(ns("download_rrbs_df"), "Download RRBS"),
@@ -116,7 +115,7 @@ rrbsTabUI <- function(id) {
                    )
       ),
       mainPanel(width = 9,
-                plotlyOutput(ns("nrmse_plot"), height = "600px"),
+                withSpinner(plotlyOutput(ns("nrmse_plot"), height = "600px")),
                 br(),
                 downloadButton(ns("download_nrmse_plot_df"), "Download data"),
                 br(), br(), br()
@@ -159,7 +158,7 @@ rrbsTabUI <- function(id) {
                    )
       ),
       mainPanel(width = 9,
-                plotOutput(ns("heatmap"), height = "600px"),
+                withSpinner(plotOutput(ns("heatmap"), height = "600px")),
                 br(),
                 downloadButton(ns("download_heatmap_df"), "Download data"),
                 downloadButton(ns("download_heatmap_svg"), "Download as SVG"),
@@ -207,7 +206,7 @@ rrbsTabUI <- function(id) {
                    
       ),
       mainPanel(width = 9,
-                plotOutput(ns("aucroc_complete_plot"), height = "800px"),
+                withSpinner(plotOutput(ns("aucroc_complete_plot"), height = "800px")),
                 br(),
                 downloadButton(ns("download_aucroc_complete_df"), "Download data"),
                 downloadButton(ns("download_aucroc_complete_svg"), "Download as SVG"),
@@ -218,7 +217,7 @@ rrbsTabUI <- function(id) {
     br(),
     
     # Second main panel for on specific AUC-ROC interactive plot
-    p("This interactive plot shows ROC curves and AUC values for a selected deconvolution tool across multiple low tumoral fractions (0.0001 to 0.05). Each curve represents a different fraction, and the AUC value is indicated at FPR = 0 for each. Hover over lines and points to view detailed sensitivity, specificity, and AUC metrics. Higher AUC values and curves closer to the top-left indicate better classification performance."
+    p("This interactive plot shows ROC curves and AUC values for a selected deconvolution tool across multiple low tumoral fractions (0.0001 to 0.5). Each curve represents a different fraction, and the AUC value is indicated at FPR = 0 for each. Hover over lines and points to view detailed sensitivity, specificity, and AUC metrics. Higher AUC values and curves closer to the top-left indicate better classification performance."
     ), 
     sidebarLayout(
       sidebarPanel(width = 3,
@@ -258,14 +257,16 @@ rrbsTabUI <- function(id) {
       mainPanel(width = 9,
                 fluidRow(
                   column(width = 8,
-                         plotlyOutput(ns("aucroc_plot"), height = "600px", width = "800px")),
-                  column(width = 1), 
+                         withSpinner(plotlyOutput(ns("aucroc_plot"), height = "500px", width = "100%"))
+                  ),
+                  column(width = 1),
                   column(width = 3,
-                         DT::dataTableOutput(ns("aucroc_table")))
-                ),
-                br(),
-                downloadButton(ns("download_aucroc_df"), "Download data"),
-                br(), br(), br()
+                         DT::dataTableOutput(ns("aucroc_table"))
+                         )
+                  ),
+                  br(),
+                  downloadButton(ns("download_aucroc_df"), "Download data"),
+                  br(), br(), br()
       )
     ),
     tags$hr(), br(), br(),
@@ -312,7 +313,7 @@ rrbsTabUI <- function(id) {
                    )
       ),
       mainPanel(width = 9,
-                plotlyOutput(ns("rmse_comparison"), height = "600px"),
+                withSpinner(plotlyOutput(ns("rmse_comparison"), height = "600px")),
                 br(),
                 downloadButton(ns("download_rmse_comparison_df"), "Download data"),
                 br(), br(), br()
@@ -363,7 +364,7 @@ rrbsTabUI <- function(id) {
                    )
       ),
       mainPanel(width = 9,
-                plotlyOutput(ns("rank"), height = "600px"),
+                withSpinner(plotlyOutput(ns("rank"), height = "600px")),
                 br(),
                 downloadButton(ns("download_rank_df"), "Download data"),
                 br(), br(), br()
@@ -371,18 +372,20 @@ rrbsTabUI <- function(id) {
     ) ,
     
     tags$hr(), br(), br(),
+
     
     # sidebarLayout(
     #   sidebarPanel(width = 3),
     #   mainPanel(width = 9,
-    #             plotOutput(ns("rank_static"), height = "900px"),
+    #             withSpinner(plotOutput(ns("rank_static"), height = "900px")),
+    #             br(),
     #             downloadButton(ns("download_rank_static_df"), "Download data"),
     #             downloadButton(ns("download_rank_static_svg"), "Download as SVG"),
     #             downloadButton(ns("download_rank_static_pdf"), "Download as PDF"),
     #             br(), br()
     #   )
     # ),
-    
+
 
     ############################################################################
     # LoD section
@@ -421,16 +424,15 @@ rrbsTabUI <- function(id) {
                      ns("lod_plabel_select"),
                      label = "P-value Label",
                      choices = c("p", "p.adj", "p.adj.signif"),
-                     selected = "padj.signif"
+                     selected = "p.adj.signif"
                    )
       ),
       mainPanel(width = 9,
-                plotOutput(ns("lod"), height = "600px"),
+                withSpinner(plotOutput(ns("lod"), height = "600px")),
                 br(),
                 downloadButton(ns("download_lod_df"), "Download data"),
                 downloadButton(ns("download_lod_svg"), "Download as SVG"),
                 downloadButton(ns("download_lod_pdf"), "Download as PDF"),
-                br(), br(), br()
       )
     ), 
     
@@ -440,10 +442,11 @@ rrbsTabUI <- function(id) {
     
     # footer 
     footer_citation()  
-    
     ##end
-  )
-}
+    
+    ) #Close fluidPage
+  ) #Close tabPanel 
+} #Close TabUI
 
 
 
@@ -452,7 +455,6 @@ rrbsTabUI <- function(id) {
 # Optionally define server logic for this module (if needed)
 rrbsTabServer <- function(id) {
 moduleServer(id, function(input, output, session) {
-
 
   ## 1. Filter dataset
   bench <- subset(tot_bench, tot_bench$seq_method == "rrbs")
@@ -989,6 +991,7 @@ moduleServer(id, function(input, output, session) {
   
   observe({
     current_choices <- sort(unique(bench$expected_tf))  # Get all available tools
+    current_choices <- current_choices[current_choices != 0]
     
     # Update the checkbox group based on select all/none toggle
     updateCheckboxGroupInput(

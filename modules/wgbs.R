@@ -9,7 +9,6 @@ wgbsTabUI <- function(id) {
       p("Below, you can find the computed metrics and visualizations."),
       br(),
 
-    ), 
 
     # Table of Contents
     tags$div(class = "toc-container",
@@ -75,7 +74,7 @@ wgbsTabUI <- function(id) {
       ),
       
       mainPanel(width = 9,
-                plotlyOutput(ns("boxplot_TF"), height = "600px"),
+                withSpinner(plotlyOutput(ns("boxplot_TF"), height = "600px")),
                 br(),
                 downloadButton(ns("download_boxplot_TF_df"), "Download data"),
                 downloadButton(ns("download_wgbs_df"), "Download WGBS"),
@@ -127,7 +126,7 @@ wgbsTabUI <- function(id) {
                    )
       ),
       mainPanel(width = 9,
-                plotlyOutput(ns("nrmse_plot"), height = "600px"),
+                withSpinner(plotlyOutput(ns("nrmse_plot"), height = "600px")),
                 br(),
                 downloadButton(ns("download_nrmse_plot_df"), "Download data"),
                 br(), br(), br()
@@ -177,7 +176,7 @@ wgbsTabUI <- function(id) {
                    )
       ),
       mainPanel(width = 9,
-                plotOutput(ns("heatmap"), height = "600px"),
+                withSpinner(plotOutput(ns("heatmap"), height = "600px")),
                 br(),
                 downloadButton(ns("download_heatmap_df"), "Download data"),
                 downloadButton(ns("download_heatmap_svg"), "Download as SVG"),
@@ -237,7 +236,7 @@ wgbsTabUI <- function(id) {
                    
       ),
       mainPanel(width = 9,
-                plotOutput(ns("aucroc_complete_plot"), height = "800px"),
+                withSpinner(plotOutput(ns("aucroc_complete_plot"), height = "800px")),
                 br(),
                 downloadButton(ns("download_aucroc_complete_df"), "Download data"),
                 downloadButton(ns("download_aucroc_complete_svg"), "Download as SVG"),
@@ -248,7 +247,7 @@ wgbsTabUI <- function(id) {
     br(),
     
     # Second main panel for on specific AUC-ROC interactive plot
-    p("This interactive plot shows ROC curves and AUC values for a selected deconvolution tool across multiple low tumoral fractions (0.0001 to 0.05). Each curve represents a different fraction, and the AUC value is indicated at FPR = 0 for each. Hover over lines and points to view detailed sensitivity, specificity, and AUC metrics. Higher AUC values and curves closer to the top-left indicate better classification performance."
+    p("This interactive plot shows ROC curves and AUC values for a selected deconvolution tool across multiple low tumoral fractions (0.0001 to 0.5). Each curve represents a different fraction, and the AUC value is indicated at FPR = 0 for each. Hover over lines and points to view detailed sensitivity, specificity, and AUC metrics. Higher AUC values and curves closer to the top-left indicate better classification performance."
     ), 
     sidebarLayout(
       sidebarPanel(width = 3,
@@ -291,18 +290,20 @@ wgbsTabUI <- function(id) {
                    ),
                    checkboxInput(ns("aucroc_exptfs_select_all"),label =tags$em("Select All/None"), value = TRUE),
       ),
-      mainPanel(width = 9,
-                fluidRow(
-                  column(width = 8,
-                         plotlyOutput(ns("aucroc_plot"), height = "600px", width = "800px")),
-                  column(width = 1), 
-                  column(width = 3,
-                         DT::dataTableOutput(ns("aucroc_table")))
+    mainPanel(width = 9,
+              fluidRow(
+                column(width = 8,
+                       withSpinner(plotlyOutput(ns("aucroc_plot"), height = "500px", width = "100%"))
                 ),
-                br(),
-                downloadButton(ns("download_aucroc_df"), "Download data"),
-                br(), br(), br()
-      )
+                column(width = 1),
+                column(width = 3,
+                       DT::dataTableOutput(ns("aucroc_table"))
+                )
+              ),
+              br(),
+              downloadButton(ns("download_aucroc_df"), "Download data"),
+              br(), br(), br()
+    )
     ),
     tags$hr(), br(), br(),
     
@@ -354,7 +355,7 @@ wgbsTabUI <- function(id) {
                    )
       ),
       mainPanel(width = 9,
-                plotlyOutput(ns("rmse_comparison"), height = "600px"),
+                withSpinner(plotlyOutput(ns("rmse_comparison"), height = "600px")),
                 br(),
                 downloadButton(ns("download_rmse_comparison_df"), "Download data"),
                 br(), br(), br()
@@ -410,7 +411,7 @@ wgbsTabUI <- function(id) {
                    )
       ),
       mainPanel(width = 9,
-                plotlyOutput(ns("rank"), height = "600px"),
+                withSpinner(plotlyOutput(ns("rank"), height = "600px")),
                 br(),
                 downloadButton(ns("download_rank_df"), "Download data"),
                 br(), br(), br()
@@ -476,16 +477,15 @@ wgbsTabUI <- function(id) {
                      ns("lod_plabel_select"),
                      label = "P-value Label",
                      choices = c("p", "p.adj", "p.adj.signif"),
-                     selected = "padj.signif"
+                     selected = "p.adj.signif"
                    )
       ),
       mainPanel(width = 9,
-                plotOutput(ns("lod"), height = "600px"),
+                withSpinner(plotOutput(ns("lod"), height = "600px")),
                 br(),
                 downloadButton(ns("download_lod_df"), "Download data"),
                 downloadButton(ns("download_lod_svg"), "Download as SVG"),
                 downloadButton(ns("download_lod_pdf"), "Download as PDF"),
-                br(), br(), br()
       )
     ), 
     
@@ -496,10 +496,13 @@ wgbsTabUI <- function(id) {
     
     # footer 
     footer_citation()
-    
     ##end
-  )
-}
+    
+    ) #Close fluidPage  
+    
+  ) #Close tabPanel 
+
+} #Close TabUI
 
 
 
