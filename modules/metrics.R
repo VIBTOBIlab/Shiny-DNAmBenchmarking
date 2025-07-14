@@ -4,24 +4,11 @@ source("modules/wgbs.R")
 
 metricsTabUI <- function(id) {
   ns <- NS(id)
-  tabPanel(
+  navbarMenu(
     "Plots",
-    fluidPage(
-      h3("Benchmarking plots", style = "font-weight: bold; color: #343a40;"),
-      p("We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores."),
-      p("Below, you can find the computed metrics and visualizations."),
-      br(),
-      tabsetPanel(
-      rrbsTabUI(ns("RRBS") ),
-      wgbsTabUI(ns("WGBS") )
-      
-      ),# Close tabsetPanel
-      
-      # Go to top of the page
-      lapply(1:100, function(x) br()),
-      spsGoTop("default")
-    )# Close fluidPage
-  ) # close TabPanel 
+    rrbsTabUI(ns("RRBS")),
+    wgbsTabUI(ns("WGBS"))
+  ) #Close navbarMenue
   
 } # Close metricsTabUI
 
