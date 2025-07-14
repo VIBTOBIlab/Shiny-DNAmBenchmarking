@@ -94,4 +94,4 @@ dependencies:
   - r-remotes             # Allows installing R packages from GitHub
 
 # Post-install step (inside R in this environment):
-# remotes::install_github("daattali/shinycssloaders", ref = "v1.1.0.9005")
+# remotes::install_github("daattali/shinycssloaders")
