@@ -53,10 +53,19 @@ To fix this, you must manually install the GitHub version of the package from [d
 conda activate rshiny-4.3.1
 # Start R
 R 
-> remotes::install_github("daattali/shinycssloaders", ref = "v1.1.0.9005")
+> remotes::install_github("daattali/shinycssloaders")
 ```
 This step only needs to be done once — unless you reinstall or reset your R environment.
 
+
+#### Check installation went right:
+```bash
+# Activate your Conda environment
+conda activate rshiny-4.3.1
+# Start R
+R 
+> packageVersion("shinycssloaders")
+```
 
 
 <br>
