@@ -7,47 +7,79 @@
 #### 1. Load Required Packages ####
 
 # Shiny framework & UI
-library(shiny)
-library(shinythemes)
-library(bslib)
-library(sever)
-library(spsComps)
-library(DT)
-library(htmltools)
-library(quarto)
+library(shiny)           # Web application framework for R
+library(shinythemes)     # Prebuilt themes for Shiny apps
+library(bslib)           # Bootstrap themes for Shiny/Quarto
+library(shinycssloaders) # Custom loading spinners
+library(sever)           # Custom disconnect screen
+library(spsComps)        # Extra UI components from systemPipeShiny
+library(DT)              # Interactive datatables
 
-# Plotting & Visualization
-library(ggplot2)
-library(ggpubr)
-library(patchwork)
-library(plotly)
-library(scales)
-library(philentropy)
-library(pROC)
+# HTML and web rendering
+library(htmltools)       # HTML generation tools
+library(quarto)          # Render Quarto documents
+library(fontawesome)     # Font Awesome icons (if used)
 
-# Data Manipulation & Tidyverse Components
-library(dplyr)
-library(tidyr)
-library(readr)
-library(stringr)
-library(forcats)
-library(reshape2)
-library(purrr)
-library(furrr)
-library(future)
+# Data visualization
+library(ggplot2)         # Core plotting system
+library(ggpubr)          # Publication-ready plots
+library(plotly)          # Interactive plots
+library(patchwork)       # Combine ggplot2 plots
+library(scales)          # Scaling functions
+library(philentropy)     # Distance/similarity metrics
+library(pROC)            # ROC curve analysis
 
-# Modeling & Statistics
-library(rstatix)
-library(LaplacesDemon)
-library(Metrics)
+# Data handling & transformation
+library(dplyr)           # Data manipulation
+library(purrr)           # Functional programming tools
+library(readr)           # Read text files
+library(tidyr)           # Reshape tidy data
+library(stringr)         # String manipulation
+library(forcats)         # Factor handling
+library(tibble)          # Modern data frames
+library(data.table)      # High-performance tables
+library(reshape2)        # Legacy reshaping
+library(jsonlite)        # JSON input/output
+library(hms)             # Time-of-day handling
+library(Metrics)         # Model evaluation metrics
 
-# Utilities
-library(conflicted)
+# Modeling and statistics
+library(car)             # Applied regression support
+library(rstatix)         # Statistical test wrappers
+library(broom)           # Tidy model outputs
+library(LaplacesDemon)   # Bayesian inference and MCMC
 
-# Optionally set parallel processing
-# plan(multicore)
+# Reporting & document generation
+library(rmarkdown)       # Dynamic documents
+library(knitr)           # Knitting engine
+library(xtable)          # LaTeX/HTML tables
+library(evaluate)        # Code evaluation
+library(xfun)            # Miscellaneous utilities
 
-library(waiter)
+# Process and parallel support
+library(furrr)           # Parallel purrr
+library(future)          # Parallel backend
+library(parallelly)      # Helper for future
+library(processx)        # Run system processes
+library(ps)              # Process management
+library(later)           # Async scheduling
+library(httpuv)          # HTTP/WebSocket server
+
+# System utilities
+library(conflicted)      # Resolve masking conflicts
+library(rstudioapi)      # Interface with RStudio
+library(cachem)          # Cache management
+library(fastmap)         # Fast key-value store
+library(cli)             # Command line interface
+library(crayon)          # Colored terminal output
+library(glue)            # String interpolation
+library(lifecycle)       # Lifecycle tools
+library(magrittr)        # Pipe operator (%>%)
+library(rlang)           # Tidy evaluation
+library(assertthat)      # Lightweight assertions
+library(backports)       # Backward compatibility
+library(abind)           # Combine arrays
+library(lazyeval)        # Quoted expressions
 
 
 #### 2. Define Custom Plot Theme and Aesthetics ####
@@ -102,7 +134,6 @@ custom_shape_manual <- scale_shape_manual(
 
 footer_citation <- function() {
   tagList(
-    br(), br(), br(),
     tags$hr(),
     div(
       style = "text-align: center; margin-top: 20px;",
