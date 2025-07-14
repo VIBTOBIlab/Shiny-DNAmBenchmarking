@@ -89,3 +89,9 @@ dependencies:
   - r-backports           # Compatibility with older R versions
   - r-abind               # Combine multidimensional arrays
   - r-lazyeval            # Lazy (quoted) evaluation
+
+  # GitHub package support (needed for shinycssloaders dev version)
+  - r-remotes             # Allows installing R packages from GitHub
+
+# Post-install step (inside R in this environment):
+# remotes::install_github("daattali/shinycssloaders", ref = "v1.1.0.9005")
