@@ -79,16 +79,14 @@ screen -S shiny
 ### 2. Launch the app inside the screen session:
 ```bash
 conda activate rshiny-4.3.1
-R --no-save -e "shiny::runApp(
-appDir = '/mnt/c/Users/Sofie/OneDrive - UGent/Documents/Projects/Shiny-DNAmBenchmarking', 
-host = '127.0.0.1', 
-port = 8888)"
+cd <path-to-Shiny-DNAmBenchmarking-folder>              # e.g. /kyukon/scratch/gent/vo/002/gvo00224/TOBI/Projects/Shiny-DNAmBenchmarking/
+R --no-save -e "shiny::runApp(appDir = '.', host = '127.0.0.1', port = 8888)"
 ```
 * To detach from the screen: Press Ctrl+A then D.
 * To resume later: screen -r shiny
 
 **Parameters to configure:**
-* *appDir*: Absolute path to the folder containing the Shiny app (app.R, server.R, ui.R, etc.).
+* *appDir*: Set to '.' (the current directory), assuming you cd into the app folder beforehand. Alternatively, you can use the absolute path of folder containing app.R .
 * *host*: Use '0.0.0.0' to allow external access, or a specific IP (e.g., '10.32.8.17').
 * *port*: Choose an available port (e.g., 8888, 2222, etc.).
   
