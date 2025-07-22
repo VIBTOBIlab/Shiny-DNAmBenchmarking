@@ -3,8 +3,26 @@
 # This file is sourced once at application startup.
 ################################################################################
 
+#### 1. Shiny Configuration and Environment Setup ####
 
-#### 1. Load Required Packages ####
+# Set the port and host for the Shiny app
+options("shiny.host" ='0.0.0.0')           # Specify host '10.32.8.17'
+options("shiny.port" = 8888)                  # Specify port 
+options(shiny.maxRequestSize = 50 * 1024^2) # Increase maximum upload size to 50MB
+
+# Set global spinner style (instead of repeating in every withSpinner call)
+options(
+  spinner.type = 8,             # Choose a type (1-8). You used type = 8, so you can change this as needed.
+  spinner.color = "#343a40",  # Matches your theme color
+  spinner.delay = "1000"       # Specify a delay (in milliseconds) before the spinner is displayed. 
+)
+
+# Package conflict resolution (specify preferred functions)
+conflicted::conflict_prefer("filter", "dplyr")
+conflicted::conflict_prefer("auc", "pROC")
+conflicted::conflict_prefer("layout", "plotly")
+
+#### 2. Load Required Packages ####
 
 # Shiny framework & UI
 library(shiny)           # Web application framework for R
@@ -64,6 +82,7 @@ library(processx)        # Run system processes
 library(ps)              # Process management
 library(later)           # Async scheduling
 library(httpuv)          # HTTP/WebSocket server
+library(callr)           # Creates new background R processes
 
 # System utilities
 library(conflicted)      # Resolve masking conflicts
@@ -81,8 +100,7 @@ library(backports)       # Backward compatibility
 library(abind)           # Combine arrays
 library(lazyeval)        # Quoted expressions
 
-
-#### 2. Define Custom Plot Theme and Aesthetics ####
+#### 3. Define Custom Plot Theme and Aesthetics ####
 
 # Global ggplot2 theme
 theme_benchmarking <- theme_classic() +
@@ -130,7 +148,7 @@ custom_shape_manual <- scale_shape_manual(
 )
 
 
-#### 3. Footer UI Component ####
+#### 4. Footer UI Component ####
 
 footer_citation <- function() {
   tagList(
@@ -160,41 +178,59 @@ footer_citation <- function() {
 }
 
 
-#### 4. Load and Preprocess Benchmarking Data ####
+#### 5. Load and Preprocess Benchmarking Data ####
 
-# Load dataset
-combined_data <- read.csv("results/final_benchmarking_dataset.csv")
+# Path to raw CSV and cache
+data_csv_path <- "results/final_benchmarking_dataset.csv"
+cache_rds_path <- "cache/tot_bench.rds"
 
-# Filter and clean data
-tot_bench <- subset(
-  combined_data,
-  expected_tf %in% c(0, 0.0001, 0.001, 0.003, 0.007, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5) &
-    deconv_tool != "Methyl_Resolver" &
-    mixture_type == "in_silico"
-)
+# Create cache directory if it doesn't exist
+if (!dir.exists("cache")) dir.create("cache")
 
-# Rename tumor types
-tot_bench$tumor_type[tot_bench$tumor_type == "neuroblastoma"] <- "NBL"
-
-# Convert selected columns to factors
-tot_bench <- tot_bench %>%
-  mutate(across(
-    c(deconv_tool, dmr_tool, seq_depth, tumor_type, collapse_approach,
-      mixture_type, seq_method),
-    as.factor
-  ))
-
-# Rename selected deconvolution tool levels
-tool_map <- c(
-  "EpiDISH_CP_eq" = "Houseman's CP/QP w/equality",
-  "EpiDISH_CP_ineq" = "Houseman's CP/QP w/inequality",
-  "EpiDISH_RPC" = "EpiDISH RPC",
-  "meth_atlas" = "MethAtlas",
-  "Methyl_Resolver" = "MethylResolver"
-)
-
-levels(tot_bench$deconv_tool) <- ifelse(
-  levels(tot_bench$deconv_tool) %in% names(tool_map),
-  tool_map[levels(tot_bench$deconv_tool)],
-  levels(tot_bench$deconv_tool)
-)
+# Load from cache if available, otherwise read and preprocess
+if (file.exists(cache_rds_path)) {
+  tot_bench <- readRDS(cache_rds_path)
+} else {
+  message("Reading and preprocessing raw benchmarking dataset...")
+  
+  # Load dataset
+  combined_data <- read.csv(data_csv_path)
+  
+  # Filter and clean data
+  tot_bench <- subset(
+    combined_data,
+    expected_tf %in% c(0, 0.0001, 0.001, 0.003, 0.007, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5) &
+      deconv_tool != "Methyl_Resolver" &
+      mixture_type == "in_silico"
+  )
+  
+  # Rename tumor types
+  tot_bench$tumor_type[tot_bench$tumor_type == "neuroblastoma"] <- "NBL"
+  
+  # Convert selected columns to factors
+  tot_bench <- tot_bench %>%
+    mutate(across(
+      c(deconv_tool, dmr_tool, seq_depth, tumor_type, collapse_approach,
+        mixture_type, seq_method),
+      as.factor
+    ))
+  
+  # Rename selected deconvolution tool levels
+  tool_map <- c(
+    "EpiDISH_CP_eq" = "Houseman's CP/QP w/equality",
+    "EpiDISH_CP_ineq" = "Houseman's CP/QP w/inequality",
+    "EpiDISH_RPC" = "EpiDISH RPC",
+    "meth_atlas" = "MethAtlas",
+    "Methyl_Resolver" = "MethylResolver"
+  )
+  
+  levels(tot_bench$deconv_tool) <- ifelse(
+    levels(tot_bench$deconv_tool) %in% names(tool_map),
+    tool_map[levels(tot_bench$deconv_tool)],
+    levels(tot_bench$deconv_tool)
+  )
+  
+  # Save processed data for future runs
+  saveRDS(tot_bench, cache_rds_path)
+  
+}
