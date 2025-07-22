@@ -150,11 +150,11 @@ rrbsTabUI <- function(id) {
                      selected = NULL
                    ),
                    checkboxInput(ns("heatmap_deconvtools_select_all"),label =tags$em("Select All/None"), value = TRUE),
-                   selectInput(
+                   radioButtons(
                      ns("heatmap_dmrtool_select"),
                      label = "DMR Tool",
-                     choices = NULL, 
-                     selected = NULL
+                     choices = c("DMRfinder", "limma", "wgbstools"),
+                     selected = "DMRfinder"
                    )
       ),
       mainPanel(width = 9,
@@ -197,11 +197,11 @@ rrbsTabUI <- function(id) {
                      selected = NULL
                    ),
                    checkboxInput(ns("aucroc_complete_deconvtools_select_all"),label =tags$em("Select All/None"), value = TRUE),
-                   selectInput(
+                   radioButtons(
                      ns("aucroc_complete_dmrtool_select"),
                      label = "DMR Tool",
-                     choices = NULL,
-                     selected = NULL
+                     choices = c("DMRfinder", "limma", "wgbstools"),
+                     selected = "DMRfinder"
                    )
                    
       ),
@@ -240,11 +240,11 @@ rrbsTabUI <- function(id) {
                      choices = NULL,
                      selected = NULL
                    ),
-                   selectInput(
+                   radioButtons(
                      ns("aucroc_dmrtool_select"),
                      label = "DMR Tool",
-                     choices = NULL,
-                     selected = NULL
+                     choices = c("DMRfinder", "limma", "wgbstools"),
+                     selected = "DMRfinder"
                    ),
                    checkboxGroupInput(
                      ns("aucroc_exptfs_select"),
@@ -414,11 +414,11 @@ rrbsTabUI <- function(id) {
                      choices = NULL,  
                      selected = NULL
                    ),
-                   selectInput(
+                   radioButtons(
                      ns("lod_dmrtool_select"),
                      label = "DMR Tool",
-                     choices = NULL, 
-                     selected = NULL
+                     choices = c("DMRfinder", "limma", "wgbstools"),
+                     selected = "DMRfinder"
                    ),
                    selectInput(
                      ns("lod_plabel_select"),
@@ -695,9 +695,9 @@ moduleServer(id, function(input, output, session) {
   # updateCheckboxGroupInput(session, "heatmap_decovtools_select", 
   #                          choices = sort(unique(bench$deconv_tool)), 
   #                          selected = sort(unique(bench$deconv_tool)))    
-  updateSelectInput(session, "heatmap_dmrtool_select", 
-                    choices = sort(unique(bench$dmr_tool)), 
-                    selected = sort(unique(bench$dmr_tool))[1])    
+  # updateSelectInput(session, "heatmap_dmrtool_select", 
+  #                   choices = sort(unique(bench$dmr_tool)), 
+  #                   selected = sort(unique(bench$dmr_tool))[1])    
   
   observe({
     current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
@@ -835,13 +835,9 @@ moduleServer(id, function(input, output, session) {
   # updateCheckboxGroupInput(session, "aucroc_complete_deconvtools_select", 
   #                          choices = sort(unique(bench$deconv_tool)), 
   #                          selected = sort(unique(bench$deconv_tool)))
-  updateSelectInput(session, "aucroc_complete_dmrtool_select",
-                    choices = sort(unique(bench$dmr_tool)),
-                    selected = sort(unique(bench$dmr_tool))[1])
-  
-  # updateRadioButtons(session, "aucroc_complete_dmrtool_select",
-  #                    choices = sort(unique(bench$dmr_tool)),
-  #                    selected = sort(unique(bench$dmr_tool))[1])
+  # updateSelectInput(session, "aucroc_complete_dmrtool_select",
+  #                   choices = sort(unique(bench$dmr_tool)),
+  #                   selected = sort(unique(bench$dmr_tool))[1])
   
   observe({
     current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
@@ -908,7 +904,6 @@ moduleServer(id, function(input, output, session) {
   
   # Function to generate AUC-ROC plot with facet_wrap
   create_aucroc_complete_plot <- function(aucroc_complete_data) {
-    # print(aucroc_complete_data)
     aucroc_complete_data$deconv_tool <- gsub("_", " ", aucroc_complete_data$deconv_tool)
     
     ggplot(aucroc_complete_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
@@ -985,9 +980,9 @@ moduleServer(id, function(input, output, session) {
                     choices = sort(unique(bench$deconv_tool)), 
                     selected = sort(unique(bench$deconv_tool))[1])
   
-  updateSelectInput(session, "aucroc_dmrtool_select", 
-                    choices = sort(unique(bench$dmr_tool)), 
-                    selected = sort(unique(bench$dmr_tool))[1])
+  # updateSelectInput(session, "aucroc_dmrtool_select", 
+  #                   choices = sort(unique(bench$dmr_tool)), 
+  #                   selected = sort(unique(bench$dmr_tool))[1])
   
   observe({
     current_choices <- sort(unique(bench$expected_tf))  # Get all available tools
@@ -1727,9 +1722,9 @@ moduleServer(id, function(input, output, session) {
   updateSelectInput(session, "lod_deconvtool_select",
                     choices = sort(unique(bench$deconv_tool)),
                     selected = sort(unique(bench$deconv_tool))[1])    
-  updateSelectInput(session, "lod_dmrtool_select", 
-                    choices = sort(unique(bench$dmr_tool)), 
-                    selected = sort(unique(bench$dmr_tool))[1])  
+  # updateSelectInput(session, "lod_dmrtool_select", 
+  #                   choices = sort(unique(bench$dmr_tool)), 
+  #                   selected = sort(unique(bench$dmr_tool))[1])  
   
   updateSelectInput(session, "lod_plabel_select", 
                     choices = c("p", "p.adj", "p.adj.stars"),

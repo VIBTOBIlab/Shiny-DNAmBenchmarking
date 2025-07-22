@@ -168,11 +168,11 @@ wgbsTabUI <- function(id) {
                      selected = NULL
                    ),
                    checkboxInput(ns("heatmap_deconvtools_select_all"),label =tags$em("Select All/None"), value = TRUE),
-                   selectInput(
+                   radioButtons(
                      ns("heatmap_dmrtool_select"),
                      label = "DMR Tool",
-                     choices = NULL, 
-                     selected = NULL
+                     choices = c("DMRfinder", "limma", "wgbstools"),
+                     selected = "DMRfinder"
                    )
       ),
       mainPanel(width = 9,
@@ -223,17 +223,12 @@ wgbsTabUI <- function(id) {
                      selected = NULL
                    ),
                    checkboxInput(ns("aucroc_complete_deconvtools_select_all"),label =tags$em("Select All/None"), value = TRUE),
-                   selectInput(
+                   radioButtons(
                      ns("aucroc_complete_dmrtool_select"),
                      label = "DMR Tool",
-                     choices = NULL,
-                     selected = NULL
+                     choices = c("DMRfinder", "limma", "wgbstools"),
+                     selected = "DMRfinder"
                    )
-                   # radioButtons("aucroc_complete_dmrtool_select", 
-                   #              label = "DMR Tool", 
-                   #              choices = NULL,
-                   #              selected = NULL)
-                   
       ),
       mainPanel(width = 9,
                 withSpinner(plotOutput(ns("aucroc_complete_plot"), height = "800px")),
@@ -269,18 +264,17 @@ wgbsTabUI <- function(id) {
                      choices = NULL,
                      selected = NULL
                    ),   
-                   
                    selectInput(
                      ns("aucroc_deconvtool_select"),
                      label = "Deconvolution Tool",
                      choices = NULL,
                      selected = NULL
                    ),
-                   selectInput(
+                   radioButtons(
                      ns("aucroc_dmrtool_select"),
                      label = "DMR Tool",
-                     choices = NULL,
-                     selected = NULL
+                     choices = c("DMRfinder", "limma", "wgbstools"),
+                     selected = "DMRfinder"
                    ),
                    checkboxGroupInput(
                      ns("aucroc_exptfs_select"),
@@ -467,11 +461,11 @@ wgbsTabUI <- function(id) {
                      choices = NULL,  
                      selected = NULL
                    ),
-                   selectInput(
+                   radioButtons(
                      ns("lod_dmrtool_select"),
                      label = "DMR Tool",
-                     choices = NULL, 
-                     selected = NULL
+                     choices = c("DMRfinder", "limma", "wgbstools"),
+                     selected = "DMRfinder"
                    ),
                    selectInput(
                      ns("lod_plabel_select"),
@@ -605,8 +599,6 @@ wgbsTabServer <- function(id) {
         arrange(Mean)
       # Tools with the smallest mean difference (more accurate) are placed first.
       # Tools with the largest mean difference (less accurate) are placed last.
-      
-      #print(median_diff)
       
       # Reorder the tools globally
       data <- data %>%
@@ -763,9 +755,9 @@ wgbsTabServer <- function(id) {
     # updateCheckboxGroupInput(session, "heatmap_decovtools_select", 
     #                          choices = sort(unique(bench$deconv_tool)), 
     #                          selected = sort(unique(bench$deconv_tool)))    
-    updateSelectInput(session, "heatmap_dmrtool_select", 
-                      choices = sort(unique(bench$dmr_tool)), 
-                      selected = sort(unique(bench$dmr_tool))[1])    
+    # updateSelectInput(session, "heatmap_dmrtool_select",
+    #                   choices = sort(unique(bench$dmr_tool)),
+    #                   selected = sort(unique(bench$dmr_tool))[1])
     
     observe({
       current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
@@ -886,7 +878,6 @@ wgbsTabServer <- function(id) {
     output$download_heatmap_df <- downloadHandler(
       filename = function() paste0("heatmap_tools_",input$heatmap_tumortype_select, "_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_", Sys.Date(), ".csv", sep = ""),
       content = function(file) {
-        print(head(create_heatmap_data()))
         plot_data <- create_heatmap_data()
         write.csv(plot_data, file, row.names = FALSE)
         
@@ -910,13 +901,9 @@ wgbsTabServer <- function(id) {
     # updateCheckboxGroupInput(session, "aucroc_complete_deconvtools_select", 
     #                          choices = sort(unique(bench$deconv_tool)), 
     #                          selected = sort(unique(bench$deconv_tool)))
-    updateSelectInput(session, "aucroc_complete_dmrtool_select",
-                      choices = sort(unique(bench$dmr_tool)),
-                      selected = sort(unique(bench$dmr_tool))[1])
-    
-    # updateRadioButtons(session, "aucroc_complete_dmrtool_select",
-    #                    choices = sort(unique(bench$dmr_tool)),
-    #                    selected = sort(unique(bench$dmr_tool))[1])
+    # updateSelectInput(session, "aucroc_complete_dmrtool_select",
+    #                   choices = sort(unique(bench$dmr_tool)),
+    #                   selected = sort(unique(bench$dmr_tool))[1])
     
     observe({
       current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
@@ -985,7 +972,6 @@ wgbsTabServer <- function(id) {
     
     # Function to generate AUC-ROC plot with facet_wrap
     create_aucroc_complete_plot <- function(aucroc_complete_data) {
-      # print(aucroc_complete_data)
       aucroc_complete_data$deconv_tool <- gsub("_", " ", aucroc_complete_data$deconv_tool)
       
       ggplot(aucroc_complete_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
@@ -1066,9 +1052,9 @@ wgbsTabServer <- function(id) {
                       choices = sort(unique(bench$deconv_tool)), 
                       selected = sort(unique(bench$deconv_tool))[1])
     
-    updateSelectInput(session, "aucroc_dmrtool_select", 
-                      choices = sort(unique(bench$dmr_tool)), 
-                      selected = sort(unique(bench$dmr_tool))[1])
+    # updateSelectInput(session, "aucroc_dmrtool_select", 
+    #                   choices = sort(unique(bench$dmr_tool)), 
+    #                   selected = sort(unique(bench$dmr_tool))[1])
     
     observe({
       current_choices <- sort(unique(bench$expected_tf))  # Get all available tools
@@ -1826,9 +1812,9 @@ wgbsTabServer <- function(id) {
     updateSelectInput(session, "lod_deconvtool_select",
                       choices = sort(unique(bench$deconv_tool)),
                       selected = sort(unique(bench$deconv_tool))[1])    
-    updateSelectInput(session, "lod_dmrtool_select", 
-                      choices = sort(unique(bench$dmr_tool)), 
-                      selected = sort(unique(bench$dmr_tool))[1])  
+    # updateSelectInput(session, "lod_dmrtool_select", 
+    #                   choices = sort(unique(bench$dmr_tool)), 
+    #                   selected = sort(unique(bench$dmr_tool))[1])  
     
     updateSelectInput(session, "lod_plabel_select", 
                       choices = c("p", "p.adj", "p.adj.stars"),
