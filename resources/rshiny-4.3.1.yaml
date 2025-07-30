@@ -12,12 +12,15 @@ dependencies:
   - r-shinyace            # Code editor (Ace) integration in Shiny
   - r-sever               # Custom disconnect screen for Shiny (optional)
   - r-spscomps            # UI components from systemPipeShiny (optional)
+  - r-shinywidgets         # Enhanced UI widgets for Shiny
+  - r-shinytoastr          # Toast-style notification popups in Shiny
 
   # HTML and web rendering
   - r-htmltools           # HTML generation tools
   - r-htmlwidgets         # JavaScript widgets for R
   - r-fontawesome         # Font Awesome icons
   - r-systemfonts         # Font discovery and management
+  - r-crosstalk            # Shared interactivity between widgets
 
   # Data visualization
   - r-ggplot2             # Core grammar of graphics plotting
@@ -31,6 +34,8 @@ dependencies:
   - r-labeling            # Smart labels for plots
   - r-ragg                # High-quality raster graphics device
   - r-textshaping         # Text shaping engine for complex scripts
+  - r-ggsignif             # Significance bars and brackets for ggplot2
+  - r-viridislite          # Colorblind-friendly color scales
 
   # Data handling & transformation
   - r-dplyr               # Data manipulation
@@ -43,9 +48,9 @@ dependencies:
   - r-tibble              # Modern data frames
   - r-data.table          # High-performance data tables
   - r-reshape2            # Older reshaping package
+  - r-plyr                 # Split-apply-combine data operations (used by reshape2)
   - r-jsonlite            # JSON I/O
   - r-hms                 # Time-of-day support
-  - r-cardata             # Datasets for regression examples (optional)
   - r-metrics             # Model evaluation metrics
   - r-dt                  # Interactive datatables for Shiny
   - r-philentropy         # Distance/similarity metrics (ML/stats, optional)
@@ -71,6 +76,7 @@ dependencies:
   - r-parallelly          # Helper for parallel execution
   - r-processx            # Run system processes
   - r-ps                  # Process management
+  - r-callr                # Launch external R processes (used by pkg dev tools)
   - r-later               # Event loop / async tasks
   - r-httpuv              # HTTP/WebSocket server used by Shiny
 
@@ -89,9 +95,12 @@ dependencies:
   - r-backports           # Compatibility with older R versions
   - r-abind               # Combine multidimensional arrays
   - r-lazyeval            # Lazy (quoted) evaluation
+  - r-fs                   # Cross-platform file system operations
 
-  # GitHub package support (needed for shinycssloaders dev version)
-  - r-remotes             # Allows installing R packages from GitHub
+  # GitHub/package dev tools
+  - r-remotes              # Install packages from GitHub or other remotes
+  - r-devtools             # Development tools for building/testing R packages
+  - r-pkgload              # Load packages without installing (dev mode)
 
 # Post-install step (inside R in this environment):
 # remotes::install_github("daattali/shinycssloaders")
