@@ -14,50 +14,53 @@ source("modules/contact.R")
 # Load global settings and helper functions
 source("global.R")
 
-# Resource path and CSS
-includeCSS("www/styles.css")
+
+
 
 #### 2. UI Definition ####
-
-ui <- navbarPage(
-    id = "mainTabset",
-    
-    # App title
-    title = "DecoNFlow Benchmarking",
-    
-    # Theme (from shinythemes)
-    theme = shinythemes::shinytheme("paper"),
-    # Valid themes are: cerulean, cosmo, cyborg, darkly, flatly, journal, lumen, paper, readable, 
-    # sandstone, simplex, slate, spacelab, superhero, united, yeti.
-    
-    # Mobile responsiveness
-    collapsible = TRUE,
-    fluid = TRUE,  
-    
-    # Custom CSS styling
-    includeCSS("www/styles.css"),
+ui <- bslib::page_navbar(
+  id = "mainTabset",
   
-    # Tabs (UI Modules)
-    homeTabUI("home"),
-    metricsTabUI("plots"),
-    informationTabUI("information"),
-    contactTabUI("contact")
+  # App title
+  title = "DecoNFlow Benchmarking",
+
+  # Apply updated theme
+  theme = theme,
+  
+  header = tagList(
+    includeCSS("www/styles.css")
+  ),
+  
+  # sticky navbar
+  position = c("fixed-top"),
+
+  # Mobile responsiveness
+  collapsible = TRUE,
+  fluid = TRUE,
+  
+  # Tabs (UI Modules)
+  homeTabUI("home"),
+  metricsTabUI("plots"),
+  informationTabUI("information"),
+  contactTabUI("contact")
 )
 
 
 #### 3. Server Logic ####
 
 server <- function(input, output, session) {
-
+  
   # Activate server logic for each module
   homeTabServer("home")
   metricsTabServer("plots")
   informationTabServer("information")
   contactTabServer("contact")
   
+  print(sessionInfo())
 }
 
 #### 4. Run the Application ####
 
+#run_with_themer
 shinyApp(ui = ui, server = server)
 
