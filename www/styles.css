@@ -1,80 +1,69 @@
 /* =======================================================================
-   Global Styles
-   -----------------------------------------------------------------------
-   Applies to the entire page. Enables smooth scrolling behavior when 
-   clicking anchor links or using navigation that targets in-page IDs.
-======================================================================= */
-html {
-  scroll-behavior: smooth;
+    General Additonal Styling
+============================================================================ */
+
+/* General padding to prevent navbar overlap */
+body {
+  padding-top: 70px;
 }
 
-
-/* =======================================================================
-   Navigation Bar Styling
-   -----------------------------------------------------------------------
-   Customizes the top navigation bar's appearance:
-   - Background color and border
-   - Link colors (default and on hover)
-   - Font size for nav links
-   - Sticky behavior when scrolling
-======================================================================= */
-.navbar-default {
-  background-color: #242b30;   /* Dark gray-blue background */
-  border-color: #2c3e50;       /* Slightly lighter border */
-}
-
-.navbar-default .navbar-brand,
-.navbar-default .navbar-nav > li > a {
-  color: #ecf0f1;              /* Light gray text */
-}
-
-.navbar-default .navbar-brand:hover,
-.navbar-default .navbar-nav > li > a:hover {
-  color: #ffffff;              /* White text on hover */
-}
-
-.navbar .navbar-nav > li > a {
-  font-size: 14px;             /* Slightly larger font for readability */
-}
-
-
-.navbar {
-  position: sticky;           /* Sticky Navbar */
-  top: 0;
-  z-index: 1000;
-}
-
-
-/* =======================================================================
-   Tab Panel Styling
-   -----------------------------------------------------------------------
-   Adjusts the layout and typography of tabbed content areas:
-   - Adds padding around content for spacing
-   - Increases font size and line height for readability
-   - Adds top margin to each tab pane to separate from nav
-======================================================================= */
+/* Add margin to tab content to ensure first heading is visible */
 .tab-content {
-  padding: 40px;               /* Space inside the tab panel */
-  font-size: 16px;             /* Larger text */
-  line-height: 1.6;            /* More readable line spacing */
-}
-
-.tab-pane {
-  margin-top: 10px;            /* Space above each tab content area */
+  margin-top: 50px;
 }
 
 
 /* =======================================================================
-   Table of Contents Styling (Placeholder)
-   -----------------------------------------------------------------------
-   You can add custom styles here if your UI includes a table of contents
-   or anchor-based navigation panel.
-======================================================================= */
-/* Example:
-#toc {
-  position: fixed;
-  top: 100px;
-  right: 20px;
-  font-size: 14px;
+   Navbar Panel Styling
+============================================================================ */
+/* Add padding to right side of the navbar title */
+.navbar .navbar-brand {
+  padding-right: 2rem; /* Adjust as needed (e.g., 3rem for more spacing) */
 }
-*/
+
+
+/* Add extra shadow to the fixed-top navbar */
+nav.navbar {
+  border-bottom: 2px solid #1C2C48 !important; /* dark underline instead of shadow */
+  box-shadow: none !important;               /* remove shadow if present */
+  z-index: 1030;
+}
+
+
+/* =======================================================================
+   Go Top button Styling
+============================================================================ */
+
+
+/* Go Top button: white background, dark blue icon */
+#default.sps-gotop {
+  background-color: #FFFFFF !important;
+  border-radius: 50% !important;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  padding: 0;
+}
+
+/* Icon: default dark blue */
+#default.sps-gotop svg {
+  width: 24px;
+  height: 24px;
+}
+
+#default.sps-gotop svg path {
+  fill: #1C2C48 !important;
+}
+
+/* Hover: dark blue background, white icon */
+#default.sps-gotop:hover {
+  background-color: #1C2C48 !important;
+}
+
+#default.sps-gotop:hover svg path {
+  fill: #FFFFFF !important;
+}
