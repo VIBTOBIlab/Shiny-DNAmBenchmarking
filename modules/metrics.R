@@ -1,3 +1,8 @@
+# ==============================================================================
+# metrics.R – UI and Server logic for Plot tab
+# This module is part of the DecoNFlow Shiny app
+# ==============================================================================
+
 # Source modules
 source("modules/rrbs.R")
 source("modules/wgbs.R")
@@ -21,29 +26,15 @@ metricsTabServer <- function(id) {
     # Code moved to global.R
     
     ## 2. Functions
-    # RMSE
-    rmse <- function(actual, predicted) {
-      round(sqrt(mean((actual - predicted)^2)),4)
-    }
-    # Spearman's rank correlation coefficient (SCC)
-    scc <- function(actual, predicted) {
-      cor(actual, predicted, method = "spearman")
-    }
-    
-    roc.obj <- function(true_labels, predicted_scores) {
-      true_labels[true_labels>0] <- 1
-      roc_obj <- roc(true_labels, predicted_scores)
-      return(roc_obj)
-    }
+    # Code moved to global.R
     
     # Extra modules
-    rrbsTabServer("RRBS")  
+    rrbsTabServer("RRBS")
     wgbsTabServer("WGBS")
       
        
   }) # Close moduleServer
 } # Close metricsTabServer    
-    
     
     
     

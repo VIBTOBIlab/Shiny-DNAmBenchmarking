@@ -1,11 +1,29 @@
+# ==============================================================================
+# rrbs.R – UI and Server logic for RRBS benchmarking tab
+# This module is part of the DecoNFlow Shiny app
+# ==============================================================================
+
+# Required packages:
+# shiny             – for UI/server functions (NS, moduleServer, reactive, renderPlot, etc.)
+# ggplot2           – for static plotting (ggplot, geom_point, theme, etc.)
+# dplyr             – for data manipulation (filter, mutate, %>%, etc.)
+# pROC              – for ROC curve creation and AUC computation (roc(), auc())
+# Metrics           – for RMSE or other model evaluation metrics (if not defined globally)
+# DT                – for rendering interactive tables (datatable())
+# shinycssloaders   – for loading spinners (withSpinner())
+# plotly            – for interactive plots (if ggplotly() or plot_ly() used; optional)
+# shinythemes       – used globally for consistent UI styling
+# bslib             – used globally to support themes and responsive layout
+
+
 rrbsTabUI <- function(id) {
   ns <- NS(id)
   tabPanel(
     "RRBS",
 
-    fluidPage(
+    #fluidPage(
 
-      h3("Benchmarking plots - RRBS", style = "font-weight: bold; color: #343a40;"),
+      h3("Benchmarking plots - RRBS", style = "font-weight: bold;"),
       p("We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores."),
       p("Below, you can find the computed metrics and visualizations."),
       br(),
@@ -444,7 +462,7 @@ rrbsTabUI <- function(id) {
     footer_citation()  
     ##end
     
-    ) #Close fluidPage
+    #) #Close fluidPage
   ) #Close tabPanel 
 } #Close TabUI
 
@@ -473,22 +491,8 @@ moduleServer(id, function(input, output, session) {
     }
   )
   
-  ## 2. Functions
-  # RMSE
-  rmse <- function(actual, predicted) {
-    round(sqrt(mean((actual - predicted)^2)),4)
-  }
-  # Spearman's rank correlation coefficient (SCC)
-  scc <- function(actual, predicted) {
-    cor(actual, predicted, method = "spearman")
-  }
-  
-  roc.obj <- function(true_labels, predicted_scores) {
-    true_labels[true_labels>0] <- 1
-    roc_obj <- roc(true_labels, predicted_scores)
-    return(roc_obj)
-  }
-  
+  ## 2. Visualizations
+
   ############################################################################
   ## Boxplot predictions for each tumoral fraction
   # Dropdowns and checkboxes boxplot 
@@ -576,8 +580,10 @@ moduleServer(id, function(input, output, session) {
     req(nrow(data) > 0)
     plot <- create_boxplot_TF(data, input$boxplot_seqdepth_select, input$boxplot_approach_select, as.numeric(input$boxplot_exptf_select))
     ggplotly(plot) %>% 
-      layout(boxmode= "group") %>% 
-      config(toImageButtonOptions = list(format = "pdf",
+      layout(
+        boxmode = "group"
+        ) %>% 
+      config(toImageButtonOptions = list(format = "png",
                                          filename = paste0("boxplot_",input$boxplot_seqdepth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date())
       ))
   })

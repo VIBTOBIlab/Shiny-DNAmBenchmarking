@@ -8,7 +8,7 @@ contactTabUI <- function(id) {
       style = "text-align: center; margin-top: 20px;",
       
       # Contact Section
-      h3("Contact Us", style = "font-weight: bold; color: #343a40;"),
+      h3("Contact Us", style = "font-weight: bold;"),
       
       # Social media icons or email
       tags$div(
@@ -16,37 +16,37 @@ contactTabUI <- function(id) {
         tags$a(
           href = "https://github.com/VIBTOBIlab",
           HTML("<i class='fa fa-github'></i> GitHub"),
-          style = "text-decoration: none; color: #555;"
+          style = "text-decoration: none;"
         ),
         tags$a(
           href = "https://depreterlab.sites.vib.be/en#/",
           HTML("<i class='fa fa-link'></i> TOBI Website"),
-          style = "margin-left: 10px; text-decoration: none; color: #555;"
+          style = "margin-left: 10px; text-decoration: none;"
         ),
         tags$a(
           href = "mailto:sofvdvel.vandevelde@ugent.be",
           HTML("<i class='fa fa-envelope'></i> Email"),
-          style = "margin-left: 10px; text-decoration: none; color: #555;"
+          style = "margin-left: 10px; text-decoration: none;"
         )
       ),
       
       br(),
       # Contributors Section
-      h3("Contributors", style = "font-weight: bold; color: #343a40;"),
+      h3("Contributors", style = "font-weight: bold;"),
       
       # List of contributors
       tags$div(
         style = "margin-top: 10px; text-align: center;",
         tags$p(
-          style = "color: #555; text-align: center;font-size: 12px;",
+          style = "text-align: center;font-size: 12px;",
           HTML("<b>Shiny App</b><br>Sofie Van de Velde")
         ),
         tags$p(
-          style = "color: #555; text-align: center;font-size: 12px;",
+          style = "text-align: center;font-size: 12px;",
           HTML("<b>R Code</b><br>Edoardo Giuili<br>Maísa Renata Ferro Dos Santos")
         ),
         tags$p(
-          style = "color: #555; text-align: center; font-size: 12px;",
+          style = "text-align: center; font-size: 12px;",
           HTML("<b>Supervision</b><br>Prof. Dr. Ir. Katleen De Preter<br> Prof. Dr. Celine Everaert")
         )
       )

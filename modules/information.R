@@ -3,18 +3,16 @@ informationTabUI <- function(id) {
   ns <- NS(id)
   tabPanel(
     "Information",
-    title = "Information",
-    value = "Information",
 
     # Deconvolution tools Section
-    h3("Deconvolution tools", style = "font-weight: bold; color: #343a40;", id="shiny-tab-Information" ),
+    h3("Deconvolution tools", style = "font-weight: bold;", id="shiny-tab-Information" ),
     p("Include information..."),
     br(),br(),
     
     
     
     # DMR tools Section
-    h3("DMR tools", style = "font-weight: bold; color: #343a40;"),
+    h3("DMR tools", style = "font-weight: bold;"),
     p("Include information..."),
 
 

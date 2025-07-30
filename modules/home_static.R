@@ -3,7 +3,6 @@ homeTabUI <- function(id) {
   ns <- NS(id)
   tabPanel(
     "Home",
-    fluidPage(
       h2(HTML("<b>Welcome to DecoNFlow Benchmarking</b>"), style = "text-align: center;"),
 
       br(),br(),
@@ -35,14 +34,15 @@ homeTabUI <- function(id) {
       ),
       
       
-      br(), br(),br(), h3("Citation"), br(),
+      br(), br(),br(), h3("Citation"),
       
       # footer
       footer_citation(),
       
       # Optional: Replace with CSS-based scrolling behavior if needed
-      br(), br(), spsGoTop("default")
-    )
+    lapply(1:100, function(x) br()),
+    spsGoTop("default")
+    
   )
 }
 
