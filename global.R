@@ -24,81 +24,83 @@ conflicted::conflict_prefer("layout", "plotly")
 
 #### 2. Load Required Packages ####
 
-# Shiny framework & UI
-library(shiny)           # Web application framework for R
-library(shinythemes)     # Prebuilt themes for Shiny apps
-library(bslib)           # Bootstrap themes for Shiny/Quarto
-library(shinycssloaders) # Custom loading spinners
-library(sever)           # Custom disconnect screen
-library(spsComps)        # Extra UI components from systemPipeShiny
-library(DT)              # Interactive datatables
+# ── Shiny framework & UI components ──
+library(shiny)             # Core package for building interactive web apps in R
+library(shinythemes)       # Add pre-built Bootstrap themes to Shiny apps
+library(bslib)             # Full theming system for Bootstrap 4 & 5 in Shiny/Quarto
+library(shinycssloaders)   # Adds animated spinners while outputs are loading
+library(sever)             # Customizes Shiny's disconnect/reconnect screen
+library(spsComps)          # Additional UI components, e.g., image carousel, cards
+library(shinyWidgets)      # Extended widgets: sliders, dropdowns, pickers, etc.
+library(DT)                # DataTables (sortable, filterable HTML tables)
+library(fontawesome)       # Access to Font Awesome icons (used in footer links)
+library(shinytitle)        # Dynamically change browser tab titles based on state
 
-# HTML and web rendering
-library(htmltools)       # HTML generation tools
-library(quarto)          # Render Quarto documents
-library(fontawesome)     # Font Awesome icons (if used)
+# ── HTML rendering and dynamic document support ──
+library(htmltools)         # Lower-level HTML generation helpers (tags, scripts)
+library(quarto)            # Render and preview Quarto documents within the app
+library(rmarkdown)         # Render R Markdown reports
+library(knitr)             # Engine that converts R Markdown into HTML/PDF/Word
+library(xtable)            # Convert R objects to LaTeX or HTML tables
+library(evaluate)          # Evaluate R expressions and capture output
+library(xfun)              # Utility functions (e.g., for file paths, OS detection)
 
-# Data visualization
-library(ggplot2)         # Core plotting system
-library(ggpubr)          # Publication-ready plots
-library(plotly)          # Interactive plots
-library(patchwork)       # Combine ggplot2 plots
-library(scales)          # Scaling functions
-library(philentropy)     # Distance/similarity metrics
-library(pROC)            # ROC curve analysis
+# ── Data visualization ──
+library(ggplot2)           # Main plotting system (grammar of graphics)
+library(ggpubr)            # Publication-quality plots + stats annotation for ggplot2
+library(plotly)            # Interactive graphs (zoom, hover) for ggplot2/plotly
+library(patchwork)         # Combine multiple ggplot2 plots into one layout
+library(scales)            # Formatting and transformation tools for axes/legends
+library(philentropy)       # Compute distances (e.g., cosine, KL) between distributions
+library(pROC)              # Create and analyze ROC curves (classification)
+library(ggsignif)          # Add significance brackets (e.g., p-values) to ggplots
+library(viridisLite)       # Colorblind-safe and perceptually uniform color palettes
 
-# Data handling & transformation
-library(dplyr)           # Data manipulation
-library(purrr)           # Functional programming tools
-library(readr)           # Read text files
-library(tidyr)           # Reshape tidy data
-library(stringr)         # String manipulation
-library(forcats)         # Factor handling
-library(tibble)          # Modern data frames
-library(data.table)      # High-performance tables
-library(reshape2)        # Legacy reshaping
-library(jsonlite)        # JSON input/output
-library(hms)             # Time-of-day handling
-library(Metrics)         # Model evaluation metrics
+# ── Data import, cleaning, and manipulation ──
+library(dplyr)             # Data manipulation: filter, mutate, group_by, summarize
+library(purrr)             # Functional programming: map, walk, reduce, etc.
+library(readr)             # Fast, user-friendly CSV/TSV reading
+library(tidyr)             # Reshape data: pivot_longer, pivot_wider, nest, etc.
+library(stringr)           # String manipulation: detect, replace, extract, etc.
+library(forcats)           # Factor manipulation: reorder, lump, rename levels
+library(tibble)            # A modern, clean data.frame structure with printing improvements
+library(data.table)        # Extremely fast data manipulation and aggregation
+library(reshape2)          # Legacy reshaping tools: melt, cast
+library(jsonlite)          # Parse and generate JSON files
+library(hms)               # Store and manipulate time-of-day values
+library(Metrics)           # Implements evaluation metrics like RMSE, MAE, etc.
 
-# Modeling and statistics
-library(car)             # Applied regression support
-library(rstatix)         # Statistical test wrappers
-library(broom)           # Tidy model outputs
-library(LaplacesDemon)   # Bayesian inference and MCMC
+# ── Modeling and statistical summaries ──
+library(car)               # Companion to regression textbook (vif, Anova, etc.)
+library(rstatix)           # Pipe-friendly statistical tests (t-test, ANOVA, etc.)
+library(broom)             # Convert model objects (lm, glm, etc.) into tidy data.frames
+library(LaplacesDemon)     # Bayesian analysis framework including MCMC algorithms
 
-# Reporting & document generation
-library(rmarkdown)       # Dynamic documents
-library(knitr)           # Knitting engine
-library(xtable)          # LaTeX/HTML tables
-library(evaluate)        # Code evaluation
-library(xfun)            # Miscellaneous utilities
+# ── Parallel computing and process control ──
+library(furrr)             # Parallel versions of purrr functions
+library(future)            # Unified API for parallel, sequential, or multicore execution
+library(parallelly)        # Manages resources and backends for parallel jobs
+library(processx)          # Start/manage external system processes
+library(ps)                # Inspect system processes (used by processx)
+library(callr)             # Run R scripts in a separate R process (e.g., background jobs)
+library(later)             # Schedule delayed operations (used in async UI/reactivity)
+library(httpuv)            # Core HTTP and WebSocket server used by Shiny
 
-# Process and parallel support
-library(furrr)           # Parallel purrr
-library(future)          # Parallel backend
-library(parallelly)      # Helper for future
-library(processx)        # Run system processes
-library(ps)              # Process management
-library(later)           # Async scheduling
-library(httpuv)          # HTTP/WebSocket server
-library(callr)           # Creates new background R processes
-
-# System utilities
-library(conflicted)      # Resolve masking conflicts
-library(rstudioapi)      # Interface with RStudio
-library(cachem)          # Cache management
-library(fastmap)         # Fast key-value store
-library(cli)             # Command line interface
-library(crayon)          # Colored terminal output
-library(glue)            # String interpolation
-library(lifecycle)       # Lifecycle tools
-library(magrittr)        # Pipe operator (%>%)
-library(rlang)           # Tidy evaluation
-library(assertthat)      # Lightweight assertions
-library(backports)       # Backward compatibility
-library(abind)           # Combine arrays
-library(lazyeval)        # Quoted expressions
+# ── System utilities and dev support ──
+library(conflicted)        # Explicit resolution of conflicting function names
+library(rstudioapi)        # Communicate with RStudio IDE (e.g., get active file)
+library(cachem)            # Manage memory/disk caches
+library(fastmap)           # Fast, pointer-based data structures (used in cachem)
+library(cli)               # Styled CLI messages, progress bars, status output
+library(crayon)            # Colored text for console/logging
+library(glue)              # Fast and readable string interpolation (e.g., glue("Value: {x}"))
+library(lifecycle)         # Mark functions as experimental/deprecated, etc.
+library(magrittr)          # Pipe operator `%>%`, plus aliases for base functions
+library(rlang)             # Underlying system for tidy evaluation and metaprogramming
+library(assertthat)        # Simple, readable assertions (e.g., assert_that(x > 0))
+library(backports)         # Compatibility for older R versions (used internally)
+library(abind)             # Combine multidimensional arrays
+library(lazyeval)          # Quote/capture expressions lazily (used in older tidyverse code)
 
 #### 3. Define Custom Plot Theme and Aesthetics ####
 
@@ -112,8 +114,13 @@ theme_benchmarking <- theme_classic() +
     axis.title.x = element_text(size = 14, color = "gray10"),
     axis.title.y = element_text(size = 14, color = "gray10"),
     axis.line = element_line(color = "gray50"),
-    axis.ticks = element_line(color = "gray50")
+    axis.ticks = element_line(color = "gray50") #,
+    # panel.background = element_rect(fill='transparent'), #transparent panel bg
+    # plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
+    # legend.background = element_rect(fill='transparent'), #transparent legend bg
+    # legend.box.background = element_rect(fill='transparent') #transparent legend panel
   )
+
 
 # Manual color scale
 custom_color_manual <- scale_color_manual(
@@ -160,17 +167,17 @@ footer_citation <- function() {
         tags$a(
           href = "https://github.com/VIBTOBIlab",
           HTML("<i class='fa fa-github'></i> GitHub"),
-          style = "text-decoration: none; color: #555;"
+          style = "text-decoration: none;"
         ),
         tags$a(
           href = "https://depreterlab.sites.vib.be/en#/",
           HTML("<i class='fa fa-link'></i> TOBI Website"),
-          style = "margin-left: 10px; text-decoration: none; color: #555;"
+          style = "margin-left: 10px; text-decoration: none;"
         ),
         tags$a(
           href = "mailto:sofvdvel.vandevelde@ugent.be",
           HTML("<i class='fa fa-envelope'></i> Email"),
-          style = "margin-left: 10px; text-decoration: none; color: #555;"
+          style = "margin-left: 10px; text-decoration: none;"
         )
       )
     )
@@ -234,3 +241,33 @@ if (file.exists(cache_rds_path)) {
   saveRDS(tot_bench, cache_rds_path)
   
 }
+
+
+#### 6. Helper Functions ####
+# RMSE
+rmse <- function(actual, predicted) {
+  round(sqrt(mean((actual - predicted)^2)),4)
+}
+# Spearman's rank correlation coefficient (SCC)
+scc <- function(actual, predicted) {
+  cor(actual, predicted, method = "spearman")
+}
+
+roc.obj <- function(true_labels, predicted_scores) {
+  true_labels[true_labels>0] <- 1
+  roc_obj <- roc(true_labels, predicted_scores)
+  return(roc_obj)
+}
+
+
+#### 7. Create and Update Theme ####
+theme <- bs_theme()
+theme <- bs_theme_update(
+  theme,
+  fg = "#1c2c48", 
+  primary = "#456CB0",
+  font_scale = NULL,
+  preset = "shiny",
+  bg = "#FFFFFF"
+)
+
