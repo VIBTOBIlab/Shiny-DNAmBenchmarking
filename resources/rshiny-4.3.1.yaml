@@ -6,17 +6,18 @@ dependencies:
   - r-base=4.3.1           # Core R language runtime
 
   # Shiny app framework and UI
-  - r-shiny               # Web application framework for R
+  - r-shiny>=1.7.5        # Web application framework for R
   - r-shinythemes         # Prebuilt themes for Shiny apps
-  - r-bslib               # Bootstrap themes for Shiny/Quarto
+  - r-bslib>=0.9.0        #  Bootstrap themes for Shiny/Quarto
   - r-shinyace            # Code editor (Ace) integration in Shiny
   - r-sever               # Custom disconnect screen for Shiny (optional)
   - r-spscomps            # UI components from systemPipeShiny (optional)
-  - r-shinywidgets         # Enhanced UI widgets for Shiny
-  - r-shinytoastr          # Toast-style notification popups in Shiny
+  - r-shinywidgets>=0.7.6 # Enhanced UI widgets for Shiny
+  - r-shinytoastr         # Toast-style notification popups in Shiny
+  - r-sass>=0.4.0          # Required by bslib for custom theming
 
   # HTML and web rendering
-  - r-htmltools           # HTML generation tools
+  - r-htmltools>=0.5.5    # HTML generation tools
   - r-htmlwidgets         # JavaScript widgets for R
   - r-fontawesome         # Font Awesome icons
   - r-systemfonts         # Font discovery and management
@@ -25,7 +26,7 @@ dependencies:
   # Data visualization
   - r-ggplot2             # Core grammar of graphics plotting
   - r-ggpubr              # Publication-ready plots (based on ggplot2)
-  - r-plotly              # Interactive plots
+  - r-plotly>=4.10.0      # Interactive plots
   - r-patchwork           # Combine ggplot2 plots
   - r-scales              # Scaling functions for plots
   - r-gtable              # Layouts for ggplot2
