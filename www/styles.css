@@ -13,20 +13,52 @@ body {
 }
 
 
+/* ============================================================================
+   Full Height Layout for Sticky Footer
+============================================================================ */
+
+html, body, .app-body, .app-container {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-main {
+  flex: 1 0 auto;
+}
+
+.app-footer-wrapper {
+  flex-shrink: 0;
+  margin-top: auto;
+}
+
 /* =======================================================================
    Navbar Panel Styling
 ============================================================================ */
-/* Add padding to right side of the navbar title */
+
+/* Add space after title */
 .navbar .navbar-brand {
-  padding-right: 2rem; /* Adjust as needed (e.g., 3rem for more spacing) */
+  padding-right: 2rem;
 }
 
-
-/* Add extra shadow to the fixed-top navbar */
+/* Underline instead of shadow */
 nav.navbar {
-  border-bottom: 2px solid #1C2C48 !important; /* dark underline instead of shadow */
-  box-shadow: none !important;               /* remove shadow if present */
+  border-bottom: 2px solid #1C2C48 !important;
+  box-shadow: none !important;
   z-index: 1030;
+}
+
+/* GitHub icon hover in navbar */
+.navbar .fa-github:hover {
+  color: #1C2C48;
 }
 
 
@@ -34,8 +66,6 @@ nav.navbar {
    Go Top button Styling
 ============================================================================ */
 
-
-/* Go Top button: white background, dark blue icon */
 #default.sps-gotop {
   background-color: #FFFFFF !important;
   border-radius: 50% !important;
@@ -49,7 +79,6 @@ nav.navbar {
   padding: 0;
 }
 
-/* Icon: default dark blue */
 #default.sps-gotop svg {
   width: 24px;
   height: 24px;
@@ -59,7 +88,6 @@ nav.navbar {
   fill: #1C2C48 !important;
 }
 
-/* Hover: dark blue background, white icon */
 #default.sps-gotop:hover {
   background-color: #1C2C48 !important;
 }
@@ -67,3 +95,95 @@ nav.navbar {
 #default.sps-gotop:hover svg path {
   fill: #FFFFFF !important;
 }
+
+/* ============================================================================
+   GitHub Navbar Button Styling
+============================================================================ */
+
+.github-icon-button {
+  background-color: #FFFFFF !important;
+  border-radius: 50% !important;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  text-decoration: none;
+  margin-right: 10px;
+  padding: 0;
+  border: none;
+}
+
+.github-icon-button i.fa-github {
+  font-size: 24px;
+  color: #1C2C48;
+  vertical-align: middle;
+  display: inline-block;
+  line-height: 1;
+  margin-top: 18px;
+}
+
+.github-icon-button:hover {
+  background-color: #1C2C48 !important;
+}
+
+.github-icon-button:hover i.fa-github {
+  color: #FFFFFF !important;
+}
+
+
+/* ============================================================================
+   downloadButton Styling
+============================================================================ */
+
+/* Custom hover style for all downloadButton buttons */
+.btn:hover {
+  background-color: #EFF1F6 !important;  /* soft background */
+  color: #1C2C48 !important;             /* dark text */
+  border-color: #1C2C48 !important;      /* dark border */
+}
+
+
+/* ============================================================================
+   Footer Styling
+============================================================================ */
+
+.app-footer {
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center;
+}
+
+.app-footer hr {
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid #1C2C48;
+}
+
+/* Space between <hr> and links */
+.footer-links {
+  margin: 12px 0 16px 0 !important;
+  padding: 0 !important;
+  line-height: 1.5;
+  color: #1C2C48 !important; 
+}
+
+/* Footer link text */
+.footer-links a {
+  margin-right: 16px !important;  /* Add horizontal spacing between links */
+  text-decoration: none;
+  display: inline-block;
+  color: #1C2C48 !important; 
+
+}
+
+/* Footer icons */
+.footer-icon {
+  color: #1C2C48;
+  margin-right: 5px;
+  font-size: 16px;
+  vertical-align: middle;
+}
+
+
