@@ -9,17 +9,11 @@ informationTabUI <- function(id) {
     p("Include information..."),
     br(),br(),
     
-    
-    
     # DMR tools Section
     h3("DMR tools", style = "font-weight: bold;"),
-    p("Include information..."),
-
-
+    p("Include information...")
     
-    # Go to top of the page
-    lapply(1: 100, function(x) br()),
-    spsGoTop("default")
+    ## End
   )
 }
 

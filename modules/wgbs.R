@@ -499,16 +499,9 @@ wgbsTabUI <- function(id) {
                 downloadButton(ns("download_lod_svg"), "Download as SVG"),
                 downloadButton(ns("download_lod_pdf"), "Download as PDF"),
       )
-    ), 
-    
-    
-    # Go to top of the page
-    lapply(1:100, function(x) br()),
-    spsGoTop("default"),
-    
-    # footer 
-    footer_citation()
-    ##end
+    )
+        
+    ## End
     
     #) #Close fluidPage  
     

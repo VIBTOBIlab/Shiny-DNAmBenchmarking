@@ -14,7 +14,7 @@ contactTabUI <- function(id) {
       tags$div(
         style = "margin-top: 10px; text-align: center",
         tags$a(
-          href = "https://github.com/VIBTOBIlab",
+          href = "https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking",
           HTML("<i class='fa fa-github'></i> GitHub"),
           style = "text-decoration: none;"
         ),
@@ -50,12 +50,9 @@ contactTabUI <- function(id) {
           HTML("<b>Supervision</b><br>Prof. Dr. Ir. Katleen De Preter<br> Prof. Dr. Celine Everaert")
         )
       )
-    ),
+    )
     
-    # Go to top of the page
-    lapply(1: 100, function(x) br()),
-    spsGoTop("default")
-  )
+ )   ## End
 }
 
 

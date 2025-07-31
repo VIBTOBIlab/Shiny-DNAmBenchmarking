@@ -34,14 +34,8 @@ homeTabUI <- function(id) {
       ),
       
       
-      br(), br(),br(), h3("Citation"),
-      
-      # footer
-      footer_citation(),
-      
-      # Optional: Replace with CSS-based scrolling behavior if needed
-    lapply(1:100, function(x) br()),
-    spsGoTop("default")
+      br(), br(), br(), h3("Citation")
+
     
   )
 }
