@@ -90,13 +90,13 @@ R
 ## Run the Application
 You can launch the app either from the command line or via RStudio:
 
-## Option 1: Command Line
+### Option 1: Command Line
 To launch the app in a background `screen` session:
-### 1. Start a new screen session 
+#### 1. Start a new screen session 
 ```bash
 screen -S shiny
 ```
-### 2. Launch the app 
+#### 2. Launch the app 
 ```bash
 conda activate rshiny-4.3.1
 cd <path-to-Shiny-DNAmBenchmarking-folder>              # e.g. cd /kyukon/scratch/gent/vo/002/gvo00224/TOBI/Projects/Shiny-DNAmBenchmarking/
@@ -110,7 +110,7 @@ R --no-save -e "shiny::runApp(appDir = '.', host = '127.0.0.1', port = 8888)"
 * *host*: Use '0.0.0.0' to allow external access, or a specific IP (e.g., '10.32.8.17').
 * *port*: Choose an available port (e.g., 8888, 2222, etc.).
   
-### 3. Access the app in your browser
+#### 3. Access the app in your browser
 Once the app is running, access the app from your browser at: 
 ```php 
 python -m webbrowser http://127.0.0.1:8888
@@ -118,21 +118,21 @@ python -m webbrowser http://127.0.0.1:8888
 
 <br>
 
-## Option 2: RStudio
+### Option 2: RStudio
 Ideal for development and interactive debugging.
 
-### 1. Open the Repository in RStudio
+#### 1. Open the Repository in RStudio
 * Open the `Shiny-DNAmBenchmarking` folder as a project or set it as your working directory in RStudio.
 * Make sure the file app.R is visible in the editor.
 
-### 2. Configure R to Use Conda Libraries via .Rprofile
+#### 2. Configure R to Use Conda Libraries via .Rprofile
 To ensure R loads the correct packages, create or edit a `.Rprofile` file in the app directory:
 ```r
 .libPaths(<path-to-conda-Rlibraries>)       # e.g. .libPaths("/kyukon/scratch/gent/vo/002/gvo00224/TOBI/Projects/Shiny-DNAmBenchmarking/.conda/envs/rshiny-4.3.1/lib/R/library")
 ```
 Replace with your actual Conda R library path (check with .libPaths() inside an R session).
 
-### 3. Run the App
+#### 3. Run the App
 * Click the "Run App" button in RStudio (top-right corner of the script editor)
 * Run the following in the R console:
 ```r
