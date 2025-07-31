@@ -8,12 +8,12 @@
 # Set the port and host for the Shiny app
 options("shiny.host" ='0.0.0.0')           # Specify host '10.32.8.17'
 options("shiny.port" = 8888)                  # Specify port 
-options(shiny.maxRequestSize = 50 * 1024^2) # Increase maximum upload size to 50MB
+#options(shiny.maxRequestSize = 50 * 1024^2) # Increase maximum upload size to 50MB
 
 # Set global spinner style (instead of repeating in every withSpinner call)
 options(
   spinner.type = 8,             # Choose a type (1-8). You used type = 8, so you can change this as needed.
-  spinner.color = "#343a40",  # Matches your theme color
+  spinner.color = "#1C2C48",  # Matches your theme color
   spinner.delay = "1000"       # Specify a delay (in milliseconds) before the spinner is displayed. 
 )
 
@@ -34,7 +34,6 @@ library(spsComps)          # Additional UI components, e.g., image carousel, car
 library(shinyWidgets)      # Extended widgets: sliders, dropdowns, pickers, etc.
 library(DT)                # DataTables (sortable, filterable HTML tables)
 library(fontawesome)       # Access to Font Awesome icons (used in footer links)
-library(shinytitle)        # Dynamically change browser tab titles based on state
 
 # ── HTML rendering and dynamic document support ──
 library(htmltools)         # Lower-level HTML generation helpers (tags, scripts)
@@ -103,8 +102,6 @@ library(abind)             # Combine multidimensional arrays
 library(lazyeval)          # Quote/capture expressions lazily (used in older tidyverse code)
 
 #### 3. Define Custom Plot Theme and Aesthetics ####
-
-# Global ggplot2 theme
 theme_benchmarking <- theme_classic() +
   theme(
     plot.title = element_text(size = 12, color = "gray10"),
@@ -159,24 +156,24 @@ custom_shape_manual <- scale_shape_manual(
 
 footer_citation <- function() {
   tagList(
-    tags$hr(),
     div(
-      style = "text-align: center; margin-top: 20px;",
-      tags$div(
-        style = "margin-top: 10px; text-align: center;",
+      class = "app-footer",
+      tags$hr(),
+      div(
+        class = "footer-links",
         tags$a(
-          href = "https://github.com/VIBTOBIlab",
-          HTML("<i class='fa fa-github'></i> GitHub"),
+          href = "https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking",
+          HTML("<i class='fa fa-github footer-icon'></i> GitHub"),
           style = "text-decoration: none;"
         ),
         tags$a(
           href = "https://depreterlab.sites.vib.be/en#/",
-          HTML("<i class='fa fa-link'></i> TOBI Website"),
+          HTML("<i class='fa fa-link footer-icon'></i> TOBI Website"),
           style = "margin-left: 10px; text-decoration: none;"
         ),
         tags$a(
           href = "mailto:sofvdvel.vandevelde@ugent.be",
-          HTML("<i class='fa fa-envelope'></i> Email"),
+          HTML("<i class='fa fa-envelope footer-icon'></i> Email"),
           style = "margin-left: 10px; text-decoration: none;"
         )
       )
@@ -261,13 +258,13 @@ roc.obj <- function(true_labels, predicted_scores) {
 
 
 #### 7. Create and Update Theme ####
-theme <- bs_theme()
-theme <- bs_theme_update(
-  theme,
+theme <- bs_theme(
+  version = 5,
   fg = "#1c2c48", 
   primary = "#456CB0",
   font_scale = NULL,
   preset = "shiny",
-  bg = "#FFFFFF"
+  bg = "#FFFFFF",
+  navbar_bg ="#EFF1F6" # "#E2E8F4"  # <-- red navbar
 )
 
