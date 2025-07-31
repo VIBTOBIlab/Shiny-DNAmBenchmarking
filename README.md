@@ -1,16 +1,26 @@
 # Shiny Application DNAmBenchmarking
 
-This repository provides the codebase  for a **[Shiny web application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/)** designed to interactively explore the data and results in the following scientific publication:
+This repository provides the codebase for a **[Shiny web application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/)** designed to interactively explore the data and results in the following scientific publication:
 
 > **"[Full Paper Title]"**  
 > [Authors]  
 > *[Journal]*, 2025
+> 
+<br>
 
+## Table of Contents
+
+1. [Prerequisites](#prerequisites)  
+2. [Installation Instructions](#installation-instructions)  
+3. [Run the Application](#run-the-application)  
+   - [Option 1: Command Line](#option-1-command-line)  
+   - [Option 2: RStudio](#option-2-rstudio)  
+4. [Support and Contact](#support-and-contact)
 
 <br>
 
 ## Prerequisites
-Ensure you have either [**Miniconda**](https://docs.conda.io/en/latest/) or **Anaconda** installed before proceeding.
+Ensure you have either [**Miniconda**](https://docs.conda.io/en/latest/) or [**Anaconda**](https://www.anaconda.com/) installed before proceeding.
 
 <br>
 
@@ -20,7 +30,7 @@ Ensure you have either [**Miniconda**](https://docs.conda.io/en/latest/) or **An
 
 ```bash
 git clone git@github.com:VIBTOBIlab/Shiny-DNAmBenchmarking.git
-cd Shiny-DNAmBenchmarking
+cd Shiny-DNAmBenchmarking/
 ```
 
 ### 2. Set up the Conda environment
@@ -29,57 +39,67 @@ Run the provided [conda.sh](./resources/conda.sh) script to configure the enviro
 # If you are in the repo directory
 sbatch ./resources/conda.sh
 ```
-
-Alternatively (for manual setup of [rshiny-4.3.1.yaml](./resources/rshiny-4.3.1.yaml)):
+Alternatively, create the environment manually using the [rshiny-4.3.1.yaml](./resources/rshiny-4.3.1.yaml) file:
 ```bash
 # If you are in the repo directory
 conda env create -f ./resources/rshiny-4.3.1.yaml
 conda activate rshiny-4.3.1
 ```
 
-### 3. (One-time step) Install required version of `shinycssloaders` from GitHub
-This app uses the `withSpinner()` function from the `shinycssloaders` package with the `delay` parameter — which controls how long to wait before showing a spinner.  
-**However, the CRAN version of the package may not include this argument**, depending on your R version or environment.
+### 3. (One-time) Install GitHub version of `shinycssloaders`
 
-To fix this, you must manually install the GitHub version of the package from [daattali/shinycssloaders](https://github.com/daattali/shinycssloaders), which includes full support for the `delay` parameter.
+This app uses the `withSpinner()` function from the `shinycssloaders` package with the `delay` parameter, which is **only available in development versions** (e.g., `v1.1.0.9005`) and may be missing from CRAN releases.
 
-> ℹ️ **Why this is necessary:**  
-> Even though `shinycssloaders` version 1.1.0 is available on CRAN, some environments (especially R 4.3.1 or byte-compiled deployments) may not reflect the latest GitHub changes.  
-> The `delay` argument is only available in development builds like `v1.1.0.9005`.
+To ensure full functionality—especially in environments using R 4.3.1 or byte-compiled builds—you must install the latest GitHub version:
 
-#### Installation steps:
+#### Installation steps
 ```bash
 # Activate your Conda environment
 conda activate rshiny-4.3.1
-# Start R
 R 
+# Inside R
 > remotes::install_github("daattali/shinycssloaders")
 ```
 This step only needs to be done once — unless you reinstall or reset your R environment.
 
+If you are prompted with the following message:
+```sql 
+These packages have more recent versions available.
+It is recommended to update all of them.
+Which would you like to update?
+1: All                               
+2: CRAN packages only                
+3: None                              
+...
+Enter one or more numbers, or an empty line to skip updates:
+```
+Choose option `3: None` to avoid altering other package versions that may be required for compatibility.
 
-#### Check installation went right:
+#### Confirm installation
 ```bash
 # Activate your Conda environment
 conda activate rshiny-4.3.1
-# Start R
-R 
+R
+# Inside R
 > packageVersion("shinycssloaders")
+# Expected: ‘1.1.0.9005’ or later
 ```
-
 
 <br>
 
-## Option 1: Run via Command Line
-To launch the application interactively in a detached terminal session using screen:
-### 1. Start a new screen session: 
+## Run the Application
+You can launch the app either from the command line or via RStudio:
+
+## Option 1: Command Line
+To launch the app in a background `screen` session:
+### 1. Start a new screen session 
 ```bash
 screen -S shiny
 ```
-### 2. Launch the app inside the screen session:
+### 2. Launch the app 
 ```bash
 conda activate rshiny-4.3.1
-cd <path-to-Shiny-DNAmBenchmarking-folder>              # e.g. /kyukon/scratch/gent/vo/002/gvo00224/TOBI/Projects/Shiny-DNAmBenchmarking/
+cd <path-to-Shiny-DNAmBenchmarking-folder>              # e.g. cd /kyukon/scratch/gent/vo/002/gvo00224/TOBI/Projects/Shiny-DNAmBenchmarking/
 R --no-save -e "shiny::runApp(appDir = '.', host = '127.0.0.1', port = 8888)"
 ```
 * To detach from the screen: Press Ctrl+A then D.
@@ -98,35 +118,37 @@ python -m webbrowser http://127.0.0.1:8888
 
 <br>
 
-## Option 2: Run in RStudio
-If you're working with RStudio, you can launch the app interactively without the terminal:
-### 1. Open RStudio
-Make sure RStudio is launched from a terminal or command line session where the rshiny-4.3.1 Conda environment is activated:
-``` bash
-activate rshiny-4.3.1
-rstudio &
-```
-Alternatively, configure RStudio to use the R binary from your Conda environment (rshiny-4.3.1).
+## Option 2: RStudio
+Ideal for development and interactive debugging.
 
-### 2. Open the Repository in RStudio
-Open the **Shiny-DNAmBenchmarking** folder in RStudio as a project or working directory.
+### 1. Open the Repository in RStudio
+* Open the `Shiny-DNAmBenchmarking` folder as a project or set it as your working directory in RStudio.
+* Make sure the file app.R is visible in the editor.
+
+### 2. Configure R to Use Conda Libraries via .Rprofile
+To ensure R loads the correct packages, create or edit a `.Rprofile` file in the app directory:
+```r
+.libPaths(<path-to-conda-Rlibraries>)       # e.g. .libPaths("/kyukon/scratch/gent/vo/002/gvo00224/TOBI/Projects/Shiny-DNAmBenchmarking/.conda/envs/rshiny-4.3.1/lib/R/library")
+```
+Replace with your actual Conda R library path (check with .libPaths() inside an R session).
 
 ### 3. Run the App
-Open **app.R** and click the "Run App" button in the upper-right corner of the RStudio script editor.
-You can also run this command in the R console:
-
+* Click the "Run App" button in RStudio (top-right corner of the script editor)
+* Run the following in the R console:
 ```r
+setwd(<path-to-Shiny-DNAmBenchmarking-folder> )     # e.g. setwd("/kyukon/scratch/gent/vo/002/gvo00224/TOBI/Projects/Shiny-DNAmBenchmarking/")
+source(".Rprofile")
 shiny::runApp()
 ```
 This will launch the app in your default web browser.
 
-
+> **Why `source(".Rprofile")`?**  
+> RStudio does not automatically use the Conda environment.  
+> Sourcing `.Rprofile` ensures that R loads the correct packages from the Conda environment.
+> 
 <br>
-
 
 ## Support and Contact
 This Shiny application was developed and maintained by [Sofie Van de Velde](https://github.com/sofvdvel).
 
-For questions, issues, or feature requests, please open an issue on the GitHub repository or contact the maintainer directly.
-
-
+For questions, issues, or feature requests, please open an issue on the GitHub repository or contact the maintainer directly.s
