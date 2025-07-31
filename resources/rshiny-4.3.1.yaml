@@ -17,7 +17,7 @@ dependencies:
   - r-sass>=0.4.0          # Required by bslib for custom theming
 
   # HTML and web rendering
-  - r-htmltools>=0.5.5    # HTML generation tools
+  - r-htmltools>=0.5.8    # HTML generation tools
   - r-htmlwidgets         # JavaScript widgets for R
   - r-fontawesome         # Font Awesome icons
   - r-systemfonts         # Font discovery and management
