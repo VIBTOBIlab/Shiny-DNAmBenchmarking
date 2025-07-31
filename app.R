@@ -14,35 +14,59 @@ source("modules/contact.R")
 # Load global settings and helper functions
 source("global.R")
 
-
-
-
 #### 2. UI Definition ####
-ui <- bslib::page_navbar(
-  id = "mainTabset",
-  
-  # App title
-  title = "DecoNFlow Benchmarking",
-
-  # Apply updated theme
-  theme = theme,
-  
-  header = tagList(
+ui <- fluidPage(
+  class = "app-body",
+  tags$head(
     includeCSS("www/styles.css")
   ),
-  
-  # sticky navbar
-  position = c("fixed-top"),
-
-  # Mobile responsiveness
-  collapsible = TRUE,
-  fluid = TRUE,
-  
-  # Tabs (UI Modules)
-  homeTabUI("home"),
-  metricsTabUI("plots"),
-  informationTabUI("information"),
-  contactTabUI("contact")
+  div(
+    class = "app-container",
+    
+    # Main content 
+    div(
+      class = "app-main",
+      bslib::page_navbar(
+        id = "mainTabset",
+        title = "DecoNFlow Benchmarking",
+        theme = theme,
+        
+        navbar_options = navbar_options(
+          position = "fixed-top",
+          collapsible = TRUE
+        ),
+        
+        # Tabs
+        homeTabUI("home"),
+        metricsTabUI("plots"),
+        informationTabUI("information"),
+        contactTabUI("contact"),
+        
+        # GitHub icon
+        nav_spacer(),
+        nav_item(
+          tags$a(
+            href = "https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/",
+            target = "_blank",
+            class = "github-icon-button",
+            title = "View on GitHub",
+            HTML("<i class='fa fa-github fa-lg'></i>")
+          )
+        )
+      )
+    ),
+    
+    # Footer area (conditionally rendered via uiOutput)
+    uiOutput("conditionalFooter")
+    
+    # Footer area
+    # div(
+    #   class = "app-footer-wrapper",
+    #   lapply(1:5, function(x) tags$br()),
+    #   spsGoTop("default"),
+    #   footer_citation()
+    # )
+  )
 )
 
 
@@ -55,6 +79,17 @@ server <- function(input, output, session) {
   metricsTabServer("plots")
   informationTabServer("information")
   contactTabServer("contact")
+  
+  output$conditionalFooter <- renderUI({
+    if (input$mainTabset != "Contact") {
+      div(
+        class = "app-footer-wrapper",
+        lapply(1:5, function(x) tags$br()),
+        spsGoTop("default"),
+        footer_citation()
+      )
+    }
+  })
   
   print(sessionInfo())
 }
