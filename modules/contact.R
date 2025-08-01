@@ -12,21 +12,21 @@ contactTabUI <- function(id) {
       
       # Social media icons or email
       tags$div(
-        style = "margin-top: 10px; text-align: center",
+        style = "margin-top: 10px; text-align: center;",
         tags$a(
           href = "https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking",
           HTML("<i class='fa fa-github'></i> GitHub"),
-          style = "text-decoration: none;"
+          style = "text-decoration: none; color: #ec642c;"
         ),
         tags$a(
           href = "https://depreterlab.sites.vib.be/en#/",
           HTML("<i class='fa fa-link'></i> TOBI Website"),
-          style = "margin-left: 10px; text-decoration: none;"
+          style = "margin-left: 10px; text-decoration: none; color: #ec642c;"
         ),
         tags$a(
           href = "mailto:sofvdvel.vandevelde@ugent.be",
           HTML("<i class='fa fa-envelope'></i> Email"),
-          style = "margin-left: 10px; text-decoration: none;"
+          style = "margin-left: 10px; text-decoration: none; color: #ec642c;"
         )
       ),
       
@@ -48,6 +48,16 @@ contactTabUI <- function(id) {
         tags$p(
           style = "text-align: center; font-size: 12px;",
           HTML("<b>Supervision</b><br>Prof. Dr. Ir. Katleen De Preter<br> Prof. Dr. Celine Everaert")
+        )
+      ),
+      
+      br(), br(), 
+      # VIB logo
+      tags$div(
+        style = "display: flex; justify-content: center; margin-top: 20px;",
+        tags$img(
+          src = "vib_notag_pos_rgb.png", 
+          style = "max-width: 200px; height: auto;"
         )
       )
     )
