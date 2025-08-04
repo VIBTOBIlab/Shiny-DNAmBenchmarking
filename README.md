@@ -123,7 +123,7 @@ Ideal for development and interactive debugging.
 To ensure R loads the correct packages, edit a `.libPaths()` in R console:
 ```r
 .libPaths("/path/to/conda/Rlibraries/")       
-# e.g. .libPaths("~/conda/envs/rshiny-4.3.1/lib/R/library")
+# e.g. .libPaths("~/.conda/envs/rshiny-4.3.1/lib/R/library")
 ```
 Replace with your actual Conda R library path (check with .libPaths() inside an R session).
 
