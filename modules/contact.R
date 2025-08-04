@@ -1,4 +1,4 @@
-# Metrics Tab UI
+# Contact Tab UI
 contactTabUI <- function(id) {
   ns <- NS(id)
   tabPanel(
@@ -30,7 +30,8 @@ contactTabUI <- function(id) {
         )
       ),
       
-      br(),
+      br(), br(),
+      
       # Contributors Section
       h3("Contributors", style = "font-weight: bold;"),
       
@@ -52,15 +53,28 @@ contactTabUI <- function(id) {
       ),
       
       br(), br(), 
-      # VIB logo
+
+      # Logos in 3-2 layout, centered
       tags$div(
-        style = "display: flex; justify-content: center; margin-top: 20px;",
-        tags$img(
-          src = "vib_notag_pos_rgb.png", 
-          style = "max-width: 200px; height: auto;"
+        style = "margin: 30px auto; max-width: 700px;",
+        
+        # First row: bottom-aligned
+        tags$div(
+          style = "display: flex; justify-content: center; align-items: flex-end; gap: 30px; margin-bottom: 20px;",
+          tags$img(src = "VIB_logo.png", style = "max-height: 80px; width: auto; height: auto;"),    
+          tags$img(src = "FWO_logo.png", style = "max-height: 48px; width: auto; height: auto;"),
+          tags$img(src = "KOTK_logo.png", style = "max-height: 72px; width: auto; height: auto;")
+        ),
+        
+        # Second row: top-aligned
+        tags$div(
+          style = "display: flex; justify-content: center; align-items: flex-start; gap: 18px;",
+          tags$img(src = "ERC_logo.png", style = "max-height: 100px; width: auto; height: auto;"),
+          tags$img(src = "UGhent_logo.png", style = "max-height: 100px; width: auto; height: auto;")
         )
-      )
     )
+    )
+    
     
  )   ## End
 }
