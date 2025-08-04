@@ -41,13 +41,14 @@ conda env create -f ./resources/rshiny-4.3.1.yaml
 conda activate rshiny-4.3.1
 ```
 
-### 3. (One-time) Install GitHub version of `shinycssloaders`
+### 3. (One-time) Manually install extra packages
+The app requires two R packages that are not reliably available via CRAN or require specific versions for compatibility with Conda environments:
 
-This app uses the `withSpinner()` function from the `shinycssloaders` package with the `delay` parameter, which is **only available in development versions** (e.g., `v1.1.0.9005`) and may be missing from CRAN releases.
+####  a. `shinycssloaders` 
 
-To ensure full functionality—especially in environments using R 4.3.1 or byte-compiled builds—you must install the latest GitHub version:
+This app uses the `withSpinner()` function with the `delay` parameter from the `shinycssloaders` package,
+which is only available in development versions (e.g., `v1.1.0.9005`). Install it from GitHub:
 
-#### Installation steps
 ```bash
 # Activate your Conda environment
 conda activate rshiny-4.3.1
@@ -55,7 +56,6 @@ R
 # Inside R
 > remotes::install_github("daattali/shinycssloaders")
 ```
-This step only needs to be done once — unless you reinstall or reset your R environment.
 
 If you are prompted with the following message:
 ```sql 
@@ -70,7 +70,7 @@ Enter one or more numbers, or an empty line to skip updates:
 ```
 Choose option `3: None` to avoid altering other package versions that may be required for compatibility.
 
-#### Confirm installation
+Confirm installation
 ```bash
 # Activate your Conda environment
 conda activate rshiny-4.3.1
@@ -79,6 +79,19 @@ R
 > packageVersion("shinycssloaders")
 # Expected: ‘1.1.0.9005’ or later
 ```
+
+
+####  b. `r-philentropy` version 0.9.0
+To ensure compatibility, install philentropy version 0.9.0 directly from its source tarball:
+```bash
+# Activate your Conda environment
+conda activate rshiny-4.3.1
+R 
+# Inside R
+> install.packages("https://cran.r-project.org/src/contrib/philentropy_0.9.0.tar.gz", repos = NULL, type = "source")
+```
+>⚠️ These installation steps only need to be performed once — unless you reinstall or reset your R environment.
+
 
 <br>
 
