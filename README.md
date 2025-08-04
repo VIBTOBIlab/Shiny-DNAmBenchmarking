@@ -34,12 +34,7 @@ cd Shiny-DNAmBenchmarking/
 ```
 
 ### 2. Set up the Conda environment
-Run the provided [conda.sh](./resources/conda.sh) script to configure the environment:
-```bash
-# If you are in the repo directory
-sbatch ./resources/conda.sh
-```
-Alternatively, create the environment manually using the [rshiny-4.3.1.yaml](./resources/rshiny-4.3.1.yaml) file:
+Create the environment manually using the [rshiny-4.3.1.yaml](./resources/rshiny-4.3.1.yaml) file:
 ```bash
 # If you are in the repo directory
 conda env create -f ./resources/rshiny-4.3.1.yaml
@@ -99,21 +94,20 @@ screen -S shiny
 #### 2. Launch the app 
 ```bash
 conda activate rshiny-4.3.1
-cd <path-to-Shiny-DNAmBenchmarking-folder>              # e.g. cd /kyukon/scratch/gent/vo/002/gvo00224/TOBI/Projects/Shiny-DNAmBenchmarking/
-R --no-save -e "shiny::runApp(appDir = '.', host = '127.0.0.1', port = 8888)"
+R --no-save -e "shiny::runApp(appDir = '/path/to/app/folder/', host = '0.0.0.0', port = 8888)"
 ```
 * To detach from the screen: Press Ctrl+A then D.
 * To resume later: screen -r shiny
 
 **Parameters to configure:**
-* *appDir*: Set to '.' (the current directory), assuming you cd into the app folder beforehand. Alternatively, you can use the absolute path of folder containing app.R .
+* *appDir*: Use the absolute path of folder containing app.R .
 * *host*: Use '0.0.0.0' to allow external access, or a specific IP (e.g., '10.32.8.17').
 * *port*: Choose an available port (e.g., 8888, 2222, etc.).
   
 #### 3. Access the app in your browser
 Once the app is running, access the app from your browser at: 
 ```php 
-python -m webbrowser http://127.0.0.1:8888
+python -m webbrowser http://.0.0.0:8888
 ```
 
 <br>
@@ -125,30 +119,25 @@ Ideal for development and interactive debugging.
 * Open the `Shiny-DNAmBenchmarking` folder as a project or set it as your working directory in RStudio.
 * Make sure the file app.R is visible in the editor.
 
-#### 2. Configure R to Use Conda Libraries via .Rprofile
-To ensure R loads the correct packages, create or edit a `.Rprofile` file in the app directory:
+#### 2. Configure R to Use Conda Libraries
+To ensure R loads the correct packages, edit a `.libPaths()` in R console:
 ```r
-.libPaths(<path-to-conda-Rlibraries>)       # e.g. .libPaths("/kyukon/scratch/gent/vo/002/gvo00224/TOBI/Projects/Shiny-DNAmBenchmarking/.conda/envs/rshiny-4.3.1/lib/R/library")
+.libPaths("/path/to/conda/Rlibraries/")       
+# e.g. .libPaths("~/conda/envs/rshiny-4.3.1/lib/R/library")
 ```
 Replace with your actual Conda R library path (check with .libPaths() inside an R session).
 
 #### 3. Run the App
-* Click the "Run App" button in RStudio (top-right corner of the script editor)
-* Run the following in the R console:
+Click the "Run App" button in RStudio (top-right corner of the script editor) OR run the following command in the R console:
 ```r
-setwd(<path-to-Shiny-DNAmBenchmarking-folder> )     # e.g. setwd("/kyukon/scratch/gent/vo/002/gvo00224/TOBI/Projects/Shiny-DNAmBenchmarking/")
-source(".Rprofile")
+setwd("/path/to/app/folder/")     
 shiny::runApp()
 ```
 This will launch the app in your default web browser.
 
-> **Why `source(".Rprofile")`?**  
-> RStudio does not automatically use the Conda environment.  
-> Sourcing `.Rprofile` ensures that R loads the correct packages from the Conda environment.
-> 
 <br>
 
 ## Support and Contact
 This Shiny application was developed and maintained by [Sofie Van de Velde](https://github.com/sofvdvel).
 
-For questions, issues, or feature requests, please open an issue on the GitHub repository or contact the maintainer directly.s
+For questions, issues, or feature requests, please open an issue on the GitHub repository or contact the maintainer directly.
