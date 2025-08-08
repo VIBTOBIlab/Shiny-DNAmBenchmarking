@@ -2,8 +2,6 @@
 
 This guide explains how to install and run the **[Shiny web application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/)** using a Conda environment.
 
----
-
 ### Table of Contents <!-- omit in toc -->
 - [Quick Start](#quick-start)
   - [1. Clone the repository](#1-clone-the-repository)

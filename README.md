@@ -44,18 +44,23 @@ Make sure your file uses **comma delimiters** and contains the following columns
 📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](resources/benchmarking_dataset.csv) for reference.
 
 ### 3. Run the App
-For more details on how to install and run Shiny application via Conda and Docker, please refer to the [documentation](./docs).
+For more details on how to install and run Shiny application via Conda, Docker and Singularity, please refer to the [documentation](./docs).
 
 #### ▶️ Docker
 ```bash
 docker run -p 3838:3838 \
-  -v $(pwd)/results/benchmarking_dataset.csv:results/benchmarking_dataset.csv \
+  -v "$(pwd)"/results/benchmarking_dataset.csv:/home/app/results/benchmarking_dataset.csv \
   sofvdvel/rshiny-dnambenchmarking_amd:v1
 ```
 #### ▶️ Conda
 ```bash
 conda activate rshiny-4.4.3
-R --no-save -e "shiny::runApp(appDir = getwd(), host = '0.0.0.0', port = 3838)"
+R --no-save -e "shiny::runApp(appDir = '/path/to/app/', host = '0.0.0.0', port = 3838)"
+```
+### ▶️ Singularity
+```bash
+singularity run --bind "$(pwd)"/results/benchmarking_dataset.csv:/home/app/results/benchmarking_dataset.csv \
+  docker://sofvdvel/rshiny-dnambenchmarking_amd:v1
 ```
 
 ## Credits
