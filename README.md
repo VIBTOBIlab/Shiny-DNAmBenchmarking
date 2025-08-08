@@ -57,7 +57,7 @@ docker run -p 3838:3838 \
 conda activate rshiny-4.4.3
 R --no-save -e "shiny::runApp(appDir = '/path/to/app/', host = '0.0.0.0', port = 3838)"
 ```
-### ▶️ Singularity
+#### ▶️ Singularity
 ```bash
 singularity run --bind "$(pwd)"/results/benchmarking_dataset.csv:/home/app/results/benchmarking_dataset.csv \
   docker://sofvdvel/rshiny-dnambenchmarking_amd:v1
