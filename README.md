@@ -1,156 +1,61 @@
 # Shiny Application DNAmBenchmarking
+[![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
+[![Run with Conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)
+[![run with Singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
 
-This repository provides the codebase for a **[Shiny web application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/)** designed to interactively explore the data and results in the following scientific publication:
+## Introduction 
+This **[Shiny application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/)** allows users to visualize and analyze the results of the benchmarking study, providing an intuitive interface for exploring the data.
 
-> **"[Full Paper Title]"**  
-> [Authors]  
-> *[Journal]*, 2025
+> **Full Name of Paper**
 > 
-<br>
+> Edoardo Giuili, Maísa R Ferro dos Santos, Sofie Van de Velde, ... Sam Kint, Celine Everaert, Katleen De Preter. 
+> 
+> _Nat Biotechnol._ 2020 Feb 13. doi: [10.1038/s41587-020-0439-x](https://dx.doi.org/10.1038/s41587-020-0439-x).
 
-## Table of Contents
 
-1. [Prerequisites](#prerequisites)  
-2. [Installation Instructions](#installation-instructions)  
-3. [Run the Application](#run-the-application)  
-   - [Option 1: Command Line](#option-1-command-line)  
-   - [Option 2: RStudio](#option-2-rstudio)  
-4. [Support and Contact](#support-and-contact)
+## Usage
+### Input File
+The app requires an input CSV file with the following structure. The default file `results/benchmarking_dataset.csv` is included in the repository, but you can provide your own.
 
-<br>
+Make sure your file uses **comma delimiters** and contains the following columns:
 
-## Prerequisites
-Ensure you have either [**Miniconda**](https://docs.conda.io/en/latest/) or [**Anaconda**](https://www.anaconda.com/) installed before proceeding.
 
-<br>
+| Column Name         | Description                                                              |
+|---------------------|---------------------------------------------------------------------------|
+| `sample`             | Sample identifier   |
+| `predicted_tf`      | Predicted transcription factor (TF) for the sample                        |
+| `deconv_tool`       | Deconvolution tool used                     |
+| `unknown`           | Unknown fraction                                         |
+|`dmr_tool`          | DMR method used                            |
+| `seq_depth`         | Sequencing depth                                   |
+| `tumor_type`        | Tumor type|
+| `collapse_approach` | Method of collapsing                                                 |
+| `mixture_type`      | Type of mixture                                     |
+| `seq_method`        | Sequencing method                                |
+| `expected_tf`       | Expected transcription factor (TF) for the sample                        |
 
-## Installation Instructions
+📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](resources/benchmarking_dataset.csv) for reference.
 
-### 1. Clone the repository
+### Run the App
+For more details on how to install and run Shiny application via Conda and Docker, please refer to the [documentation](./docs).
 
+#### ▶️ Docker
 ```bash
-git clone git@github.com:VIBTOBIlab/Shiny-DNAmBenchmarking.git
-cd Shiny-DNAmBenchmarking/
+docker run -p 3838:3838 \
+  -v $(pwd)/results/benchmarking_dataset.csv:results/benchmarking_dataset.csv \
+  sofvdvel/rshiny-dnambenchmarking_amd:v1
 ```
-
-### 2. Set up the Conda environment
-Create the environment manually using the [rshiny-4.3.1.yaml](./resources/rshiny-4.3.1.yaml) file:
+#### ▶️ Conda
 ```bash
-# If you are in the repo directory
-conda env create -f ./resources/rshiny-4.3.1.yaml
-conda activate rshiny-4.3.1
+conda activate rshiny-4.4.3
+R --no-save -e "shiny::runApp(appDir = getwd(), host = '0.0.0.0', port = 3838)"
 ```
 
-### 3. (One-time) Manually install extra packages
-The app requires two R packages that are not reliably available via CRAN or require specific versions for compatibility with Conda environments:
+## Credits
+This Shiny-DNAmBenchmarking was developed and maintained by [Sofie Van de Velde](https://github.com/sofvdvel).
 
-####  a. `shinycssloaders` 
+## Support
+If you encounter any issues or have questions, please:
+* [Open an issue on GitHub](https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/issues)
+* Or contact the maintainer directly. 
 
-This app uses the `withSpinner()` function with the `delay` parameter from the `shinycssloaders` package,
-which is only available in development versions (e.g., `v1.1.0.9005`). Install it from GitHub:
-
-```bash
-# Activate your Conda environment
-conda activate rshiny-4.3.1
-R 
-# Inside R
-> remotes::install_github("daattali/shinycssloaders")
-```
-
-If you are prompted with the following message:
-```sql 
-These packages have more recent versions available.
-It is recommended to update all of them.
-Which would you like to update?
-1: All                               
-2: CRAN packages only                
-3: None                              
-...
-Enter one or more numbers, or an empty line to skip updates:
-```
-Choose option `3: None` to avoid altering other package versions that may be required for compatibility.
-
-Confirm installation
-```bash
-# Activate your Conda environment
-conda activate rshiny-4.3.1
-R
-# Inside R
-> packageVersion("shinycssloaders")
-# Expected: ‘1.1.0.9005’ or later
-```
-
-
-####  b. `r-philentropy` version 0.9.0
-To ensure compatibility, install philentropy version 0.9.0 directly from its source tarball:
-```bash
-# Activate your Conda environment
-conda activate rshiny-4.3.1
-R 
-# Inside R
-> install.packages("https://cran.r-project.org/src/contrib/philentropy_0.9.0.tar.gz", repos = NULL, type = "source")
-```
->⚠️ These installation steps only need to be performed once — unless you reinstall or reset your R environment.
-
-
-<br>
-
-## Run the Application
-You can launch the app either from the command line or via RStudio:
-
-### Option 1: Command Line
-To launch the app in a background `screen` session:
-#### 1. Start a new screen session 
-```bash
-screen -S shiny
-```
-#### 2. Launch the app 
-```bash
-conda activate rshiny-4.3.1
-R --no-save -e "shiny::runApp(appDir = '/path/to/app/folder/', host = '0.0.0.0', port = 8888)"
-```
-* To detach from the screen: Press Ctrl+A then D.
-* To resume later: screen -r shiny
-
-**Parameters to configure:**
-* *appDir*: Use the absolute path of folder containing app.R .
-* *host*: Use '0.0.0.0' to allow external access, or a specific IP (e.g., '10.32.8.17').
-* *port*: Choose an available port (e.g., 8888, 2222, etc.).
-  
-#### 3. Access the app in your browser
-Once the app is running, access the app from your browser at: 
-```php 
-python -m webbrowser http://.0.0.0:8888
-```
-
-<br>
-
-### Option 2: RStudio
-Ideal for development and interactive debugging.
-
-#### 1. Open the Repository in RStudio
-* Open the `Shiny-DNAmBenchmarking` folder as a project or set it as your working directory in RStudio.
-* Make sure the file app.R is visible in the editor.
-
-#### 2. Configure R to Use Conda Libraries
-To ensure R loads the correct packages, edit a `.libPaths()` in R console:
-```r
-.libPaths("/path/to/conda/Rlibraries/")       
-# e.g. .libPaths("~/.conda/envs/rshiny-4.3.1/lib/R/library")
-```
-Replace with your actual Conda R library path (check with .libPaths() inside an R session).
-
-#### 3. Run the App
-Click the "Run App" button in RStudio (top-right corner of the script editor) OR run the following command in the R console:
-```r
-setwd("/path/to/app/folder/")     
-shiny::runApp()
-```
-This will launch the app in your default web browser.
-
-<br>
-
-## Support and Contact
-This Shiny application was developed and maintained by [Sofie Van de Velde](https://github.com/sofvdvel).
-
-For questions, issues, or feature requests, please open an issue on the GitHub repository or contact the maintainer directly.
