@@ -7,7 +7,7 @@
 
 # Set the port and host for the Shiny app
 options("shiny.host" ='0.0.0.0')           # Specify host '10.32.8.17'
-options("shiny.port" = 8888)                  # Specify port 
+options("shiny.port" = 8889)                  # Specify port 
 #options(shiny.maxRequestSize = 50 * 1024^2) # Increase maximum upload size to 50MB
 
 # Set global spinner style (instead of repeating in every withSpinner call)
@@ -184,61 +184,55 @@ footer_citation <- function() {
 
 #### 5. Load and Preprocess Benchmarking Data ####
 
-# Path to raw CSV and cache
-data_csv_path <- "results/final_benchmarking_dataset.csv"
-cache_rds_path <- "cache/tot_bench.rds"
+# Define path to input dataset (must be mounted or present in repo)
+data_csv_path <- "results/benchmarking_dataset.csv"
 
-# Create cache directory if it doesn't exist
-if (!dir.exists("cache")) dir.create("cache")
-
-# Load from cache if available, otherwise read and preprocess
-if (file.exists(cache_rds_path)) {
-  tot_bench <- readRDS(cache_rds_path)
-} else {
-  message("Reading and preprocessing raw benchmarking dataset...")
-  
-  # Load dataset
-  combined_data <- read.csv(data_csv_path)
-  
-  # Filter and clean data
-  tot_bench <- subset(
-    combined_data,
-    expected_tf %in% c(0, 0.0001, 0.001, 0.003, 0.007, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5) &
-      deconv_tool != "Methyl_Resolver" &
-      mixture_type == "in_silico"
-  )
-  
-  # Rename tumor types
-  tot_bench$tumor_type[tot_bench$tumor_type == "neuroblastoma"] <- "NBL"
-  
-  # Convert selected columns to factors
-  tot_bench <- tot_bench %>%
-    mutate(across(
-      c(deconv_tool, dmr_tool, seq_depth, tumor_type, collapse_approach,
-        mixture_type, seq_method),
-      as.factor
-    ))
-  
-  # Rename selected deconvolution tool levels
-  tool_map <- c(
-    "EpiDISH_CP_eq" = "Houseman's CP/QP w/equality",
-    "EpiDISH_CP_ineq" = "Houseman's CP/QP w/inequality",
-    "EpiDISH_RPC" = "EpiDISH RPC",
-    "meth_atlas" = "MethAtlas",
-    "Methyl_Resolver" = "MethylResolver"
-  )
-  
-  levels(tot_bench$deconv_tool) <- ifelse(
-    levels(tot_bench$deconv_tool) %in% names(tool_map),
-    tool_map[levels(tot_bench$deconv_tool)],
-    levels(tot_bench$deconv_tool)
-  )
-  
-  # Save processed data for future runs
-  saveRDS(tot_bench, cache_rds_path)
-  
+if (!file.exists(data_csv_path)) {
+  stop("Dataset not found at 'results/benchmarking_dataset.csv'. Please run the container with:\n  -v /path/to/your.csv:results/benchmarking_dataset.csv")
 }
 
+message("Using dataset at: ", data_csv_path)
+
+# Load dataset
+combined_data <- read.csv(data_csv_path)
+  
+# Filter and clean data
+tot_bench <- subset(
+  combined_data,
+  expected_tf %in% c(0, 0.0001, 0.001, 0.003, 0.007, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5) &
+    deconv_tool != "Methyl_Resolver" &
+    mixture_type == "in_silico"
+)
+  
+# Rename tumor types
+tot_bench$tumor_type[tot_bench$tumor_type == "neuroblastoma"] <- "NBL"
+  
+# Convert selected columns to factors
+tot_bench <- tot_bench %>%
+  mutate(across(
+    c(deconv_tool, dmr_tool, seq_depth, tumor_type, collapse_approach,
+      mixture_type, seq_method),
+    as.factor
+  ))
+  
+# Rename selected deconvolution tool levels
+tool_map <- c(
+  "EpiDISH_CP_eq" = "Houseman's CP/QP w/equality",
+  "EpiDISH_CP_ineq" = "Houseman's CP/QP w/inequality",
+  "EpiDISH_RPC" = "EpiDISH RPC",
+  "meth_atlas" = "MethAtlas",
+  "Methyl_Resolver" = "MethylResolver"
+)
+  
+levels(tot_bench$deconv_tool) <- ifelse(
+  levels(tot_bench$deconv_tool) %in% names(tool_map),
+  tool_map[levels(tot_bench$deconv_tool)],
+  levels(tot_bench$deconv_tool)
+)
+  
+# Save processed data for future runs
+#saveRDS(tot_bench, cache_rds_path)
+  
 
 #### 6. Helper Functions ####
 # RMSE
