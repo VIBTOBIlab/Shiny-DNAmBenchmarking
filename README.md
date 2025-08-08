@@ -49,7 +49,7 @@ For more details on how to install and run Shiny application via Conda, Docker a
 #### ▶️ Docker
 ```bash
 docker run -p 3838:3838 \
-  -v "$(pwd)"/results/benchmarking_dataset.csv:/home/app/results/benchmarking_dataset.csv \
+  -v "$(pwd)/results/benchmarking_dataset.csv":/home/app/results/benchmarking_dataset.csv \
   sofvdvel/rshiny-dnambenchmarking_amd:v1
 ```
 #### ▶️ Conda
