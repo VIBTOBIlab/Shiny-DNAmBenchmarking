@@ -14,7 +14,14 @@ This **[Shiny application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEE
 
 
 ## Usage
-### Input File
+### 1. Clone the repository
+
+```bash
+git clone git@github.com:VIBTOBIlab/Shiny-DNAmBenchmarking.git
+cd Shiny-DNAmBenchmarking/
+```
+
+### 2. Input File
 The app requires an input CSV file with the following structure. The default file `results/benchmarking_dataset.csv` is included in the repository, but you can provide your own.
 
 Make sure your file uses **comma delimiters** and contains the following columns:
@@ -36,7 +43,7 @@ Make sure your file uses **comma delimiters** and contains the following columns
 
 📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](resources/benchmarking_dataset.csv) for reference.
 
-### Run the App
+### 3. Run the App
 For more details on how to install and run Shiny application via Conda and Docker, please refer to the [documentation](./docs).
 
 #### ▶️ Docker
