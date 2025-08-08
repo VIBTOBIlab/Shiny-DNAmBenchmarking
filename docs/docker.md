@@ -41,7 +41,7 @@ docker pull sofvdvel/rshiny-dnambenchmarking_amd:v1
 If you’ve cloned this repository and want to use the default results/benchmarking_dataset.csv file:
 ```bash
 docker run -p 3838:3838 \
-  -v "$(pwd)"/results/benchmarking_dataset.csv:/home/app/results/benchmarking_dataset.csv \
+  -v "$(pwd)/results/benchmarking_dataset.csv":/home/app/results/benchmarking_dataset.csv \
   sofvdvel/rshiny-dnambenchmarking_amd:v1
 ```
 
@@ -49,7 +49,7 @@ docker run -p 3838:3838 \
 If you have a custom dataset you want to use, replace `my_custom.csv` with the path to your dataset:
 ```bash
 docker run -p 3838:3838 \
-  -v "$(pwd)"/my_custom.csv:/home/app/results/benchmarking_dataset.csv \
+  -v "$(pwd)/my_custom.csv":/home/app/results/benchmarking_dataset.csv \
   sofvdvel/rshiny-dnambenchmarking_amd:v1
 ```
 This mounts your own file directly into the expected location.
@@ -68,6 +68,6 @@ If you're running on a remote server, replace localhost with the server's IP add
 * **Default port:** `3838` is used by Shiny. You can map it to a different host port if needed:
 ```bash
 docker run -p 8888:3838 \
-  -v $(pwd)/my_custom.csv:/home/app/results/benchmarking_dataset.csv \
+  -v "$(pwd)/my_custom.csv":/home/app/results/benchmarking_dataset.csv \
   sofvdvel/rshiny-dnambenchmarking_amd:v1
 ```

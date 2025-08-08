@@ -59,8 +59,10 @@ R --no-save -e "shiny::runApp(appDir = '/path/to/app/', host = '0.0.0.0', port =
 ```
 #### ▶️ Singularity
 ```bash
-singularity run --bind "$(pwd)"/results/benchmarking_dataset.csv:/home/app/results/benchmarking_dataset.csv \
-  docker://sofvdvel/rshiny-dnambenchmarking_amd:v1
+singularity pull docker://sofvdvel/rshiny-dnambenchmarking_amd:v1
+singularity run \
+  --bind "$(pwd)/results":/home/app/results \
+  rshiny-dnambenchmarking_amd_v1.sif
 ```
 
 ## Credits

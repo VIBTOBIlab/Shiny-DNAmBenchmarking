@@ -40,7 +40,7 @@ This creates the image file: `rshiny-dnambenchmarking_amd_v1.sif`
 Assuming you are in the project root and your dataset is at results/benchmarking_dataset.csv: 
 ```bash
 singularity run \
-  --bind "$(pwd)"/results:/home/app/results \
+  --bind "$(pwd)/results":/home/app/results \
   rshiny-dnambenchmarking_amd_v1.sif
 ```
 
@@ -59,7 +59,7 @@ If you're running on a remote server, replace localhost with the server's IP add
 ```bash
 singularity exec \
   --env DATASET_PATH=/mnt/my_data.csv \
-  --bind "$(pwd)"/results:/home/app/results \
+  --bind "$(pwd)/results":/home/app/results \
   rshiny-dnambenchmarking_amd_v1.sif \
   Rscript -e "shiny::runApp('/home/app', host = '0.0.0.0', port = 8888)"
 ```
