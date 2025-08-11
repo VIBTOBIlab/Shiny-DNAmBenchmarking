@@ -97,7 +97,7 @@ Make sure your file uses **comma delimiters** and contains the following columns
 | `seq_method`        | Sequencing method                                |
 | `expected_tf`       | Expected transcription factor (TF) for the sample                        |
 
-📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](resources/benchmarking_dataset.csv) for reference.
+📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](results/benchmarking_dataset.csv) for reference.
 
 
 ### 5. Running the App
@@ -136,5 +136,5 @@ shiny::runApp()
 
 ## Notes
 * **No need to install R separately**: the Conda environment handles this.
-* **Input file must be present** at resources/benchmarking_dataset.csv or a custom path hardcoded into your global.R.
+* **Input file must be present** at results/benchmarking_dataset.csv or a custom path hardcoded into your global.R.
 * **Default port:** `3838` is used by Shiny. You can map it to a different host port if needed.

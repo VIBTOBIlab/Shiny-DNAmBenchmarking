@@ -25,7 +25,7 @@ Make sure your file uses **comma delimiters** and contains the following columns
 | `seq_method`        | Sequencing method                                |
 | `expected_tf`       | Expected transcription factor (TF) for the sample                        |
 
-📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](resources/benchmarking_dataset.csv) for reference.
+📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](results/benchmarking_dataset.csv) for reference.
 
 
 ### 2. Pull the Docker Image as a Singularity Image
