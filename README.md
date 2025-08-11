@@ -41,7 +41,7 @@ Make sure your file uses **comma delimiters** and contains the following columns
 | `seq_method`        | Sequencing method                                |
 | `expected_tf`       | Expected transcription factor (TF) for the sample                        |
 
-📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](resources/benchmarking_dataset.csv) for reference.
+📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](results/benchmarking_dataset.csv) for reference.
 
 ### 3. Run the App
 For more details on how to install and run Shiny application via Conda, Docker and Singularity, please refer to the [documentation](./docs).
