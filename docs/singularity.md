@@ -54,7 +54,7 @@ If you're running on a remote server, replace localhost with the server's IP add
 
 ## Notes
 * **No build required**: the image includes all dependencies and app code.
-* **Dataset is not included:** You must mount your dataset at runtime using `-bind`.
+* **Dataset is not included:** You must mount the folder containing your dataset at runtime using `-bind`.
 * **Default port:** `3838` is used by Shiny. You can map it to a different host port if needed:
 ```bash
 singularity exec \
