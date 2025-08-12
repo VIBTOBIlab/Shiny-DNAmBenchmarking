@@ -30,7 +30,7 @@ Make sure your file uses **comma delimiters** and contains the following columns
 | Column Name         | Description                                                              |
 |---------------------|---------------------------------------------------------------------------|
 | `sample`             | Sample identifier   |
-| `predicted_tf`      | Predicted tumor factor (TF) for the sample                        |
+| `predicted_tf`      | Predicted tumoral factor (TF) for the sample                        |
 | `deconv_tool`       | Deconvolution tool used                     |
 | `unknown`           | Unknown fraction                                         |
 |`dmr_tool`          | DMR method used                            |
@@ -39,7 +39,7 @@ Make sure your file uses **comma delimiters** and contains the following columns
 | `collapse_approach` | Method of collapsing                                                 |
 | `mixture_type`      | Type of mixture                                     |
 | `seq_method`        | Sequencing method                                |
-| `expected_tf`       | Expected tumor factor (TF) for the sample                        |
+| `expected_tf`       | Expected tumoral factor (TF) for the sample                        |
 
 📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](results/benchmarking_dataset.csv) for reference.
 
