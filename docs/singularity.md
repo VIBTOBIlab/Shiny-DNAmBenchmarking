@@ -58,7 +58,6 @@ If you're running on a remote server, replace localhost with the server's IP add
 * **Default port:** `3838` is used by Shiny. You can map it to a different host port if needed:
 ```bash
 singularity exec \
-  --env DATASET_PATH=/mnt/my_data.csv \
   --bind "$(pwd)/results":/home/app/results \
   rshiny-dnambenchmarking_amd_v1.sif \
   Rscript -e "shiny::runApp('/home/app', host = '0.0.0.0', port = 8888)"
