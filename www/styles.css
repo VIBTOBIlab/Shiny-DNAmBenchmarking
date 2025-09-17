@@ -1,10 +1,47 @@
+/* ==============================================================================
+# styles.css – styling for RRBS benchmarking 
+# This file is part of the DecoNFlow Shiny app
+# ============================================================================== /*
+
+
+/* =======================================================================
+    Home static Styling
+============================================================================ */
+
+/* Make sure the heading has zero bottom margin inside tab content */
+.tab-content h2.welcome-title {
+  margin-bottom: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+/* Remove any vertical spacing the row/column might add */
+.funkyheatmap {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+}
+
+/* Remove top padding Bootstrap may give to columns in some themes/layouts */
+.funkyheatmap > [class^="col-"],
+.funkyheatmap > [class*=" col-"] {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* Ensure the image itself contributes no extra space */
+.funkyheatmap img {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
+  display: block;
+}
+
+
 /* =======================================================================
     General Additonal Styling
 ============================================================================ */
 
 /* General padding to prevent navbar overlap */
 body {
-  padding-top: 70px;
+  padding-top: 50px;
 }
 
 /* Add margin to tab content to ensure first heading is visible */
@@ -43,18 +80,43 @@ html, body, .app-body, .app-container {
 /* =======================================================================
    Navbar Panel Styling
 ============================================================================ */
-
 /* Add space after title */
 .navbar .navbar-brand {
   padding-right: 2rem;
 }
-
-/* Underline instead of shadow */
+ 
+/* Full-width bottom border */
 nav.navbar {
   border-bottom: 2px solid #1C2C48 !important;
   box-shadow: none !important;
   z-index: 1030;
 }
+
+/* Adjust spacing inside nav items */
+.navbar-nav .nav-link {
+  padding-top: 0.35rem !important;     /* reduce vertical space */
+  padding-bottom: 0.50rem !important;  /* pulls underline closer */
+  line-height: 1.2;
+  border-bottom: 2px solid transparent; /* placeholder so things don't shift */
+  font-weight: 400; /* default weight for inactive links */
+  margin: 0 0.50rem;
+}
+
+/* Active item underline + bold */
+.navbar-nav .nav-link.active {
+  font-weight: 700 !important; /* strong bold */
+  border-bottom: 2px solid #1C2C48 !important;
+  color: #1C2C48 !important; 
+}
+
+/* Hover = bold + underline */
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link:focus {
+  font-weight: 600 !important;
+  border-bottom: 2px solid #1C2C48 !important;
+  color: #1C2C48 !important;
+}
+
 
 /* GitHub icon hover in navbar */
 .navbar .fa-github:hover {
