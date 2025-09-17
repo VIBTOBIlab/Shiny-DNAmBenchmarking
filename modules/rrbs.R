@@ -15,18 +15,16 @@
 # shinythemes       – used globally for consistent UI styling
 # bslib             – used globally to support themes and responsive layout
 
-
-rrbsTabUI <- function(id) {
+rrbsTabUI <- function(id, label = "RRBS") {
   ns <- NS(id)
   tabPanel(
-    "RRBS",
+    title = label,
 
     #fluidPage(
-
-      h3("Benchmarking plots - RRBS", style = "font-weight: bold;"),
-      p("We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores."),
-      p("Below, you can find the computed metrics and visualizations."),
-      br(),
+    h3("Benchmarking plots: RRBS", style = "font-weight: bold;"),
+    p("We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores."),
+    p("Below, you can find the computed metrics and visualizations."),
+    br(),
 
     # Table of Contents
     tags$div(class = "toc-container",
@@ -54,14 +52,14 @@ rrbsTabUI <- function(id) {
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
-                     ns("boxplot_seqdepth_select"), 
-                     label = "Depth",
+                     ns("boxplot_tumortype_select"), 
+                     label = "Tumor Type",
                      choices = NULL,
                      selected = NULL
-                     ),
+                   ),
                    selectInput(
-                     ns("boxplot_approach_select"), 
-                     label = "Approach",
+                     ns("boxplot_seqdepth_select"), 
+                     label = "Depth",
                      choices = NULL,
                      selected = NULL
                      ),
@@ -107,18 +105,17 @@ rrbsTabUI <- function(id) {
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
+                     ns("nrmse_tumortype_select"), 
+                     label = "Tumor Type",
+                     choices = NULL,
+                     selected = NULL
+                   ),
+                   selectInput(
                      ns("nrmse_seqdepth_select"), 
                      label = "Depth",
                      choices = NULL,
                      selected = NULL
                    ),
-                   selectInput(
-                     ns("nrmse_approach_select"),
-                     label = "Approach",
-                     choices = NULL,
-                     selected = NULL
-                   ),                                 
-                   
                    selectInput(
                      ns("nrmse_deconvtool_select"), 
                      label = "Deconvolution Tool",
@@ -150,14 +147,14 @@ rrbsTabUI <- function(id) {
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
-                     ns("heatmap_seqdepth_select"),
-                     label = "Depth",
+                     ns("heatmap_tumortype_select"), 
+                     label = "Tumor Type",
                      choices = NULL,
                      selected = NULL
                    ),
                    selectInput(
-                     ns("heatmap_approach_select"),
-                     label = "Approach",
+                     ns("heatmap_seqdepth_select"),
+                     label = "Depth",
                      choices = NULL,
                      selected = NULL
                    ),
@@ -197,17 +194,17 @@ rrbsTabUI <- function(id) {
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
+                     ns("aucroc_complete_tumortype_select"), 
+                     label = "Tumor Type",
+                     choices = NULL,
+                     selected = NULL
+                   ),
+                   selectInput(
                      ns("aucroc_complete_seqdepth_select"), 
                      label = "Depth",
                      choices = NULL,
                      selected = NULL
                    ),
-                   selectInput(
-                     ns("aucroc_complete_approach_select"),
-                     label = "Approach",
-                     choices = NULL,
-                     selected = NULL
-                   ),   
                    checkboxGroupInput(
                      ns("aucroc_complete_deconvtools_select"),
                      label = "Deconvolution Tool",
@@ -240,18 +237,17 @@ rrbsTabUI <- function(id) {
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
+                     ns("aucroc_tumortype_select"), 
+                     label = "Tumor Type",
+                     choices = NULL,
+                     selected = NULL
+                   ),
+                   selectInput(
                      ns("aucroc_seqdepth_select"), 
                      label = "Depth",
                      choices = NULL,
                      selected = NULL
                    ),
-                   selectInput(
-                     ns("aucroc_approach_select"),
-                     label = "Approach",
-                     choices = NULL,
-                     selected = NULL
-                   ),   
-                   
                    selectInput(
                      ns("aucroc_deconvtool_select"),
                      label = "Deconvolution Tool",
@@ -299,14 +295,14 @@ rrbsTabUI <- function(id) {
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
-                     ns("rmse_comparison_seqdepth_select"),
-                     label = "Depth",
+                     ns("rmse_comparison_tumortype_select"), 
+                     label = "Tumor Type",
                      choices = NULL,
                      selected = NULL
                    ),
                    selectInput(
-                     ns("rmse_comparison_approach_select"),
-                     label = "Approach",
+                     ns("rmse_comparison_seqdepth_select"),
+                     label = "Depth",
                      choices = NULL,
                      selected = NULL
                    ),
@@ -350,14 +346,14 @@ rrbsTabUI <- function(id) {
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
-                     ns("rank_seqdepth_select"),
-                     label = "Depth",
+                     ns("rank_tumortype_select"), 
+                     label = "Tumor Type",
                      choices = NULL,
                      selected = NULL
                    ),
                    selectInput(
-                     ns("rank_approach_select"),
-                     label = "Approach",
+                     ns("rank_seqdepth_select"),
+                     label = "Depth",
                      choices = NULL,
                      selected = NULL
                    ),
@@ -415,14 +411,14 @@ rrbsTabUI <- function(id) {
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
-                     ns("lod_seqdepth_select"),
-                     label = "Depth",
+                     ns("lod_tumortype_select"), 
+                     label = "Tumor Type",
                      choices = NULL,
                      selected = NULL
                    ),
                    selectInput(
-                     ns("lod_approach_select"),
-                     label = "Approach",
+                     ns("lod_seqdepth_select"),
+                     label = "Depth",
                      choices = NULL,
                      selected = NULL
                    ),
@@ -469,12 +465,16 @@ rrbsTabServer <- function(id) {
 moduleServer(id, function(input, output, session) {
 
   ## 1. Filter dataset
-  bench <- subset(tot_bench, tot_bench$seq_method == "rrbs")
+  bench <- subset(tot_bench,
+                  seq_method == "rrbs") 
   
   # Sort the levels of depth
-  bench$seq_depth <- factor(bench$seq_depth,
-                            levels = c("5M", "10M", "15M", "20M"))
-  
+  # bench$seq_depth <- factor(bench$seq_depth,
+  #                           levels = c("5M", "10M", "15M", "20M"))
+  bench$seq_depth <- factor(
+    bench$seq_depth,
+    levels = unique(bench$seq_depth)[order(as.numeric(sub("M", "", unique(bench$seq_depth))))]
+  )
 
   output$download_rrbs_df <- downloadHandler(
     filename = function() {
@@ -490,19 +490,16 @@ moduleServer(id, function(input, output, session) {
   ############################################################################
   ## Boxplot predictions for each tumoral fraction
   # Dropdowns and checkboxes boxplot 
+  updateSelectInput(session, "boxplot_tumortype_select", 
+                    choices = sort(unique(bench$tumor_type)), 
+                    selected = if ("LC" %in% bench$tumor_type) "LC" else sort(unique(bench$tumor_type))[1] )
   updateSelectInput(session, "boxplot_seqdepth_select", 
                     choices = sort(unique(bench$seq_depth)), 
                     selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] )
-  updateSelectInput(session, "boxplot_approach_select", 
-                    choices = sort(unique(bench$collapse_approach)), 
-                    selected = sort(unique(bench$collapse_approach))[1])
   updateSelectInput(session, "boxplot_exptf_select", 
                     choices = sort(unique(bench$expected_tf[bench$expected_tf != 0])), 
                     selected = if (0.1 %in% bench$expected_tf) 0.1 else sort(unique(bench$expected_tf[bench$expected_tf != 0]))[1] )
   
-  # updateCheckboxGroupInput(session, "boxplot_deconvtools_select", 
-  #                          choices = sort(unique(bench$deconv_tool)), 
-  #                          selected = sort(unique(bench$deconv_tool)))
   updateCheckboxGroupInput(session, "boxplot_dmrtools_select", 
                            choices = sort(unique(bench$dmr_tool)), 
                            selected = sort(unique(bench$dmr_tool)))
@@ -520,12 +517,12 @@ moduleServer(id, function(input, output, session) {
   
   # Reactive expression for filtered data boxplot
   filtered_data_boxplot <- reactive({
-    req(input$boxplot_seqdepth_select, input$boxplot_approach_select, input$boxplot_exptf_select,
+    req(input$boxplot_tumortype_select, input$boxplot_seqdepth_select, input$boxplot_exptf_select,
         input$boxplot_deconvtools_select, input$boxplot_dmrtools_select)
     
     bench %>%
-      filter(seq_depth == input$boxplot_seqdepth_select,                # Filter by depth
-             collapse_approach == input$boxplot_approach_select,  # Filter by approach
+      filter(tumor_type == input$boxplot_tumortype_select,                # Filter by tumor type
+             seq_depth == input$boxplot_seqdepth_select,                # Filter by depth
              expected_tf == as.numeric(input$boxplot_exptf_select),  # Filter by fraction
              deconv_tool %in% input$boxplot_deconvtools_select,                   # Filter by deconv_tools
              dmr_tool %in% input$boxplot_dmrtools_select,             # Filter by dmr_tools
@@ -533,7 +530,7 @@ moduleServer(id, function(input, output, session) {
   })
   
   # Function to create the boxplot
-  create_boxplot_TF <- function(data, seq_depth, approach, expected_tf ) {
+  create_boxplot_TF <- function(data, seq_depth, expected_tf ) {
     # Rank the tools by median difference
     median_diff <- data %>%
       group_by(deconv_tool, dmr_tool) %>%
@@ -541,18 +538,12 @@ moduleServer(id, function(input, output, session) {
       group_by(deconv_tool) %>%
       summarise(Mean = mean(Diff, na.rm = TRUE), .groups = 'drop') %>%
       arrange(Mean)
-    # Tools with the smallest mean difference (more accurate) are placed first.
+    # Tools with the smallest mean difference (more accurate: predictions closest to expected) are placed first.
     # Tools with the largest mean difference (less accurate) are placed last.
     
     # Reorder the tools globally
     data <- data %>%
       mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool))
-    
-    # Create hover text for jitter points
-    # data <- data %>%
-    #   mutate(hover_text = paste0("deconv_tool: ", deconv_tool, "<br>",
-    #                              "predicted_tf: ", predicted_tf, "<br>",
-    #                              "dmr_tool: ", dmr_tool))
     
     # Boxplot
     ggplot(data, aes(x = deconv_tool, y = predicted_tf, fill = dmr_tool, color = dmr_tool)) +
@@ -572,20 +563,20 @@ moduleServer(id, function(input, output, session) {
   output$boxplot_TF <- renderPlotly({
     data <- filtered_data_boxplot()
     req(nrow(data) > 0)
-    plot <- create_boxplot_TF(data, input$boxplot_seqdepth_select, input$boxplot_approach_select, as.numeric(input$boxplot_exptf_select))
+    plot <- create_boxplot_TF(data, input$boxplot_seqdepth_select, as.numeric(input$boxplot_exptf_select))
     ggplotly(plot) %>% 
       layout(
         boxmode = "group"
         ) %>% 
       config(toImageButtonOptions = list(format = "png",
-                                         filename = paste0("boxplot_",input$boxplot_seqdepth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date())
+                                         filename = paste0("boxplot_",input$boxplot_tumortype_select, "_", input$boxplot_seqdepth_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date())
       ))
   })
   
   # Save dataframe boxplot as csv
   output$download_boxplot_TF_df <- downloadHandler(
     filename = function() {
-      paste0("boxplot_",input$boxplot_seqdepth_select,"_approach_",input$boxplot_approach_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date(), ".csv", sep = "")
+      paste0("boxplot_",input$boxplot_tumortype_select,"_", input$boxplot_seqdepth_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date(), ".csv", sep = "")
     },
     content = function(file) {
       data <- filtered_data_boxplot()
@@ -599,13 +590,12 @@ moduleServer(id, function(input, output, session) {
   ############################################################################ 
   ## NRMSE plot
   # Dropdowns and checkboxes nRMSE plot 
+  updateSelectInput(session, "nrmse_tumortype_select", 
+                    choices = sort(unique(bench$tumor_type)), 
+                    selected = if ("LC" %in% bench$tumor_type) "LC" else sort(unique(bench$tumor_type))[1] )
   updateSelectInput(session, "nrmse_seqdepth_select", 
                     choices = sort(unique(bench$seq_depth)), 
                     selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] )
-  updateSelectInput(session, "nrmse_approach_select", 
-                    choices = sort(unique(bench$collapse_approach)), 
-                    selected = sort(unique(bench$collapse_approach))[1])
-
   updateSelectInput(session, "nrmse_deconvtool_select", 
                     choices = sort(unique(bench$deconv_tool)), 
                     selected = sort(unique(bench$deconv_tool))[1])
@@ -615,22 +605,20 @@ moduleServer(id, function(input, output, session) {
   
   # RMSE Data Filtering
   filtered_data_nrmse <- reactive({
-    req(input$nrmse_seqdepth_select, input$nrmse_approach_select,input$nrmse_deconvtool_select, input$nrmse_dmrtools_select)
+    req(input$nrmse_tumortype_select, input$nrmse_seqdepth_select, input$nrmse_deconvtool_select, input$nrmse_dmrtools_select)
     data <- bench %>%
-      filter(seq_depth == input$nrmse_seqdepth_select, 
-             collapse_approach == input$nrmse_approach_select, 
+      filter(tumor_type == input$nrmse_tumortype_select,
+             seq_depth == input$nrmse_seqdepth_select, 
              deconv_tool == input$nrmse_deconvtool_select, 
              dmr_tool %in% input$nrmse_dmrtools_select,
              expected_tf != 0) # Exclude expected_tf == 0
     return(data)
   })    
-  head(filtered_data_nrmse)
-  str(filtered_data_nrmse)
   
   compute_nrmse_data <- function(data) {
     nrmse_data <- data %>%
       #filter(DMRtool %in% dmrtools) %>%
-      group_by(dmr_tool, expected_tf) %>%
+      group_by(dmr_tool, expected_tf, tumor_type) %>%
       summarize(NRMSE = rmse(expected_tf, predicted_tf) / mean(expected_tf), .groups = "drop") # Calculate mean RMSE
     return(nrmse_data)
   }
@@ -641,13 +629,13 @@ moduleServer(id, function(input, output, session) {
     data <- data %>%
       mutate(tooltip_text = paste0("dmr_tool: ", dmr_tool, 
                                   "<br>Expected Fraction: ", expected_tf, 
-                                  "<br>NRMSE: ", round(NRMSE, 4)))
+                                  "<br>NRMSE: ", round(NRMSE, 4),
+                                  "<br>tumor_type: ", tumor_type))
     
     # Plot 
     ggplot(data, aes(x = factor(expected_tf), y = NRMSE, color = dmr_tool, text = tooltip_text)) +
       geom_point(size = 3, alpha = 0.8,  position = position_jitter(width = 0, height = 0)) +
       labs(
-        #title = paste0("nRMSE for Tool: ", tool),
         x = "Expected fraction",
         y = "NRMSE",
         color = "dmr_tool",
@@ -665,14 +653,14 @@ moduleServer(id, function(input, output, session) {
     plot <- create_plot_nrmse(nrmse_data)
     ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
       config(toImageButtonOptions = list(format = c("svg"),
-                                         filename = paste0("NRMSE_",input$nrmse_deconvtool_select, "_depth_",input$nrmse_seqdepth_select,"_approach_",input$nrmse_approach_select,"_", Sys.Date()))
+                                         filename = paste0("NRMSE_",input$nrmse_deconvtool_select, "_", input$nrmse_tumortype_select, "_depth_",input$nrmse_seqdepth_select,"_", Sys.Date()))
       )
   })
   
   # Save dataframe nrmse plot as csv
   output$download_nrmse_plot_df <- downloadHandler(
     filename = function() {
-      paste0("NRMSE_",input$nrmse_deconvtool_select, "_depth_",input$nrmse_seqdepth_select,"_approach_",input$nrmse_approach_select,"_", Sys.Date(),".csv", sep = "")
+      paste0("NRMSE_",input$nrmse_deconvtool_select, "_", input$nrmse_tumortype_select, "_depth_",input$nrmse_seqdepth_select,"_", Sys.Date(),".csv", sep = "")
     },
     content = function(file) {
       data <- filtered_data_nrmse()
@@ -685,19 +673,12 @@ moduleServer(id, function(input, output, session) {
   ############################################################################ 
   ## Heatmap
   # Dropdowns and checkboxes heatmap
+  updateSelectInput(session, "heatmap_tumortype_select", 
+                    choices = sort(unique(bench$tumor_type)), 
+                    selected = if ("LC" %in% bench$tumor_type) "LC" else sort(unique(bench$tumor_type))[1] )
   updateSelectInput(session, "heatmap_seqdepth_select",
                     choices = sort(unique(bench$seq_depth)),
                     selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] ) 
-  updateSelectInput(session, "heatmap_approach_select", 
-                    choices = sort(unique(bench$collapse_approach)), 
-                    selected = sort(unique(bench$collapse_approach))[1])
-  
-  # updateCheckboxGroupInput(session, "heatmap_decovtools_select", 
-  #                          choices = sort(unique(bench$deconv_tool)), 
-  #                          selected = sort(unique(bench$deconv_tool)))    
-  # updateSelectInput(session, "heatmap_dmrtool_select", 
-  #                   choices = sort(unique(bench$dmr_tool)), 
-  #                   selected = sort(unique(bench$dmr_tool))[1])    
   
   observe({
     current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
@@ -712,18 +693,18 @@ moduleServer(id, function(input, output, session) {
   
   # Filter data for heatmap
   create_heatmap_data <- reactive({
-    req(input$heatmap_seqdepth_select, 
-        input$heatmap_approach_select, 
+    req(input$heatmap_tumortype_select,
+        input$heatmap_seqdepth_select, 
         input$heatmap_deconvtools_select, 
         input$heatmap_dmrtool_select)
     
     data <- bench %>%
-      filter(dmr_tool == input$heatmap_dmrtool_select,
+      filter(tumor_type == input$heatmap_tumortype_select,
+             dmr_tool == input$heatmap_dmrtool_select,
              expected_tf != 0, 
              deconv_tool %in% input$heatmap_deconvtools_select,
-             seq_depth == input$heatmap_seqdepth_select,
-             collapse_approach == input$heatmap_approach_select) %>%
-      group_by(deconv_tool,expected_tf) %>%  # Group by tool and tumoral fraction
+             seq_depth == input$heatmap_seqdepth_select) %>%
+      group_by(deconv_tool,expected_tf, tumor_type) %>%  # Group by tool and tumoral fraction
       summarize(RMSE = rmse(expected_tf, predicted_tf),
                 NRMSE = RMSE / mean(expected_tf),
                 .groups = "drop")
@@ -741,8 +722,7 @@ moduleServer(id, function(input, output, session) {
       group_by(deconv_tool) %>%
       filter(expected_tf==0.0001) %>%
       arrange(NRMSE)
-    #arrange(RMSE) 
-    
+
     plot_data$NRMSE <- as.numeric(plot_data$NRMSE)
     
     # Reorder tools globally
@@ -801,7 +781,7 @@ moduleServer(id, function(input, output, session) {
   # Save heatmap using the function
   download_heatmap_plot <- function(ext) {
     downloadHandler(
-      filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_",Sys.Date(), ".", ext, sep = ""),
+      filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_", input$heatmap_tumortype_select, "_depth_", input$heatmap_seqdepth_select,"_",Sys.Date(), ".", ext, sep = ""),
       content = function(file) {
         plot_data <- create_heatmap_data()
         plot <- create_heatmap_plot(plot_data)
@@ -815,7 +795,7 @@ moduleServer(id, function(input, output, session) {
   
   # Save dataframe heatmap as csv
   output$download_heatmap_df <- downloadHandler(
-    filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_", input$heatmap_approach_select, "_", Sys.Date(), ".csv", sep = ""),
+    filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_", input$heatmap_tumortype_select, "_depth_", input$heatmap_seqdepth_select,"_", Sys.Date(), ".csv", sep = ""),
     content = function(file) {
       plot_data <- create_heatmap_data()
       write.csv(plot_data, file, row.names = FALSE)
@@ -825,19 +805,13 @@ moduleServer(id, function(input, output, session) {
   ############################################################################     
   # AUCROC complete plot
   # Dropdowns and checkboxes AUCROC complete plot
+  updateSelectInput(session, "aucroc_complete_tumortype_select", 
+                    choices = sort(unique(bench$tumor_type)), 
+                    selected = if ("LC" %in% bench$tumor_type) "LC" else sort(unique(bench$tumor_type))[1] )
   updateSelectInput(session, "aucroc_complete_seqdepth_select", 
                     choices = sort(unique(bench$seq_depth)), 
                     selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] )
-  updateSelectInput(session, "aucroc_complete_approach_select", 
-                    choices = sort(unique(bench$collapse_approach)), 
-                    selected = sort(unique(bench$collapse_approach))[1])
-  
-  # updateCheckboxGroupInput(session, "aucroc_complete_deconvtools_select", 
-  #                          choices = sort(unique(bench$deconv_tool)), 
-  #                          selected = sort(unique(bench$deconv_tool)))
-  # updateSelectInput(session, "aucroc_complete_dmrtool_select",
-  #                   choices = sort(unique(bench$dmr_tool)),
-  #                   selected = sort(unique(bench$dmr_tool))[1])
+
   
   observe({
     current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
@@ -853,15 +827,15 @@ moduleServer(id, function(input, output, session) {
   
   
   create_aucroc_complete_data <- reactive({
-    req(input$aucroc_complete_seqdepth_select,
-        input$aucroc_complete_approach_select,
+    req(input$aucroc_complete_tumortype_select,
+        input$aucroc_complete_seqdepth_select,
         input$aucroc_complete_deconvtools_select,
         input$aucroc_complete_dmrtool_select)
     
     # Pre-filter the dataset once
     filtered_bench <- bench %>%
-      filter(seq_depth == input$aucroc_complete_seqdepth_select,
-             collapse_approach == input$aucroc_complete_approach_select,
+      filter(tumor_type ==input$aucroc_complete_tumortype_select,,
+             seq_depth == input$aucroc_complete_seqdepth_select,
              dmr_tool == input$aucroc_complete_dmrtool_select)
     
     # Define all combinations of tools × fractions
@@ -939,7 +913,7 @@ moduleServer(id, function(input, output, session) {
   # Save AUCROC using the function
   download_aucroc_complete_plot <- function(ext) {
     downloadHandler(
-      filename = function() paste0("auc_depth_",input$aucroc_complete_seqdepth_select, "_",input$aucroc_complete_approach_select, "_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".", ext, sep=""),
+      filename = function() paste0("auc_", input$aucroc_complete_tumortype_select, "_depth_",input$aucroc_complete_seqdepth_select,"_",input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".", ext, sep=""),
       content = function(file) {
         req(input$aucroc_complete_deconvtools_select, input$aucroc_complete_dmrtool_select)
         aucroc_complete_data <- create_aucroc_complete_data()
@@ -955,7 +929,7 @@ moduleServer(id, function(input, output, session) {
   # Save dataframe AUCROC plot as csv
   output$download_aucroc_complete_df <- downloadHandler(
     filename = function() {
-      paste0("auc_depth_",input$aucroc_complete_seqdepth_select, "_",input$aucroc_complete_approach_select, "_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".csv", sep="")
+      paste0("auc_", input$aucroc_complete_tumortype_select, "_depth_",input$aucroc_complete_seqdepth_select,"_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".csv", sep="")
     },
     content = function(file) {
       req(input$aucroc_complete_deconvtools_select, input$aucroc_complete_dmrtool_select)
@@ -969,20 +943,15 @@ moduleServer(id, function(input, output, session) {
   ############################################################################ 
   ## Interactive AUCROC plot
   # Dropdowns and checkboxes AUCROC
+  updateSelectInput(session, "aucroc_tumortype_select", 
+                    choices = sort(unique(bench$tumor_type)), 
+                    selected = if ("LC" %in% bench$tumor_type) "LC" else sort(unique(bench$tumor_type))[1] )
   updateSelectInput(session, "aucroc_seqdepth_select",
                     choices = sort(unique(bench$seq_depth)),
                     selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] ) 
-  updateSelectInput(session, "aucroc_approach_select", 
-                    choices = sort(unique(bench$collapse_approach)), 
-                    selected = sort(unique(bench$collapse_approach))[1])
-  
   updateSelectInput(session, "aucroc_deconvtool_select", 
                     choices = sort(unique(bench$deconv_tool)), 
                     selected = sort(unique(bench$deconv_tool))[1])
-  
-  # updateSelectInput(session, "aucroc_dmrtool_select", 
-  #                   choices = sort(unique(bench$dmr_tool)), 
-  #                   selected = sort(unique(bench$dmr_tool))[1])
   
   observe({
     current_choices <- sort(unique(bench$expected_tf))  # Get all available tools
@@ -998,8 +967,8 @@ moduleServer(id, function(input, output, session) {
   
   # Create a reactive function for AUCROC data
   create_aucroc_data <- reactive({
-    req(input$aucroc_seqdepth_select, 
-        input$aucroc_approach_select, 
+    req(input$aucroc_tumortype_select,
+        input$aucroc_seqdepth_select, 
         input$aucroc_deconvtool_select, 
         input$aucroc_dmrtool_select,
         input$aucroc_exptfs_select)
@@ -1011,8 +980,8 @@ moduleServer(id, function(input, output, session) {
     
     for (fraction in unique(fractions)) {
       filt_df <- bench %>%
-        filter(seq_depth == input$aucroc_seqdepth_select,
-               collapse_approach == input$aucroc_approach_select,
+        filter(tumor_type == input$aucroc_tumortype_select,
+               seq_depth == input$aucroc_seqdepth_select,
                expected_tf %in% c(0, fraction),
                dmr_tool == input$aucroc_dmrtool_select,
                deconv_tool == input$aucroc_deconvtool_select)
@@ -1030,7 +999,8 @@ moduleServer(id, function(input, output, session) {
           thresholds = rev(roc_curve$thresholds),
           auc = rev(roc_curve$auc),
           fraction = fraction,
-          deconv_tool = input$aucroc_deconvtool_select
+          deconv_tool = input$aucroc_deconvtool_select,
+          tumor_type = input$aucroc_tumortype_select
         )
         aucroc_data <- rbind(aucroc_data, tmp)
       }
@@ -1040,15 +1010,6 @@ moduleServer(id, function(input, output, session) {
   
   # Function to generate AUC-ROC plot
   create_aucroc_plot <- function(aucroc_data) {
-    
-    # Tooltip text for lines (FPR, TPR, fraction)
-    # aucroc_data <- aucroc_data %>%
-    #   mutate(tooltip_line = paste0("FPR: ", round(fpr, 3), "<br>TPR: ", round(tpr, 3), "<br>Fraction: ", fraction))
-    # 
-    # # Tooltip text for points (AUC value)
-    # aucroc_data <- aucroc_data %>%
-    #   mutate(tooltip_point = paste0("AUC: ", round(auc, 4)))
-    # 
     
     # Ensure correct numeric sorting and scientific labeling of fractions
     aucroc_data <- aucroc_data %>%
@@ -1074,8 +1035,6 @@ moduleServer(id, function(input, output, session) {
       
       # Labels and theme
       labs(
-        # x = "False Positive Rate (FPR)",
-        # y = "True Positive Rate (TPR)",
         x = "FPR",
         y = "TPR",
         color = "Tumoral fraction"
@@ -1089,7 +1048,7 @@ moduleServer(id, function(input, output, session) {
     plot <- create_aucroc_plot(aucroc_data)
     ggplotly(plot, tooltip = "text") %>%
       config(toImageButtonOptions = list(format = "svg",
-                                         filename = paste0("auc_", input$aucroc_tumortype_select, "_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_approach_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
+                                         filename = paste0("auc_", input$aucroc_tumortype_select, "_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
       ))
   })
   
@@ -1102,7 +1061,7 @@ moduleServer(id, function(input, output, session) {
     auc_summary <- aucroc_data %>%
       mutate(
         fraction_numeric = as.numeric(as.character(fraction)),
-        fraction_label = as.character(fraction)  # keep original display format
+        fraction_label = as.character(fraction) 
       ) %>%
       group_by(fraction_numeric, fraction_label) %>%
       summarise(AUC = round(mean(auc), 4), .groups = "drop") %>%
@@ -1116,7 +1075,7 @@ moduleServer(id, function(input, output, session) {
         dom = 't',
         pageLength = 10,
         autoWidth = TRUE,
-        ordering = FALSE  # disable sorting, we already pre-sorted correctly
+        ordering = FALSE
       ),
       class = 'compact'
     )
@@ -1125,7 +1084,7 @@ moduleServer(id, function(input, output, session) {
   # Save dataframe AUCROC plot as csv
   output$download_aucroc_df <- downloadHandler(
     filename = function() {
-      paste0("auc_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_approach_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
+      paste0("auc_",  input$aucroc_tumortype_select, "_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
     },
     content = function(file) {
       aucroc_data <- create_aucroc_data()
@@ -1138,19 +1097,16 @@ moduleServer(id, function(input, output, session) {
   ############################################################################ 
   ## RMSE comparison Plot
   # Dropdowns and checkboxes RMSE comparison plot 
+  updateSelectInput(session, "rmse_comparison_tumortype_select", 
+                    choices = sort(unique(bench$tumor_type)), 
+                    selected = if ("LC" %in% bench$tumor_type) "LC" else sort(unique(bench$tumor_type))[1] )
   updateSelectInput(session, "rmse_comparison_seqdepth_select", 
                     choices = sort(unique(bench$seq_depth)), 
                     selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] )
-  updateSelectInput(session, "rmse_comparison_approach_select", 
-                    choices = sort(unique(bench$collapse_approach)), 
-                    selected = sort(unique(bench$collapse_approach))[1])
   updateSelectInput(session, "rmse_comparison_expectedtf_select", 
                     choices = sort(unique(bench$expected_tf[bench$expected_tf != 0])), 
                     selected = if (0.1 %in% bench$expected_tf) 0.1 else sort(unique(bench$expected_tf[bench$expected_tf != 0]))[1] )
-  
-  # updateCheckboxGroupInput(session, "rmse_comparison_deconvtools_select", 
-  #                          choices = sort(unique(bench$deconv_tool)), 
-  #                          selected = sort(unique(bench$deconv_tool)))
+
   updateCheckboxGroupInput(session, "rmse_comparison_dmrtools_select", 
                            choices = sort(unique(bench$dmr_tool)), 
                            selected = sort(unique(bench$dmr_tool)))
@@ -1168,10 +1124,15 @@ moduleServer(id, function(input, output, session) {
   
   # RMSE tool comparison Data Filtering
   filtered_data_rmse_comparison <- reactive({
-    req(input$rmse_comparison_seqdepth_select,input$rmse_comparison_approach_select, input$rmse_comparison_expectedtf_select, input$rmse_comparison_deconvtools_select, input$rmse_comparison_dmrtools_select)
+    req(input$rmse_comparison_tumortype_select,
+        input$rmse_comparison_seqdepth_select,
+        input$rmse_comparison_expectedtf_select, 
+        input$rmse_comparison_deconvtools_select, 
+        input$rmse_comparison_dmrtools_select)
+    
     bench %>%
-      filter(seq_depth == input$rmse_comparison_seqdepth_select,
-             collapse_approach == input$rmse_comparison_approach_select, 
+      filter(tumor_type == input$rmse_comparison_tumortype_select,
+             seq_depth == input$rmse_comparison_seqdepth_select,
              expected_tf == input$rmse_comparison_expectedtf_select,
              expected_tf != 0, # Exclude expected_tf == 0
              dmr_tool %in% input$rmse_comparison_dmrtools_select,
@@ -1184,7 +1145,6 @@ moduleServer(id, function(input, output, session) {
     
     # Calculate RMSE
     plot_data <- data %>%
-      #filter(deconv_tool != 'Methyl_Resolver') %>%
       group_by(deconv_tool, dmr_tool) %>%
       summarise(RMSE = rmse(expected_tf, predicted_tf), .groups = "drop")
     
@@ -1204,7 +1164,6 @@ moduleServer(id, function(input, output, session) {
     
     # Reorder the tools globally
     plot_data <- plot_data %>%
-      # mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool)) %>%
       mutate(tooltip_text = paste0("dmr_tool: ", dmr_tool, 
                                   "<br>deconv_tool: ", deconv_tool,
                                   "<br>RMSE: ", round(RMSE, 4)))
@@ -1214,15 +1173,12 @@ moduleServer(id, function(input, output, session) {
       geom_point(size = 3, alpha = 0.8, position = position_jitter(width = 0, height = 0) ) +
       scale_y_discrete(labels = function(y) str_replace_all(y, "_", " ")) +
       labs(
-        #title = paste0("RMSE vs Tool (Expected Fraction: ", fraction, ")"),
         x = "RMSE",
         y = "",
         color = "dmr_tool",
         shape = "dmr_tool"
       ) + theme_benchmarking + 
-      theme(#legend.text = element_text(size = 13),
-        #legend.title = element_text(size = 14),
-        #axis.title.x = element_text(size = 15),
+      theme(
         axis.ticks.y = element_blank(),
         axis.line.y = element_blank(),
         panel.grid.major.y = element_line(color = "lightgrey", linewidth = 0.4),
@@ -1239,18 +1195,19 @@ moduleServer(id, function(input, output, session) {
     plot <- create_rmse_comparison_plot(data)
     ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
       config(toImageButtonOptions = list(format = c("svg","pdf"),
-                                         filename = paste0("ranking_deconvtools_fraction_", as.numeric(input$rmse_comparison_expectedtf_select),"_depth_",input$rmse_comparison_seqdepth_select,"_", Sys.Date())
+                                         filename = paste0("ranking_deconvtools_", input$rmse_comparison_tumortype_select, "_fraction_", as.numeric(input$rmse_comparison_expectedtf_select),"_depth_",input$rmse_comparison_seqdepth_select,"_", Sys.Date())
       ))
   })
   
   # Save dataframe rmse comparison plot as csv
   output$download_rmse_comparison_df <- downloadHandler(
-    filename = function() paste0("ranking_deconvtools_fraction_", as.numeric(input$rmse_comparison_expectedtf_select), "_depth_", input$rmse_comparison_seqdepth_select,"_", Sys.Date(), ".csv", sep = ""),
+    filename = function() paste0("ranking_deconvtools_", input$rmse_comparison_tumortype_select, "_fraction_", as.numeric(input$rmse_comparison_expectedtf_select), "_depth_", input$rmse_comparison_seqdepth_select,"_", Sys.Date(), ".csv", sep = ""),
     content = function(file) {
       data <- filtered_data_rmse_comparison() %>%
         group_by(deconv_tool, dmr_tool) %>%
         summarise(RMSE = rmse(expected_tf, predicted_tf), .groups = "drop") %>%
-        select(deconv_tool, dmr_tool, RMSE)
+        mutate(tumor_type = input$rmse_comparison_tumortype_select) %>%
+        select(tumor_type, deconv_tool, dmr_tool, RMSE)
       req(nrow(data) > 0)
       write.csv(data, file, row.names = FALSE)
     }
@@ -1260,16 +1217,13 @@ moduleServer(id, function(input, output, session) {
   ############################################################################ 
   ## Final ranking of the tools 
   # Dropdowns and checkboxes Rank tools
+  updateSelectInput(session, "rank_tumortype_select", 
+                    choices = sort(unique(bench$tumor_type)), 
+                    selected = if ("LC" %in% bench$tumor_type) "LC" else sort(unique(bench$tumor_type))[1] )
   updateSelectInput(session, "rank_seqdepth_select",
                     choices = sort(unique(bench$seq_depth)),
                     selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] ) 
-  updateSelectInput(session, "rank_approach_select", 
-                    choices = sort(unique(bench$collapse_approach)), 
-                    selected = sort(unique(bench$collapse_approach))[1])
   
-  # updateCheckboxGroupInput(session, "rank_deconvtools_select", 
-  #                          choices = sort(unique(bench$deconv_tool)), 
-  #                          selected = sort(unique(bench$deconv_tool)))
   updateCheckboxGroupInput(session, "rank_dmrtools_select", 
                            choices = sort(unique(bench$dmr_tool)), 
                            selected = sort(unique(bench$dmr_tool)))
@@ -1284,15 +1238,15 @@ moduleServer(id, function(input, output, session) {
     updateCheckboxGroupInput(
       session, "rank_deconvtools_select",
       choices = current_choices,
-      selected = if (input$rank_deconvtools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+      selected = if (input$rank_deconvtools_select_all) current_choices else character(0) 
     )
   })
   
   
   # Merge AUC-ROC, RMSE, SCC
   merge_metrics_rank <- reactive({
-    req(input$rank_seqdepth_select, # Ensure inputs exist before running
-        input$rank_approach_select,
+    req(input$rank_tumortype_select, 
+        input$rank_seqdepth_select, 
         input$rank_dmrtools_select,
         input$rank_deconvtools_select)
     
@@ -1302,8 +1256,8 @@ moduleServer(id, function(input, output, session) {
     miss <- c() # Initialize missing tool tracker
     
     filt_df <- bench %>%
-      filter(seq_depth == input$rank_seqdepth_select,
-             collapse_approach == input$rank_approach_select,
+      filter(tumor_type == input$rank_tumortype_select,
+             seq_depth == input$rank_seqdepth_select,
              dmr_tool %in% input$rank_dmrtools_select,
              deconv_tool %in% input$rank_deconvtools_select)
     
@@ -1331,7 +1285,6 @@ moduleServer(id, function(input, output, session) {
             fraction = fraction,                                       
             deconv_tool = deconv_tool,                                 
             dmr_tool = dmr_tool,                                       
-            collapse_approach = input$rank_approach_select,            
             seq_depth = input$rank_seqdepth_select                     
           ))                                                           
         }
@@ -1340,7 +1293,7 @@ moduleServer(id, function(input, output, session) {
 
     # Compute mean AUC Grouped Performance
     classif_performance_auc <- aucroc_data %>%                        
-      group_by(deconv_tool, dmr_tool, collapse_approach, seq_depth) %>%  
+      group_by(deconv_tool, dmr_tool, seq_depth) %>%  
       summarize(meanAUC = mean(auc), .groups = 'drop')                
 
     
@@ -1348,17 +1301,17 @@ moduleServer(id, function(input, output, session) {
     # Compute RMSE for fractions > 0
     nonzero_fraction <- filt_df %>%
       filter(expected_tf != 0) %>%
-      group_by(deconv_tool, dmr_tool, collapse_approach, seq_depth) %>%
+      group_by(deconv_tool, dmr_tool, seq_depth) %>%
       summarize(RMSE = rmse(expected_tf, predicted_tf), .groups = 'drop')
     
     # Compute Spearman's rank correlation coefficient (SCC) on all fractions
     all_fractions <- filt_df %>%
-      group_by(deconv_tool, dmr_tool, seq_depth, collapse_approach) %>%
+      group_by(deconv_tool, dmr_tool, seq_depth) %>%
       summarize(SCC = scc(expected_tf, predicted_tf), .groups = 'drop')
     
     # Merge all computed metrics
-    merged_metrics <- merge(all_fractions, nonzero_fraction, by = c("deconv_tool", "dmr_tool", "collapse_approach", "seq_depth"))
-    merged_metrics <- merge(merged_metrics, classif_performance_auc, by = c("deconv_tool", "dmr_tool", "collapse_approach", "seq_depth"))
+    merged_metrics <- merge(all_fractions, nonzero_fraction, by = c("deconv_tool", "dmr_tool", "seq_depth"))
+    merged_metrics <- merge(merged_metrics, classif_performance_auc, by = c("deconv_tool", "dmr_tool", "seq_depth"))
     return(merged_metrics)
   })
   
@@ -1373,7 +1326,6 @@ moduleServer(id, function(input, output, session) {
     for (dmr_tool in input$rank_dmrtools_select) {
       tmp <- merged_metrics %>%
         filter(dmr_tool == dmr_tool,
-               collapse_approach == input$rank_approach_select,
                seq_depth == input$rank_seqdepth_select)
       
       # Skip if df is empty
@@ -1395,8 +1347,8 @@ moduleServer(id, function(input, output, session) {
       
       
       # Append the normalized subset to the list
-      key <- paste0(dmr_tool, input$rank_seqdepth_select, input$rank_approach_select, sep = "_")
-      normalized_list[[key]] <- tmp[, c("deconv_tool", "dmr_tool", "collapse_approach", "seq_depth", 
+      key <- paste0(dmr_tool, input$rank_seqdepth_select, sep = "_")
+      normalized_list[[key]] <- tmp[, c("deconv_tool", "dmr_tool", "seq_depth", 
                                         "meanAUC", "RMSE", "SCC", "normAUC", "normSCC", "normRMSE" )]
     }
     
@@ -1405,8 +1357,8 @@ moduleServer(id, function(input, output, session) {
     
     # Create a combined metric score
     filt_df <- bench %>%
-      filter(seq_depth == input$rank_seqdepth_select,
-             collapse_approach == input$rank_approach_select,
+      filter(tumor_type == input$rank_tumortype_select,
+             seq_depth == input$rank_seqdepth_select,
              dmr_tool %in% input$rank_dmrtools_select, 
              deconv_tool %in% input$rank_deconvtools_select)
     
@@ -1419,6 +1371,8 @@ moduleServer(id, function(input, output, session) {
       (nnonzeros / tot) * (normalized_df$normRMSE) + 
       normalized_df$normSCC
     
+    normalized_df$tumor_type <- input$rank_tumortype_select
+  
     return(normalized_df)
   })
   
@@ -1448,15 +1402,12 @@ moduleServer(id, function(input, output, session) {
     ggplot(data, aes(y = as.factor(deconv_tool), x = .data[[metric]], color = dmr_tool, text = tooltip_text)) +
       geom_point(size = 3, alpha = 0.8) +
       labs(
-        #title = paste0("Tools Ranked by ", metric),
         x = metric,
         y = ""
       ) +
       scale_x_continuous(breaks = scales::pretty_breaks(n = 5)) +  
       theme_benchmarking +  
-      theme(#legend.text = element_text(size = 13),
-        #legend.title = element_text(size = 14),
-        #axis.title.x = element_text(size = 15),
+      theme(
         axis.ticks.y = element_blank(),
         axis.line.y = element_blank(),
         panel.grid.major.y = element_line(color = "lightgrey", linewidth = 0.4),
@@ -1472,14 +1423,14 @@ moduleServer(id, function(input, output, session) {
     plot <- create_plot_ranking(input$rank_metric_select)
     ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
       config(toImageButtonOptions = list(format = "svg",
-                                         filename = paste0("rank_",input$rank_metric_select,"_depth_",input$rank_seqdepth_select, "_",input$rank_approach_select,"_",Sys.Date())
+                                         filename = paste0("rank_",input$rank_tumortype_select,"_",input$rank_metric_select,"_depth_",input$rank_seqdepth_select,"_",Sys.Date())
       ))
   })
   
   # Download data of rank plots
   output$download_rank_df <- downloadHandler(
     filename = function() {
-      paste0("rank_",input$rank_metric_select,"_depth_",input$rank_seqdepth_select, "_",input$rank_approach_select,"_",Sys.Date(), ".csv", sep = "")
+      paste0("rank_",input$rank_tumortype_select,"_",input$rank_metric_select,"_depth_",input$rank_seqdepth_select,"_",Sys.Date(), ".csv", sep = "")
     },
     content = function(file) {
       merged_metrics <- merge_metrics_rank()
@@ -1544,14 +1495,14 @@ moduleServer(id, function(input, output, session) {
   #   # Compute RMSE for fractions > 0
   #   nonzero_fraction <- filt_df %>%
   #     filter(expected_tf != 0) %>%
-  #     group_by(deconv_tool, dmr_tool, seq_depth, collapse_approach) %>%
+  #     group_by(deconv_tool, dmr_tool, seq_depth) %>%
   #     summarize(RMSE = replace_na(rmse(expected_tf, predicted_tf),1), .groups = 'drop') %>%
   #     group_by(deconv_tool,dmr_tool) %>%
   #     summarize(meanRMSE = mean(RMSE), .groups = 'drop')
   # 
   #   # Compute Spearman's rank correlation coefficient (SCC) on all fractions
   #   all_fractions <- filt_df %>%
-  #     group_by(deconv_tool, dmr_tool, seq_depth, collapse_approach) %>%
+  #     group_by(deconv_tool, dmr_tool, seq_depth) %>%
   #     summarize(SCC = replace_na(scc(expected_tf, predicted_tf),0), .groups = 'drop') %>%
   #     group_by(deconv_tool,dmr_tool) %>%
   #     summarize(meanSCC = mean(SCC))
@@ -1711,21 +1662,16 @@ moduleServer(id, function(input, output, session) {
   
   ############################################################################ 
   ## LoD
-  # Dropdowns and checkboxes LoD    
+  # Dropdowns and checkboxes LoD  
+  updateSelectInput(session, "lod_tumortype_select", 
+                    choices = sort(unique(bench$tumor_type)), 
+                    selected = if ("LC" %in% bench$tumor_type) "LC" else sort(unique(bench$tumor_type))[1] )
   updateSelectInput(session, "lod_seqdepth_select",
                     choices = sort(unique(bench$seq_depth)),
                     selected = if ("20M" %in% bench$seq_depth) "20M" else sort(unique(bench$seq_depth))[1] ) 
-  updateSelectInput(session, "lod_approach_select", 
-                    choices = sort(unique(bench$collapse_approach)), 
-                    selected = sort(unique(bench$collapse_approach))[1])
-  
-  updateSelectInput(session, "lod_deconvtool_select",
+    updateSelectInput(session, "lod_deconvtool_select",
                     choices = sort(unique(bench$deconv_tool)),
                     selected = sort(unique(bench$deconv_tool))[1])    
-  # updateSelectInput(session, "lod_dmrtool_select", 
-  #                   choices = sort(unique(bench$dmr_tool)), 
-  #                   selected = sort(unique(bench$dmr_tool))[1])  
-  
   updateSelectInput(session, "lod_plabel_select", 
                     choices = c("p", "p.adj", "p.adj.stars"),
                     selected = "p.adj.stars")
@@ -1781,14 +1727,14 @@ moduleServer(id, function(input, output, session) {
 
   # Filter data for LoD
   create_lod_data <- reactive({
-    req(input$lod_seqdepth_select, 
-        input$lod_approach_select, 
+    req(input$lod_tumortype_select,
+        input$lod_seqdepth_select, 
         input$lod_deconvtool_select, 
         input$lod_dmrtool_select)
     
     data <- bench %>%
-      filter(dmr_tool == input$lod_dmrtool_select,
-             collapse_approach == input$lod_approach_select,
+      filter(tumor_type == input$lod_tumortype_select,
+             dmr_tool == input$lod_dmrtool_select,
              seq_depth == input$lod_seqdepth_select,
              deconv_tool == input$lod_deconvtool_select)
     return(data)
@@ -1819,7 +1765,7 @@ moduleServer(id, function(input, output, session) {
   # Save lod plot as svg and pdf
   download_lod <- function(ext) {
     downloadHandler(
-      filename = function() paste0("LoD_", input$lod_deconvtool_select, "_depth_", input$lod_seqdepth_select, "_", input$lod_approach_select,"_", input$lod_dmrtool_select, "_" , Sys.Date(), ".", ext, sep = ""),
+      filename = function() paste0("LoD_", input$lod_tumortype_select, "_", input$lod_deconvtool_select, "_depth_", input$lod_seqdepth_select, "_", input$lod_dmrtool_select, "_" , Sys.Date(), ".", ext, sep = ""),
       content = function(file) {
         data <- create_lod_data()
         req(nrow(data) > 0)
@@ -1835,7 +1781,7 @@ moduleServer(id, function(input, output, session) {
   
   # Save dataframe lod as csv
   output$download_lod_df <- downloadHandler(
-    filename = function() paste0("LoD_", input$lod_deconvtool_select, "_depth_", input$lod_seqdepth_select, "_", input$lod_approach_select,"_", input$lod_dmrtool_select, "_" , Sys.Date(), ".csv", sep = ""),
+    filename = function() paste0("LoD_", input$lod_tumortype_select, "_", input$lod_deconvtool_select, "_depth_", input$lod_seqdepth_select, "_", input$lod_dmrtool_select, "_" , Sys.Date(), ".csv", sep = ""),
     content = function(file) {
       data <- create_lod_data()
       stats <- perform_custom_wilcox_tests(data, my_comparisons)
