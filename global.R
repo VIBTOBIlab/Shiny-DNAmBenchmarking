@@ -185,13 +185,11 @@ footer_citation <- function() {
 #### 5. Load and Preprocess Benchmarking Data ####
 
 # Define path to input dataset (must be mounted or present in repo)
-data_csv_path <- "results/benchmarking_dataset.csv"
+data_csv_path <- "results/final_benchmarking_dataset.csv"
 
 if (!file.exists(data_csv_path)) {
   stop("Dataset not found at 'results/benchmarking_dataset.csv'. Please run the container with:\n  -v /path/to/your.csv:results/benchmarking_dataset.csv")
 }
-
-message("Using dataset at: ", data_csv_path)
 
 # Load dataset
 combined_data <- read.csv(data_csv_path)
@@ -199,18 +197,13 @@ combined_data <- read.csv(data_csv_path)
 # Filter and clean data
 tot_bench <- subset(
   combined_data,
-  expected_tf %in% c(0, 0.0001, 0.001, 0.003, 0.007, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5) &
-    deconv_tool != "Methyl_Resolver" &
-    mixture_type == "in_silico"
+  deconv_tool != "Methyl_Resolver" 
 )
-  
-# Rename tumor types
-tot_bench$tumor_type[tot_bench$tumor_type == "neuroblastoma"] <- "NBL"
-  
+
 # Convert selected columns to factors
 tot_bench <- tot_bench %>%
   mutate(across(
-    c(deconv_tool, dmr_tool, seq_depth, tumor_type, collapse_approach,
+    c(deconv_tool, dmr_tool, tumor_type, #seq_depth,
       mixture_type, seq_method),
     as.factor
   ))
@@ -220,8 +213,7 @@ tool_map <- c(
   "EpiDISH_CP_eq" = "Houseman's CP/QP w/equality",
   "EpiDISH_CP_ineq" = "Houseman's CP/QP w/inequality",
   "EpiDISH_RPC" = "EpiDISH RPC",
-  "meth_atlas" = "MethAtlas",
-  "Methyl_Resolver" = "MethylResolver"
+  "meth_atlas" = "MethAtlas"
 )
   
 levels(tot_bench$deconv_tool) <- ifelse(
