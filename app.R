@@ -7,7 +7,7 @@
 
 # Load UI/server module components
 source("modules/home_static.R")
-source("modules/metrics.R")
+source("modules/plots.R")
 source("modules/information.R")
 source("modules/contact.R")
 
@@ -38,7 +38,7 @@ ui <- fluidPage(
         
         # Tabs
         homeTabUI("home"),
-        metricsTabUI("plots"),
+        plotsTabUI("plots"),
         informationTabUI("information"),
         contactTabUI("contact"),
         
@@ -76,7 +76,7 @@ server <- function(input, output, session) {
   
   # Activate server logic for each module
   homeTabServer("home")
-  metricsTabServer("plots")
+  plotsTabServer("plots")
   informationTabServer("information")
   contactTabServer("contact")
   
@@ -91,7 +91,7 @@ server <- function(input, output, session) {
     }
   })
   
-  print(sessionInfo())
+  #print(sessionInfo())
 }
 
 #### 4. Run the Application ####
