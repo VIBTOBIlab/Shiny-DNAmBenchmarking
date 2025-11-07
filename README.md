@@ -60,7 +60,6 @@ docker run -p 3838:3838 \
   -v "$(pwd)/results/benchmarking_dataset.csv":/home/app/results/benchmarking_dataset.csv \
   sofvdvel/rshiny-dnambenchmarking_amd:v1
 ```
-Open: [http://localhost:3838](http://localhost:3838). 
 
 #### ▶️ Singularity
 ```bash
@@ -69,8 +68,9 @@ singularity run \
   --bind "$(pwd)/results":/home/app/results \
   rshiny-dnambenchmarking_amd_v1.sif
 ```
-Open: [http://localhost:3838](http://localhost:3838). 
 
+### 4. Open the app
+After the container starts, open: [http://localhost:3838](http://localhost:3838). 
 
 ## Credits
 The scripts and containers have been written and built by [Sofie Van de Velde](https://github.com/sofvdvel), who is also the maintainer.
