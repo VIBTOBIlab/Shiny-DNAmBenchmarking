@@ -1,64 +1,45 @@
-# Using Singularity to Run Shiny-DNAmBenchmarking
+# Run Shiny-DNAmBenchmarking using Singularity
+This guide shows how to launch the **Shiny DNAmBenchmarking** app with [Singularity/Apptainer](https://sylabs.io/singularity/), commonly used on HPC systems. It uses the Docker image `sofvdvel/rshiny-dnambenchmarking_amd:v1` and converts it to a local `.sif`.
 
-This guide explains how to run the **[Shiny web application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/)** application using [Singularity](https://sylabs.io/singularity/), which is commonly used in HPC environments as an alternative to Docker.
-
-
-## Quick Start
-
-### 1. Input File
-The app requires an input CSV file with the following structure. The default file `results/benchmarking_dataset.csv` is included in the repository, but you can provide your own.
-
-Make sure your file uses **comma delimiters** and contains the following columns:
+## Prerequisites
+- Singularity (or Apptainer) installed and available on your system
+- Your benchmarking input CSV (or use the repo’s default at `results/benchmarking_dataset.csv`)
 
 
-| Column Name         | Description                                                              |
-|---------------------|---------------------------------------------------------------------------|
-| `sample`             | Sample identifier   |
-| `predicted_tf`      | Predicted tumoral factor (TF) for the sample                        |
-| `deconv_tool`       | Deconvolution tool used                     |
-| `unknown`           | Unknown fraction                                          |
-|`dmr_tool`          | DMR method used                            |
-| `seq_depth`         | Sequencing depth                                   |
-| `tumor_type`        | Tumor type|
-| `collapse_approach` | Method of collapsing                                                 |
-| `mixture_type`      | Type of mixture                                     |
-| `seq_method`        | Sequencing method                                |
-| `expected_tf`       | Expected tumoral factor (TF) for the sample                        |
-
-📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](results/benchmarking_dataset.csv) for reference.
-
-
-### 2. Pull the Docker Image as a Singularity Image
-You can pull the Docker image and convert it into a local `.sif` file using:
+## Usage
+### 1. Pull the image
+Create a local SIF file from the Docker image:
 ```bash
 singularity pull docker://sofvdvel/rshiny-dnambenchmarking_amd:v1
 ```
-This creates the image file: `rshiny-dnambenchmarking_amd_v1.sif`
+This produces: `rshiny-dnambenchmarking_amd_v1.sif`
 
-
-### 3. Run the App
-Assuming you are in the project root and your dataset is at results/benchmarking_dataset.csv: 
+### 2. Run the container
+#### ✅ Option A: Use the repo's default dataset
+Bind-mount the results/benchmarking_dataset.csv into the expected path:
 ```bash
 singularity run \
-  --bind "$(pwd)/results":/home/app/results \
+  --bind "$(pwd)/results/benchmarking_dataset.csv":/home/app/results/benchmarking_dataset.csv \
+  rshiny-dnambenchmarking_amd_v1.sif
+```
+#### ✅ Option B: Use your own dataset
+Replace `my_custom_dataset.csv` with the path to your file:
+```bash
+singularity run \
+  --bind "$(pwd)/my_custom_dataset.csv":/home/app/results/benchmarking_dataset.csv \
   rshiny-dnambenchmarking_amd_v1.sif
 ```
 
-### 4. Accessing the Application
-After running the container, you can access the Shiny application in your web browser at:
+### 3. Open the app
+After the container starts, open:
 ```arduino
 http://localhost:3838
 ```
-If you're running on a remote server, replace localhost with the server's IP address.
-
-
-## Notes
-* **No build required**: the image includes all dependencies and app code.
-* **Dataset is not included:** You must mount the folder containing your dataset at runtime using `-bind`.
-* **Default port:** `3838` is used by Shiny. You can map it to a different host port if needed:
+To use a different host port (e.g., 8888), start Shiny explicitly on that port:
 ```bash
 singularity exec \
-  --bind "$(pwd)/results":/home/app/results \
+  --bind "$(pwd)/results/benchmarking_dataset.csv":/home/app/results/benchmarking_dataset.csv \
   rshiny-dnambenchmarking_amd_v1.sif \
-  Rscript -e "shiny::runApp('/home/app', host = '0.0.0.0', port = 8888)"
+  R -q -e "shiny::runApp('/home/app', host='0.0.0.0', port=8888)"
+# → open http://localhost:8888
 ```

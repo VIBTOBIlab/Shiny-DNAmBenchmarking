@@ -1,50 +1,58 @@
-# Shiny Application DNAmBenchmarking
+# Shiny DNAmBenchmarking
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
-[![Run with Conda](http://img.shields.io/badge/run%20with-conda-3EB049?labelColor=000000&logo=anaconda)](https://docs.conda.io/en/latest/)
 [![run with Singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
 
-## Introduction 
-This **[Shiny application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/)** allows users to visualize and analyze the results of the benchmarking study, providing an intuitive interface for exploring the data.
-
-> **Full Name of Paper**
-> 
-> Edoardo Giuili, Maísa R Ferro dos Santos, Sofie Van de Velde, ... Sam Kint, Celine Everaert, Katleen De Preter. 
-> 
-> _Nat Biotechnol._ 2020 Feb 13. doi: [10.1038/s41587-020-0439-x](https://dx.doi.org/10.1038/s41587-020-0439-x).
+## Paper
+> **A benchmark of DNA methylation deconvolution methods for tumoral fraction estimation using DecoNFlow.**
+>
+> Edoardo Giuili, Sofie Van de Velde, Sam Kint, Maísa R Ferro dos Santos, Lotte Corneli, Sofie Roelandt, Kathleen Schoofs, Renske Imschoot, Ruben Van Paemel, Leander Meuris, Celine Everaert, Katleen De Preter
+>
+> doi: XXXX 
 
 
-## Usage
-### 1. Clone the repository
+## Overview
+This [Shiny application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/) allows users to visualize and analyze the results of the benchmarking study, providing an intuitive interface for exploring the data.
 
+## Background
+**DecoNFlow** is a bioinformatics pipeline for computational deconvolution of DNA methylation data, supporting both reference-based and reference-free tools. Learn more: [VIBTOBIlab/DecoNFlow](https://github.com/VIBTOBIlab/DecoNFlow).
+
+
+## Quick Start
+### 1. Clone
 ```bash
 git clone git@github.com:VIBTOBIlab/Shiny-DNAmBenchmarking.git
 cd Shiny-DNAmBenchmarking/
 ```
 
-### 2. Input File
-The app requires an input CSV file with the following structure. The default file `results/benchmarking_dataset.csv` is included in the repository, but you can provide your own.
+### 2. Input format
+By default het app loads [results/benchmarking_dataset.csv](results/benchmarking_dataset.csv). 
+If you provide your own CSV, include these columns:
 
-Make sure your file uses **comma delimiters** and contains the following columns:
-
-
-| Column Name         | Description                                                              |
-|---------------------|---------------------------------------------------------------------------|
+| Column Name         | Description |
+|---------------------|----------------------------------|
 | `sample`             | Sample identifier   |
-| `predicted_tf`      | Predicted tumoral factor (TF) for the sample                        |
-| `deconv_tool`       | Deconvolution tool used                     |
-| `unknown`           | Unknown fraction                                         |
-|`dmr_tool`          | DMR method used                            |
-| `seq_depth`         | Sequencing depth                                   |
+| `predicted_tf`      | Predicted tumoral factor (TF) for the sample  |
+| `deconv_tool`       | Deconvolution tool used |
+| `unknown`           | Unknown fraction  |
+|`dmr_tool`          | DMR method used |
+| `seq_depth`         | Sequencing depth |
 | `tumor_type`        | Tumor type|
-| `collapse_approach` | Method of collapsing                                                 |
-| `mixture_type`      | Type of mixture                                     |
-| `seq_method`        | Sequencing method                                |
-| `expected_tf`       | Expected tumoral factor (TF) for the sample                        |
+| `collapse_approach` | Method of collapsing   |
+| `mixture_type`      | Type of mixture |
+| `seq_method`        | Sequencing method |
+| `expected_tf`       | Expected tumoral factor (TF) for the sample  |
 
-📎 Tip: You can inspect the structure of the default [results/benchmarking_dataset.csv](results/benchmarking_dataset.csv) for reference.
+**Example (first rows):**
+```csv 
+sample,predicted_tf,deconv_tool,tumor_type,dmr_tool,seq_depth,seq_method,mixture_type,expected_tf
+healthy_merged_BRCA_0.0001_310000000_rep1,0.025818,UXM,BRCA,wgbstools,310M,wgbs,in_silico,1.00E-04
+healthy_merged_BRCA_0.0001_310000000_rep10,0.0057756,UXM,BRCA,wgbstools,310M,wgbs,in_silico,1.00E-04
+healthy_merged_BRCA_0.0001_310000000_rep2,0.0138815,UXM,BRCA,wgbstools,310M,wgbs,in_silico,1.00E-04
+```
+Place your file at `results/benchmarking_dataset.csv` or bind-mount it as shown below.
 
-### 3. Run the App
-For more details on how to install and run Shiny application via Conda, Docker and Singularity, please refer to the [documentation](./docs).
+### 3. Run the app
+For more information, please refer to the [docs/](./docs).
 
 #### ▶️ Docker
 ```bash
@@ -52,11 +60,8 @@ docker run -p 3838:3838 \
   -v "$(pwd)/results/benchmarking_dataset.csv":/home/app/results/benchmarking_dataset.csv \
   sofvdvel/rshiny-dnambenchmarking_amd:v1
 ```
-#### ▶️ Conda
-```bash
-conda activate rshiny-4.4.3
-R --no-save -e "shiny::runApp(appDir = '/path/to/app/', host = '0.0.0.0', port = 3838)"
-```
+Open: [http://localhost:3838](http://localhost:3838). 
+
 #### ▶️ Singularity
 ```bash
 singularity pull docker://sofvdvel/rshiny-dnambenchmarking_amd:v1
@@ -64,12 +69,14 @@ singularity run \
   --bind "$(pwd)/results":/home/app/results \
   rshiny-dnambenchmarking_amd_v1.sif
 ```
+Open: [http://localhost:3838](http://localhost:3838). 
+
 
 ## Credits
-This Shiny-DNAmBenchmarking was developed and maintained by [Sofie Van de Velde](https://github.com/sofvdvel).
+The scripts and containers have been written and built by [Sofie Van de Velde](https://github.com/sofvdvel), who is also the maintainer.
 
 ## Support
 If you encounter any issues or have questions, please:
-* [Open an issue on GitHub](https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/issues)
-* Or contact the maintainer directly. 
+* [Open an issue](https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/issues)
+* Or contact the maintainer directly
 
