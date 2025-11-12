@@ -33,11 +33,9 @@ If you provide your own CSV, include these columns:
 | `sample`             | Sample identifier   |
 | `predicted_tf`      | Predicted tumoral factor (TF) for the sample  |
 | `deconv_tool`       | Deconvolution tool used |
-| `unknown`           | Unknown fraction  |
+| `tumor_type`        | Tumor type|
 |`dmr_tool`          | DMR method used |
 | `seq_depth`         | Sequencing depth |
-| `tumor_type`        | Tumor type|
-| `collapse_approach` | Method of collapsing   |
 | `mixture_type`      | Type of mixture |
 | `seq_method`        | Sequencing method |
 | `expected_tf`       | Expected tumoral factor (TF) for the sample  |
