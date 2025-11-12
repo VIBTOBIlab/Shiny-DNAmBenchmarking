@@ -3,10 +3,9 @@
 [![run with Singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
 
 ## Paper
-> **A benchmark of DNA methylation deconvolution methods for tumoral fraction estimation using DecoNFlow.**
+> **XXX**
 >
-> Edoardo Giuili, Sofie Van de Velde, Sam Kint, Maísa R Ferro dos Santos, Lotte Cornelli, Sofie Roelandt, Kathleen Schoofs, Renske Imschoot, Ruben Van Paemel, Leander Meuris, Celine Everaert, Katleen De Preter
->
+> XXX,XXX,XXX
 > doi: XXXX 
 
 
