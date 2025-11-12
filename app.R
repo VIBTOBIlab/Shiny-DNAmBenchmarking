@@ -17,9 +17,12 @@ source("global.R")
 #### 2. UI Definition ####
 ui <- fluidPage(
   class = "app-body",
-  tags$head(
-    includeCSS("www/styles.css")
-  ),
+  
+  # Good mobile viewport
+  tags$head(tags$meta(name = "viewport", content = "width=device-width, initial-scale=1")),
+  # App stylesheet
+  tags$head(includeCSS("www/styles.css")),
+  
   div(
     class = "app-container",
     
@@ -42,33 +45,32 @@ ui <- fluidPage(
         informationTabUI("information"),
         contactTabUI("contact"),
         
-        # GitHub icon
+        # Right side icons (groups)
         nav_spacer(),
         nav_item(
-          tags$a(
-            href = "https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/",
-            target = "_blank",
-            class = "github-icon-button",
-            title = "View on GitHub",
-            HTML("<i class='fa fa-github fa-lg'></i>")
+          div(class = "navbar-icons",
+              tags$a(
+                href   = "https://github.com/TOBIlab/DecoNFlow",
+                target = "_blank", rel = "noopener",
+                class  = "nextflow-icon-button",
+                title  = "Check out Nextflow pipeline TOBIlab/DecoNFlow",
+                tags$img(src = "nextflow.png", alt = "Nextflow")
+              ),
+              tags_a <- tags$a(
+                href   = "https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/",
+                target = "_blank",
+                class  = "github-icon-button",
+                title  = "View the code for Shiny app on GitHub",
+                HTML("<i class='fa fa-github fa-lg'></i>")
+              )
           )
         )
       )
     ),
-    
     # Footer area (conditionally rendered via uiOutput)
     uiOutput("conditionalFooter")
-    
-    # Footer area
-    # div(
-    #   class = "app-footer-wrapper",
-    #   lapply(1:5, function(x) tags$br()),
-    #   spsGoTop("default"),
-    #   footer_citation()
-    # )
   )
 )
-
 
 #### 3. Server Logic ####
 
