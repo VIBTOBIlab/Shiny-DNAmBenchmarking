@@ -39,21 +39,19 @@ contactTabUI <- function(id) {
       tags$div(
         style = "margin-top: 10px; text-align: center;",
         tags$p(
-          style = "text-align: center;font-size: 12px;",
+          style = "text-align: center;font-size: 14px;",
           HTML("<b>Shiny App</b><br>Sofie Van de Velde")
         ),
         tags$p(
-          style = "text-align: center;font-size: 12px;",
-          HTML("<b>R Code</b><br>Edoardo Giuili<br>Maísa Renata Ferro Dos Santos")
+          style = "text-align: center;font-size: 14px;",
+          HTML("<b>R Code</b><br>Edoardo Giuili")
         ),
         tags$p(
-          style = "text-align: center; font-size: 12px;",
+          style = "text-align: center; font-size: 14px;",
           HTML("<b>Supervision</b><br>Prof. Dr. Ir. Katleen De Preter<br> Prof. Dr. Celine Everaert")
         )
       ),
       
-      br(), br(), 
-
       # Logos in 3-2 layout, centered
       tags$div(
         style = "margin: 30px auto; max-width: 700px;",
