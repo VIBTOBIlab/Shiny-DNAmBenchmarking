@@ -14,12 +14,6 @@
   padding-bottom: 0 !important;
 }
 
-/* Remove any vertical spacing the row/column might add */
-.funkyheatmap {
-  margin-top: 0 !important;
-  padding-top: 0 !important;
-}
-
 /* Remove top padding Bootstrap may give to columns in some themes/layouts */
 .funkyheatmap > [class^="col-"],
 .funkyheatmap > [class*=" col-"] {
@@ -34,29 +28,30 @@
   display: block;
 }
 
+/* Match image/citation widths when you use .funky-width */
+.funky-width { max-width: 80%; margin: 0 auto; }
+.funky-width img { width: 100%; height: auto; display: block; }
+
 
 /* =======================================================================
-    General Additonal Styling
+   Global spacing / sticky footer
 ============================================================================ */
 
-/* General padding to prevent navbar overlap */
-body {
-  padding-top: 50px;
+body        { 
+  padding-top: 60px !important;
 }
+
+
 
 /* Add margin to tab content to ensure first heading is visible */
 .tab-content {
   margin-top: 50px;
+  margin-bottom: 10px;
 }
 
 
-/* ============================================================================
-   Full Height Layout for Sticky Footer
-============================================================================ */
-
 html, body, .app-body, .app-container {
   height: 100%;
-  margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -78,7 +73,7 @@ html, body, .app-body, .app-container {
 }
 
 /* =======================================================================
-   Navbar Panel Styling
+   Navbar Panel Styling (desktop/tablet default)
 ============================================================================ */
 /* Add space after title */
 .navbar .navbar-brand {
@@ -92,10 +87,10 @@ nav.navbar {
   z-index: 1030;
 }
 
-/* Adjust spacing inside nav items */
+/* Link spacing and underline behavior */
 .navbar-nav .nav-link {
-  padding-top: 0.35rem !important;     /* reduce vertical space */
-  padding-bottom: 0.50rem !important;  /* pulls underline closer */
+  padding-top: 0.80rem !important;     /* reduce vertical space */
+  padding-bottom: 0.25rem !important;  /* pulls underline closer */
   line-height: 1.2;
   border-bottom: 2px solid transparent; /* placeholder so things don't shift */
   font-weight: 400; /* default weight for inactive links */
@@ -118,10 +113,57 @@ nav.navbar {
 }
 
 
-/* GitHub icon hover in navbar */
-.navbar .fa-github:hover {
-  color: #1C2C48;
+/* =======================================================================
+   Nextflow & GitHub navbar icon buttons
+============================================================================ */
+
+.github-icon-button,
+.nextflow-icon-button {
+  background-color: #FFFFFF !important;
+  border-radius: 50% !important;
+  width: 40px;
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,.2);
+  text-decoration: none;
+  border: none;
+  padding: 0;
+  /* outer spacing; adjust right margin to control gap between icons */
+  margin: 8px 6px 4px 0;  /* top right bottom left */
+  vertical-align: middle;
+  -webkit-tap-highlight-color: transparent;
 }
+
+
+.github-icon-button i.fa-github {
+  font-size: 24px;
+  color: #1C2C48;
+  vertical-align: middle;
+  display: inline-block;
+  line-height: 1;
+  margin-top: 18px;
+}
+
+.github-icon-button i.fa-github,
+.nextflow-icon-button img {
+  display: block; line-height: 1; margin: 0 !important;
+  width: 24px; height: 24px;     /* increase to 24px if you like */
+  filter:none !important;
+}
+
+/* Hover */
+.github-icon-button:hover,
+.nextflow-icon-button:hover { background-color: #1C2C48 !important; }
+.github-icon-button:hover i.fa-github { color: #FFFFFF !important; }
+
+/* If a lone .fa-github shows up anywhere in navbar, keep brand on hover */
+.navbar .fa-github:hover { color: #1C2C48; }
+
+/* Group wrapper for both icons (we'll center this on mobile) */
+.navbar-icons { display: flex; align-items: center; gap: 8px; margin-left: .5rem; }
+
 
 
 /* =======================================================================
@@ -158,41 +200,6 @@ nav.navbar {
   fill: #FFFFFF !important;
 }
 
-/* ============================================================================
-   GitHub Navbar Button Styling
-============================================================================ */
-
-.github-icon-button {
-  background-color: #FFFFFF !important;
-  border-radius: 50% !important;
-  width: 40px;
-  height: 40px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  text-decoration: none;
-  margin-right: 10px;
-  padding: 0;
-  border: none;
-}
-
-.github-icon-button i.fa-github {
-  font-size: 24px;
-  color: #1C2C48;
-  vertical-align: middle;
-  display: inline-block;
-  line-height: 1;
-  margin-top: 18px;
-}
-
-.github-icon-button:hover {
-  background-color: #1C2C48 !important;
-}
-
-.github-icon-button:hover i.fa-github {
-  color: #FFFFFF !important;
-}
 
 
 /* ============================================================================
@@ -248,4 +255,73 @@ nav.navbar {
   vertical-align: middle;
 }
 
+/* =======================================================================
+   Citation block styling (use with blockquote.paper-cite or div.paper-cite)
+============================================================================ */
+.paper-cite {
+  border-left: 4px solid #ddd;
+  padding: .75rem 1rem;
+  margin: 1rem auto;
+  max-width: 80%;
+  background: #fafafa;
+}
+.paper-cite .title   { font-weight: 700; }
+.paper-cite .authors { font-style: italic; }
+.paper-cite .doi     { color: #666; }
+
+
+
+/* =======================================================================
+   Mobile / collapsed navbar tweaks
+============================================================================ */
+
+@media (max-width: 991.98px) {
+  /* Panel padding */
+  nav.navbar .navbar-collapse { padding: .75rem 1rem; }
+
+  /* Make top-level items tall + add space between rows */
+  nav.navbar .navbar-collapse .navbar-nav {
+    display: flex; flex-direction: column; row-gap: .6rem;
+  }
+  nav.navbar .navbar-collapse .navbar-nav .nav-link,
+  nav.navbar .navbar-collapse .navbar-nav > li > a {  /* BS3 fallback */
+    padding-top: 1rem !important; padding-bottom: 1rem !important; line-height: 1.25;
+  }
+  nav.navbar .navbar-collapse .navbar-nav > .nav-item + .nav-item,
+  nav.navbar .navbar-collapse .navbar-nav > li + li { margin-top: .6rem; }
+
+  /* Dropdown rows: extra vertical space (keeps your palette) */
+  nav.navbar .navbar-collapse .dropdown-menu {
+    background: #FFFFFF; border: 0; box-shadow: none; padding: .25rem 0;
+  }
+  nav.navbar .navbar-collapse .dropdown-menu .dropdown-item,
+  nav.navbar .navbar-collapse .dropdown-menu > li > a {
+    padding: 1rem 1rem; line-height: 1.25; color: #1C2C48; background: transparent;
+    border-bottom: 1px solid #eee;
+  }
+  nav.navbar .navbar-collapse .dropdown-menu .dropdown-item:last-child,
+  nav.navbar .navbar-collapse .dropdown-menu > li:last-child > a { border-bottom: 0; }
+  nav.navbar .navbar-collapse .dropdown-menu .dropdown-item:hover,
+  nav.navbar .navbar-collapse .dropdown-menu .dropdown-item:focus,
+  nav.navbar .navbar-collapse .dropdown-menu > li > a:hover,
+  nav.navbar .navbar-collapse .dropdown-menu > li > a:focus {
+    background-color: #EFF1F6; color: #1C2C48; text-decoration: none;
+  }
+  nav.navbar .navbar-collapse .dropdown-menu .dropdown-item.active,
+  nav.navbar .navbar-collapse .dropdown-menu > li.active > a {
+    font-weight: 600; background-color: #EFF1F6; color: #1C2C48;
+  }
+
+  /* Center the pair of icons under the links */
+  .navbar .navbar-icons {
+    width: 100%; display: flex; justify-content: center; align-items: center;
+    gap: 10px; padding: .5rem 0 1rem;
+  }
+
+  /* Slightly larger buttons on mobile */
+  .navbar .github-icon-button, .navbar .nextflow-icon-button {
+    width: 44px; height: 44px; margin: 0;
+  }
+  .github-icon-button i.fa-github, .nextflow-icon-button img { width: 24px; height: 24px; }
+}
 
