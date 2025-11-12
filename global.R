@@ -101,23 +101,18 @@ library(backports)         # Compatibility for older R versions (used internally
 library(abind)             # Combine multidimensional arrays
 library(lazyeval)          # Quote/capture expressions lazily (used in older tidyverse code)
 
-#### 3. Define Custom Plot Theme and Aesthetics ####
+# Theme selection
 theme_benchmarking <- theme_classic() +
   theme(
-    plot.title = element_text(size = 12, color = "gray10"),
-    plot.subtitle = element_text(size = 8, color = "gray30"),
-    axis.text.x = element_text(size = 12, color = "gray10"),
-    axis.text.y = element_text(size = 12, color = "gray10"),
-    axis.title.x = element_text(size = 14, color = "gray10"),
-    axis.title.y = element_text(size = 14, color = "gray10"),
+    plot.title = element_text(color = "gray10"),
+    plot.subtitle = element_text(color = "gray30"),
+    axis.text.x = element_text(color = "gray10"),
+    axis.text.y = element_text(color = "gray10"),
+    axis.title.x = element_text(color = "gray10"),
+    axis.title.y = element_text(color = "gray10"),
     axis.line = element_line(color = "gray50"),
-    axis.ticks = element_line(color = "gray50") #,
-    # panel.background = element_rect(fill='transparent'), #transparent panel bg
-    # plot.background = element_rect(fill='transparent', color=NA), #transparent plot bg
-    # legend.background = element_rect(fill='transparent'), #transparent legend bg
-    # legend.box.background = element_rect(fill='transparent') #transparent legend panel
+    axis.ticks = element_line(color = "gray50")
   )
-
 
 # Manual color scale
 custom_color_manual <- scale_color_manual(
@@ -193,35 +188,24 @@ if (!file.exists(data_csv_path)) {
 
 # Load dataset
 combined_data <- read.csv(data_csv_path)
-  
+
 # Filter and clean data
-tot_bench <- subset(
-  combined_data,
-  deconv_tool != "Methyl_Resolver" 
-)
+tot_bench <- combined_data %>%
+  filter(!(deconv_tool %in% c("MeDeCom","RefFreeCellMix", "Methyl_Resolver" )))
 
 # Convert selected columns to factors
 tot_bench <- tot_bench %>%
   mutate(across(
-    c(deconv_tool, dmr_tool, tumor_type, #seq_depth,
+    c(deconv_tool, dmr_tool, tumor_type,
       mixture_type, seq_method),
     as.factor
   ))
-  
-# Rename selected deconvolution tool levels
-tool_map <- c(
-  "EpiDISH_CP_eq" = "Houseman's CP/QP w/equality",
-  "EpiDISH_CP_ineq" = "Houseman's CP/QP w/inequality",
-  "EpiDISH_RPC" = "EpiDISH RPC",
-  "meth_atlas" = "MethAtlas"
-)
-  
-levels(tot_bench$deconv_tool) <- ifelse(
-  levels(tot_bench$deconv_tool) %in% names(tool_map),
-  tool_map[levels(tot_bench$deconv_tool)],
-  levels(tot_bench$deconv_tool)
-)
-  
+
+# Remove rows with NA values for further analysis 
+tot_bench <- tot_bench %>%
+  filter(!is.na(predicted_tf))
+
+
 # Save processed data for future runs
 #saveRDS(tot_bench, cache_rds_path)
   
@@ -233,7 +217,7 @@ rmse <- function(actual, predicted) {
 }
 # Spearman's rank correlation coefficient (SCC)
 scc <- function(actual, predicted) {
-  cor(actual, predicted, method = "spearman")
+  cor(actual, predicted, method = "spearman", use = "pairwise.complete.obs")
 }
 
 roc.obj <- function(true_labels, predicted_scores) {
