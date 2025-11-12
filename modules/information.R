@@ -7,8 +7,12 @@ informationTabUI <- function(id) {
     # Deconvolution tools Section
     h3("Deconvolution tools", style = "font-weight: bold;", id="shiny-tab-Information" ),
     p("Include information..."),
-    br(),br(),
     
+    
+    #DT::DTOutput(ns("deconv_table")),
+    br(), br(),
+    
+
     # DMR tools Section
     h3("DMR tools", style = "font-weight: bold;"),
     p("Include information...")
@@ -19,11 +23,12 @@ informationTabUI <- function(id) {
 
 
 informationTabServer <- function(id) {
-  moduleServer(id, function(input, output, session) {
+ moduleServer(id, function(input, output, session) {
+
+
     
-    
-  }) # Close moduleServer
-} # Close contactTabServer    
+   }) # Close moduleServer
+ } # Close contactTabServer    
     
     
     
