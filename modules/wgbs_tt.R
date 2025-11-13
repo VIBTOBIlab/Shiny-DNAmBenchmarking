@@ -181,7 +181,7 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
                 downloadButton(ns("download_heatmap_svg"), "Download as SVG"),
                 downloadButton(ns("download_heatmap_pdf"), "Download as PDF"),
                 
-                br(), br()
+                br(), br(), br()
       )
     ),
     tags$hr(), br(), br(),
@@ -390,8 +390,10 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
                 downloadButton(ns("download_lod_df"), "Download data"),
                 downloadButton(ns("download_lod_svg"), "Download as SVG"),
                 downloadButton(ns("download_lod_pdf"), "Download as PDF"),
+                br(), br(), br()
       )
     ),
+    tags$hr(), br(), br(),
     
     ############################################################################
     # final ranking section

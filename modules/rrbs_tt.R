@@ -388,8 +388,11 @@ rrbsttTabUI <- function(id, label = "RRBS-TT") {
                 downloadButton(ns("download_lod_df"), "Download data"),
                 downloadButton(ns("download_lod_svg"), "Download as SVG"),
                 downloadButton(ns("download_lod_pdf"), "Download as PDF"),
+                br(), br(), br()
       )
     ),
+    tags$hr(), br(), br(),
+    
     
     ############################################################################
     # final ranking section
