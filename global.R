@@ -68,7 +68,6 @@ library(reshape2)          # Legacy reshaping tools: melt, cast
 library(jsonlite)          # Parse and generate JSON files
 library(hms)               # Store and manipulate time-of-day values
 library(Metrics)           # Implements evaluation metrics like RMSE, MAE, etc.
-library(readxl)
 
 # ── Modeling and statistical summaries ──
 library(car)               # Companion to regression textbook (vif, Anova, etc.)
