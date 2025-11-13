@@ -5,7 +5,7 @@ contactTabUI <- function(id) {
     "Contact",
     # Wrap Contact Us and Contributors in a centered div
     div(
-      style = "text-align: center; margin-top: 20px;",
+      style = "text-align: center;",
       
       # Contact Section
       h3("Contact Us", style = "font-weight: bold;"),
