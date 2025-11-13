@@ -1,0 +1,4 @@
+Tool,GitHub,Publication,Container
+DMRfinder,https://github.com/jsh58/DMRfinder,https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-017-1909-0,egiuili/dmrfinder_r:v2 and egiuili/dmrfinder_python:v1
+limma,https://bioconductor.org/packages/release/bioc/html/limma.html,https://academic.oup.com/nar/article/43/7/e47/2414268,egiuili/r-v4.4.1:v1
+wgbstools,https://github.com/nloyfer/wgbs_tools/tree/master,https://www.biorxiv.org/content/10.1101/2024.05.08.593132v1,egiuili/uxm:v1
