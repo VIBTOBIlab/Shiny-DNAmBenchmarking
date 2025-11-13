@@ -68,6 +68,7 @@ library(reshape2)          # Legacy reshaping tools: melt, cast
 library(jsonlite)          # Parse and generate JSON files
 library(hms)               # Store and manipulate time-of-day values
 library(Metrics)           # Implements evaluation metrics like RMSE, MAE, etc.
+library(readxl)
 
 # ── Modeling and statistical summaries ──
 library(car)               # Companion to regression textbook (vif, Anova, etc.)
@@ -235,6 +236,19 @@ theme <- bs_theme(
   font_scale = NULL,
   preset = "shiny",
   bg = "#FFFFFF",
-  navbar_bg ="#EFF1F6" # "#E2E8F4"  # <-- red navbar
+  navbar_bg ="#EFF1F6" 
 )
+
+
+#### 8. Read in documentation excel file #####
+# Load excel data
+deconvtools_data <- read_csv("www/deconvtools.csv", show_col_types = FALSE)
+dmrtools_data <- read_csv("www/dmrtools.csv", show_col_types = FALSE)
+
+# Convert GitHub and Publication columns into clickable links
+deconvtools_data$GitHub <- paste0("<a href='", deconvtools_data$GitHub, "' target='_blank'>", deconvtools_data$GitHubnames, "</a>")
+deconvtools_data$Publication <- paste0("<a href='", deconvtools_data$Publication, "' target='_blank'>Paper</a>")
+
+dmrtools_data$GitHub <- paste0("<a href='", dmrtools_data$GitHub, "' target='_blank'>", dmrtools_data$Tool, "</a>")
+dmrtools_data$Publication <- paste0("<a href='", dmrtools_data$Publication, "' target='_blank'>Paper</a>")
 
