@@ -38,7 +38,7 @@
 ============================================================================ */
 
 body        { 
-  padding-top: 60px !important;
+  padding-top: 50px !important;
 }
 
 
@@ -323,5 +323,21 @@ nav.navbar {
     width: 44px; height: 44px; margin: 0;
   }
   .github-icon-button i.fa-github, .nextflow-icon-button img { width: 24px; height: 24px; }
+}
+
+
+
+/* =======================================================================
+   Information tables
+============================================================================ */
+/* Enable horizontal scrolling for wide tables */
+div.dataTables_wrapper {
+    overflow-x: auto;
+}
+
+/* Optional: Make table responsive */
+table.dataTable {
+    width: 80% !important;
+    word-wrap: break-word;
 }
 
