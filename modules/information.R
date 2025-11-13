@@ -6,17 +6,17 @@ informationTabUI <- function(id) {
 
     # Deconvolution tools Section
     h3("Deconvolution tools", style = "font-weight: bold;", id="shiny-tab-Information" ),
-    p("Include information..."),
-    
-    
-    #DT::DTOutput(ns("deconv_table")),
-    br(), br(),
-    
-
+    div(
+      style = "margin-bottom: 40px;",
+      DTOutput(ns("deconvtools_table"))
+    ),
+  
     # DMR tools Section
     h3("DMR tools", style = "font-weight: bold;"),
-    p("Include information...")
-    
+    div(
+      style = "margin-bottom: 20px;",
+      DTOutput(ns("dmrtools_table"))
+    ),
     ## End
   )
 }
@@ -25,7 +25,31 @@ informationTabUI <- function(id) {
 informationTabServer <- function(id) {
  moduleServer(id, function(input, output, session) {
 
-
+   # deconvolution tools information table 
+   output$deconvtools_table <- renderDT({
+     datatable(deconvtools_data %>% select(-GitHubnames),  # Exclude the column
+               escape = FALSE,  # Important for clickable links
+               options = list(pageLength = 12,
+                              autoWidth = TRUE,
+                              scrollX = TRUE,
+                              searchHighlight = TRUE
+                              ))
+     
+   })
+   
+   # dmr tools information table 
+   output$dmrtools_table <- renderDT({
+     datatable(dmrtools_data,
+               escape = FALSE,  # Important for clickable links
+               options = list(pageLength = 3,
+                              autoWidth = TRUE,
+                              scrollX = TRUE,
+                              searchHighlight = TRUE
+               ))
+     
+   })   
+   
+   
     
    }) # Close moduleServer
  } # Close contactTabServer    
