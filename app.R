@@ -50,7 +50,7 @@ ui <- fluidPage(
         nav_item(
           div(class = "navbar-icons",
               tags$a(
-                href   = "https://github.com/TOBIlab/DecoNFlow",
+                href   = "https://github.com/VIBTOBIlab/DecoNFlow/",
                 target = "_blank", rel = "noopener",
                 class  = "nextflow-icon-button",
                 title  = "Check out Nextflow pipeline TOBIlab/DecoNFlow",
@@ -93,11 +93,9 @@ server <- function(input, output, session) {
     }
   })
   
-  #print(sessionInfo())
 }
 
 #### 4. Run the Application ####
 
-#run_with_themer
 shinyApp(ui = ui, server = server)
 
