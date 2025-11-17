@@ -180,7 +180,7 @@ footer_citation <- function() {
 #### 5. Load and Preprocess Benchmarking Data ####
 
 # Define path to input dataset (must be mounted or present in repo)
-data_csv_path <- "results/final_benchmarking_dataset.csv"
+data_csv_path <- "results/benchmarking_dataset.csv"
 
 if (!file.exists(data_csv_path)) {
   stop("Dataset not found at 'results/benchmarking_dataset.csv'. Please run the container with:\n  -v /path/to/your.csv:results/benchmarking_dataset.csv")
