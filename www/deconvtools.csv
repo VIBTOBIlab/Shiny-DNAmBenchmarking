@@ -1,13 +1,13 @@
-"Tool","Reference","GitHub","GitHubnames","Publication","Container"
-"Houseman's CP (equality)","based ","https://github.com/sjczheng/EpiDISH","EpiDISH","https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-13-86","egiuili/epidish:v1"
-"Houseman's CP (inequality)","based ","https://github.com/sjczheng/EpiDISH","EpiDISH","https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-13-86","egiuili/epidish:v1"
-"CIBERSORT","based ","https://github.com/sjczheng/EpiDISH","EpiDISH","https://www.nature.com/articles/nmeth.3337","egiuili/epidish:v1"
-"EpiDISH","based ","https://github.com/sjczheng/EpiDISH","EpiDISH","https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-017-1511-5","egiuili/epidish:v1"
-"meth_atlas","based ","https://github.com/nloyfer/meth_atlas","meth_atlas","https://www.nature.com/articles/s41467-018-07466-6","egiuili/methyl_atlas:v1.0"
-"EpiSCORE","based ","https://github.com/aet21/EpiSCORE","EpiSCORE","https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02126-9","egiuili/episcore:v1"
-"PRMeth","(partially) based  ","https://github.com/hedingqin/PRMeth","PRMeth","https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-022-04893-7","egiuili/prmeth:v2"
-"UXM","based ","https://github.com/nloyfer/UXM_deconv/tree/main","UXM","https://www.nature.com/articles/s41586-022-05580-6","egiuili/uxm:v1"
-"MetDecode","(partially) based","https://github.com/JorisVermeeschLab/MetDecode","MetDecode","https://academic.oup.com/bioinformatics/article/40/9/btae522/7739698","egiuili/metdecode:v1"
-"CelFiE","(partially) based ","https://github.com/christacaggiano/celfie","celfie","https://www.nature.com/articles/s41467-021-22901-x","egiuili/python3-3.9.16:v1"
-"RefFreeCellMix","free","https://github.com/hedingqin/PRMeth","PRMeth","https://academic.oup.com/bioinformatics/article/30/10/1431/266465?login=false","egiuili/prmeth:v2"
-"MeDeCom","free","https://github.com/CompEpigen/MeDeCom","MeDeCom","https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1182-6","egiuili/medecom:v1"
+Tool,Reference,GitHub,GitHubnames,Publication,Container
+Houseman's CP (equality),based,https://github.com/sjczheng/EpiDISH,EpiDISH,https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-13-86,egiuili/epidish:v1
+Houseman's CP (inequality),based,https://github.com/sjczheng/EpiDISH,EpiDISH,https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-13-86,egiuili/epidish:v1
+CIBERSORT,based,https://github.com/sjczheng/EpiDISH,EpiDISH,https://www.nature.com/articles/nmeth.3337,egiuili/epidish:v1
+EpiDISH ,based,https://github.com/sjczheng/EpiDISH,EpiDISH,https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-017-1511-5,egiuili/epidish:v1
+meth_atlas,based,https://github.com/nloyfer/meth_atlas,meth_atlas,https://www.nature.com/articles/s41467-018-07466-6,egiuili/methyl_atlas:v1.0
+EpiSCORE,based,https://github.com/aet21/EpiSCORE,EpiSCORE,https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02126-9,egiuili/episcore:v1
+PRMeth,(partially) based,https://github.com/hedingqin/PRMeth,PRMeth,https://bmcbioinformatics.biomedcentral.com/articles/10.1186/s12859-022-04893-7,egiuili/prmeth:v2
+UXM,based,https://github.com/nloyfer/UXM_deconv/tree/main,UXM,https://www.nature.com/articles/s41586-022-05580-6,egiuili/uxm:v1
+MetDecode,(partially) based,https://github.com/JorisVermeeschLab/MetDecode,MetDecode,https://academic.oup.com/bioinformatics/article/40/9/btae522/7739698,egiuili/metdecode:v1
+CelFiE,(partially) based,https://github.com/christacaggiano/celfie,celfie,https://www.nature.com/articles/s41467-021-22901-x,egiuili/python3-3.9.16:v1
+RefFreeCellMix,free,https://github.com/hedingqin/PRMeth,PRMeth,https://academic.oup.com/bioinformatics/article/30/10/1431/266465?login=false,egiuili/prmeth:v2
+MeDeCom,free,https://github.com/CompEpigen/MeDeCom,MeDeCom,https://genomebiology.biomedcentral.com/articles/10.1186/s13059-017-1182-6,egiuili/medecom:v1
