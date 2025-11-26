@@ -1,3 +1,8 @@
+################################################################################
+# home_static.R – Welcome screen for DecoNFlow Benchmarking Shiny App
+# This module is part of the DecoNFlow Shiny app
+################################################################################
+
 # Home Tab UI
 homeTabUI <- function(id) {
   ns <- NS(id)
@@ -40,13 +45,10 @@ homeTabUI <- function(id) {
     # )
     
   )
-}
-
-
+} # end homeTabUI
 
 # Home Tab Server
 homeTabServer <- function(id) {
   moduleServer(id, function(input, output, session) {
-    # Add server-side logic for Home tab if needed (currently none)
 })
-}
+} # end homeTabServer

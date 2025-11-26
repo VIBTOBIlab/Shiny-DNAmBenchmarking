@@ -1,4 +1,9 @@
-# Metrics Tab UI
+################################################################################
+# information.R – Info about used DMRtools and Deconvolution tools for DecoNFlow Benchmarking Shiny App
+# This module is part of the DecoNFlow Shiny app
+################################################################################
+
+# Information Tab UI
 informationTabUI <- function(id) {
   ns <- NS(id)
   tabPanel(
@@ -21,7 +26,7 @@ informationTabUI <- function(id) {
   )
 }
 
-
+# Information Tab server
 informationTabServer <- function(id) {
  moduleServer(id, function(input, output, session) {
 

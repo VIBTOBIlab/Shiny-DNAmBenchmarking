@@ -1,3 +1,8 @@
+################################################################################
+# contact.R – Contact information for DecoNFlow Benchmarking Shiny App
+# This module is part of the DecoNFlow Shiny app
+################################################################################
+
 # Contact Tab UI
 contactTabUI <- function(id) {
   ns <- NS(id)
@@ -74,16 +79,15 @@ contactTabUI <- function(id) {
     )
     
     
- )   ## End
-}
+ )   
+} # end contactTabUI
 
 
+# Contact Tab Server
 contactTabServer <- function(id) {
   moduleServer(id, function(input, output, session) {
-    
-
-  }) # Close moduleServer
-} # Close contactTabServer    
+  }) # end moduleServer
+} # end contactTabServer    
     
     
     
