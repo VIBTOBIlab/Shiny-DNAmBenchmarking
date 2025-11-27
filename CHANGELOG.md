@@ -1,6 +1,6 @@
 # CHANGELOG
 
-## [v1.0.0](https://https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/tree/v1.0.0) Jellicent Sprite - 2025-11-27 
+## [v1.0.0](https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/tree/v1.0.0) Jellicent Sprite - 2025-11-27 
 - Initial release of **Shiny DNAmBenchmarking** application.
 - Interactive Shiny app for visualizing and analyzing DNA methylation benchmarking results.
 - Docker and Singularity container support.
