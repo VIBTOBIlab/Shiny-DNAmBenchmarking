@@ -21,7 +21,7 @@
 # utils (base)     : I/O helpers, e.g. write.csv() in download handlers
 # grid (base)      : Low-level graphics utilities, e.g. unit() for legend sizing
 
-
+# rrbbcl Tab
 rrbsclTabUI <- function(id, label = "RRBS-CL") {
   ns <- NS(id)
   tabPanel(
@@ -31,23 +31,31 @@ rrbsclTabUI <- function(id, label = "RRBS-CL") {
     # -----------------------------------------------------------------------
     # Table of Contents
     # -----------------------------------------------------------------------
+    
     tags$div(class = "toc-container",
              h4("Table of Contents"),
              tags$ul(class = "toc-list",
-                     tags$li(tags$a(href = "#boxplots_rrbscl", "Boxplot of predictions for each tumor fraction")),
+                     tags$li(tags$a(href = "#boxplots_rrbscl", "Boxplot of predictions for each tumoral fraction")),
                      tags$li(tags$a(href = "#nrmse_rrbscl", "Performance (NRMSE)")),
                      tags$li(tags$a(href = "#heatmap_rrbscl", "Heatmap of expected tumoral fraction vs deconvolution tools")),
-                     tags$li(tags$a(href = "#aucroc_rrbscl", "AUC-ROC at different tumoral fractions")),
+                     tags$li(tags$a(href = "#aucroc_rrbscl", "AUC-ROC for different tumoral fractions")),
                      tags$li(tags$a(href = "#tools-rmse_rrbscl", "Tools RMSE")),
                      tags$li(tags$a(href = "#lod_rrbscl", "Limit of detection (LoD)")),
                      tags$li(tags$a(href = "#final_rrbscl", "Final ranking of deconvolution tools"))
                      )
+             ),
+    
+    tags$div(
+      style = "margin: 15px 0;",
+      downloadButton(ns("download_rrbscl_df"), "Download cfRRBS-CL", 
+                     style = "width: auto; white-space: nowrap; padding: 10px 20px;")
     ),
     tags$hr(), br(),
   
     # -----------------------------------------------------------------------
     # Boxplots section
     # -----------------------------------------------------------------------
+    
     tags$div(id = "boxplots_rrbscl",
              h4("Boxplot of predictions for each tumor fraction")),
     p("The plot shows predicted tumoral fractions as boxplots for each deconvolution tool (grouped by DMR tool), at a selected expected TF (marked by a red dashed line), allowing comparison of prediction accuracy and variability across methods."
@@ -92,7 +100,6 @@ rrbsclTabUI <- function(id, label = "RRBS-CL") {
                 withSpinner(plotlyOutput(ns("boxplot_TF"), height = "600px")),
                 br(),
                 downloadButton(ns("download_boxplot_TF_df"), "Download data"),
-                downloadButton(ns("download_rrbscl_df"), "Download cfRRBS-CL"),
                 br(), br(), br()
                 )
       ),
@@ -195,7 +202,7 @@ rrbsclTabUI <- function(id, label = "RRBS-CL") {
     # -----------------------------------------------------------------------
     
     tags$div(id = "aucroc_rrbscl", 
-             h4("AUC-ROC at different tumoral fractions")),
+             h4("AUC-ROC for different tumoral fractions")),
     p("The plot shows ROC curves and AUC values for each selected deconvolution tool (faceted), across multiple low tumoral fractions (0.0001 to 0.05), where each line color represents a fraction and higher curves indicate better classification performance."
     ),
     
@@ -350,7 +357,6 @@ rrbsclTabUI <- function(id, label = "RRBS-CL") {
       )
     ),
     tags$hr(), br(), br(),
-    
 
     # -----------------------------------------------------------------------
     # LoD section
@@ -404,7 +410,6 @@ rrbsclTabUI <- function(id, label = "RRBS-CL") {
       )
     ),
     tags$hr(), br(), br(),
-    
     
     # -----------------------------------------------------------------------
     # final ranking section
@@ -463,7 +468,7 @@ rrbsclTabUI <- function(id, label = "RRBS-CL") {
 } # end rrbsclTabUI
 
 
-
+# rrbstab server
 rrbsclTabServer <- function(id) {
 moduleServer(id, function(input, output, session) {
   
@@ -598,8 +603,6 @@ moduleServer(id, function(input, output, session) {
       utils::write.csv(data, file, row.names = FALSE)
     }
   )
-  
-  
   
   # -----------------------------------------------------------------------
   ## NRMSE plot
@@ -847,14 +850,13 @@ moduleServer(id, function(input, output, session) {
 
   # Select all / none deconv tools
   observe({
-    current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
+    current_choices <- sort(unique(bench$deconv_tool))
     current_choices <- current_choices[current_choices != 0]
-    
-    # Update the checkbox group based on select all/none toggle
+
     updateCheckboxGroupInput(
       session, "aucroc_complete_deconvtools_select",
       choices = current_choices,
-      selected = if (input$aucroc_complete_deconvtools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+      selected = if (input$aucroc_complete_deconvtools_select_all) current_choices else character(0)
     )
   })
   
@@ -971,7 +973,6 @@ moduleServer(id, function(input, output, session) {
       utils::write.csv(aucroc_complete_data, file, row.names = FALSE)
     }
   )
-  
   
   # -----------------------------------------------------------------------
   ## Interactive AUCROC plot
@@ -1134,7 +1135,6 @@ moduleServer(id, function(input, output, session) {
     }
   )
   
-  
   # -----------------------------------------------------------------------
   ## RMSE comparison Plot
   # -----------------------------------------------------------------------
@@ -1264,10 +1264,10 @@ moduleServer(id, function(input, output, session) {
     }
   )
   
-  
   # -----------------------------------------------------------------------
   ## Limit of Detection (LoD)
   # -----------------------------------------------------------------------
+  
   # Initial inputs
   updateSelectInput(session, "lod_tumortype_select", 
                     choices = sort(unique(bench$tumor_type)), 
@@ -1395,8 +1395,7 @@ moduleServer(id, function(input, output, session) {
       utils::write.csv(stats, file, row.names = FALSE)
     }
   )
-  
-  
+
   # -----------------------------------------------------------------------
   ## Final ranking of the tools 
   # -----------------------------------------------------------------------

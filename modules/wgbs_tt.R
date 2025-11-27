@@ -1,50 +1,61 @@
 # ==============================================================================
-# wgbs_tt.R – UI and Server logic for RRBS benchmarking tab
+# wgbs_tt.R – UI and Server logic for WGBS-TT benchmarking tab
 # This module is part of the DecoNFlow Shiny app
 # ==============================================================================
 
-# Required packages:
-# shiny             – for UI/server functions (NS, moduleServer, reactive, renderPlot, etc.)
-# ggplot2           – for static plotting (ggplot, geom_point, theme, etc.)
-# dplyr             – for data manipulation (filter, mutate, %>%, etc.)
-# pROC              – for ROC curve creation and AUC computation (roc(), auc())
-# Metrics           – for RMSE or other model evaluation metrics (if not defined globally)
-# DT                – for rendering interactive tables (datatable())
-# shinycssloaders   – for loading spinners (withSpinner())
-# plotly            – for interactive plots (if ggplotly() or plot_ly() used; optional)
-# shinythemes       – used globally for consistent UI styling
-# bslib             – used globally to support themes and responsive layout
+# -----------------------------------------------------------------------
+# Packages used in this script (loaded in global.R)
+# -----------------------------------------------------------------------
+# shiny            : Shiny app framework (UI + server, inputs/outputs, reactivity)
+# shinycssloaders  : withSpinner() to show loaders around plots
+# plotly           : Interactive plots via plotlyOutput(), renderPlotly(), ggplotly()
+# ggplot2          : Static plotting backend for all ggplot-based figures
+# DT               : Interactive tables (DT::datatable, DT::renderDataTable)
+# dplyr            : Data manipulation (filter, mutate, group_by, summarise, arrange, etc.)
+# purrr            : Functional helpers, e.g. map2_dfr() for combining AUC-ROC results
+# stringr          : String helpers, e.g. str_replace_all() for nicer labels
+# scales           : Labelling and scaling helpers, e.g. label_scientific() for legends
+# pROC             : ROC/AUC calculations used in AUC-ROC plots
+# ggpubr           : Plot annotations, e.g. stat_pvalue_manual() for LoD p-values
+# stats (base)     : Statistical tests and p.adjust(), e.g. wilcox.test()
+# utils (base)     : I/O helpers, e.g. write.csv() in download handlers
+# grid (base)      : Low-level graphics utilities, e.g. unit() for legend sizing
 
-
+# wgbstt Tab
 wgbsttTabUI <- function(id, label = "WGBS-TT") {
   ns <- NS(id)
   tabPanel(
     title = label,
-    
-    #fluidPage(
     h3("Benchmarking plots: WGBS-TT", style = "font-weight: bold;"),
-    p("We considered 3 different key metrics: the root-mean-squared error (RMSE), the area under the curve (AUC-ROC) and the Spearman's rank correlation coefficient (ρ). To create an overall benchmarking score against which to compare the deconvolution tools, we min-max scaled the metrics and computed the geometric mean of the three metrics to obtain the final benchmarking scores. Finally, we ranked the tools based on these scores."),
-    p("Below, you can find the computed metrics and visualizations."),
-    br(),
 
-
+    # -----------------------------------------------------------------------
     # Table of Contents
+    # -----------------------------------------------------------------------
+    
     tags$div(class = "toc-container",
              h4("Table of Contents"),
              tags$ul(class = "toc-list",
-                     tags$li(tags$a(href = "#boxplots_wgbstt", "Boxplots of the predictions for each tumoral fraction")),
+                     tags$li(tags$a(href = "#boxplots_wgbstt", "Boxplot of predictions for each tumoral fraction")),
                      tags$li(tags$a(href = "#nrmse_wgbstt", "Performance (NRMSE)")),
                      tags$li(tags$a(href = "#heatmap_wgbstt", "Heatmap of expected tumoral fraction vs deconvolution tools")),
-                     tags$li(tags$a(href = "#aucroc_wgbstt", "AUC-ROC at different tumoral fractions")),
+                     tags$li(tags$a(href = "#aucroc_wgbstt", "AUC-ROC for different tumoral fractions")),
                      tags$li(tags$a(href = "#tools-rmse_wgbstt", "Tools RMSE")),
                      tags$li(tags$a(href = "#lod_wgbstt", "Limit of detection (LoD)")),
-                     tags$li(tags$a(href = "#final_wgbstt", "Final ranking of the tools"))
+                     tags$li(tags$a(href = "#final_wgbstt", "Final ranking of deconvolution tools"))
                      )
+             ),
+
+    tags$div(
+      style = "margin: 15px 0;",
+      downloadButton(ns("download_wgbstt_df"), "Download WGBS-TT", 
+                     style = "width: auto; white-space: nowrap; padding: 10px 20px;")
     ),
     tags$hr(), br(),
     
-    ############################################################################
+    # -----------------------------------------------------------------------
     # Boxplots section
+    # -----------------------------------------------------------------------
+    
     tags$div(id = "boxplots_wgbstt",
              h4("Boxplots of the predictions for each tumoral fraction")),
     p("The plot shows predicted tumoral fractions as boxplots for each deconvolution tool (grouped by DMR tool) at a selected expected TF (marked by a red dashed line), with tools ranked left-to-right by their average absolute deviation from the expected TF, so that more accurate tools appear earlier."
@@ -66,7 +77,7 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
                    ),
                    selectInput(
                      ns("boxplot_exptf_select"),
-                     label = "Tumoral Fraction",
+                     label = "Expected Tumoral Fraction",
                      choices = NULL,
                      selected = NULL
                    ),
@@ -89,15 +100,15 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
                 withSpinner(plotlyOutput(ns("boxplot_TF"), height = "600px")),
                 br(),
                 downloadButton(ns("download_boxplot_TF_df"), "Download data"),
-                downloadButton(ns("download_wgbstt_df"), "Download WGBS"),
-                
                 br(), br(), br()
       )
     ),
     tags$hr(), br(), br(),
     
-    ############################################################################
-    # nRMSE section
+    # -----------------------------------------------------------------------
+    # NRMSE section
+    # -----------------------------------------------------------------------
+    
     tags$div(id = "nrmse_wgbstt", 
              h4("Performance (NRMSE)")),
     p("The plot shows NRMSE values for a selected deconvolution tool across expected tumoral fractions (X-axis) and DMR tools (color), allowing comparison of prediction error normalized by expected value, with lower points indicating better performance."
@@ -139,8 +150,10 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
     ),
     tags$hr(), br(), br(),
     
-    ############################################################################
+    # -----------------------------------------------------------------------
     # Heatmap section
+    # -----------------------------------------------------------------------
+    
     tags$div(id = "heatmap_wgbstt", 
              h4("Heatmap of expected tumoral fraction vs deconvolution tools")),
     p("The plot shows log2-scaled NRMSE values (tile color) for each deconvolution tool across expected tumoral fractions, with tools ranked left-to-right by their NRMSE at expected TF = 0.0001, where lower values indicate better performance."
@@ -186,9 +199,10 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
     ),
     tags$hr(), br(), br(),
     
-    
-    ############################################################################
+    # -----------------------------------------------------------------------
     # AUC-ROC of tools at 4 low tumoral fractions
+    # -----------------------------------------------------------------------
+    
     tags$div(id = "aucroc_wgbstt", 
              h4("AUC-ROC at different tumoral fractions")),
     p("The plot shows ROC curves and AUC values for each selected deconvolution tool (faceted), across multiple low tumoral fractions (0.0001 to 0.05), where each line color represents a fraction and higher curves indicate better classification performance."
@@ -265,7 +279,7 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
                    ),
                    checkboxGroupInput(
                      ns("aucroc_exptfs_select"),
-                     label = "Tumoral Fractions",
+                     label = "Expected Tumoral Fractions",
                      choices = NULL,
                      selected = NULL
                    ),
@@ -293,8 +307,10 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
     ),
     tags$hr(), br(), br(),
     
-    ############################################################################
+    # -----------------------------------------------------------------------
     # RMSE Comparison section
+    # -----------------------------------------------------------------------
+    
     tags$div(id = "tools-rmse_wgbstt", 
              h4("Tools RMSE")),
     p("The plot shows RMSE values for each deconvolution tool (Y-axis) across selected DMR tools (colored points) at a specific expected tumoral fraction, with tools sorted top-to-bottom by their mean RMSE, so that lower (better) RMSE tools appear at the top."
@@ -316,7 +332,7 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
                    ),
                    selectInput(
                      ns("rmse_comparison_expectedtf_select"), 
-                     label = "Tumoral Fraction",
+                     label = "Expected Tumoral Fraction",
                      choices = NULL,
                      selected = NULL
                    ),
@@ -343,11 +359,12 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
     ),
     tags$hr(), br(), br(),
     
-    
-    ############################################################################
+    # -----------------------------------------------------------------------
     # LoD section
+    # -----------------------------------------------------------------------
+    
     tags$div(id = "lod_wgbstt", 
-             h4("Limit of detection")),
+             h4("Limit of detection (LoD)")),
     p("The plot shows predicted tumoral fractions across increasing expected fractions for a selected tool and DMR method, with boxplots and Wilcoxon test significance markers comparing each level to 0 to assess the lowest fraction at which signal becomes statistically distinguishable from noise."
     ),
     
@@ -395,12 +412,17 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
     ),
     tags$hr(), br(), br(),
     
-    ############################################################################
+    # -----------------------------------------------------------------------
     # final ranking section
+    # -----------------------------------------------------------------------
+    
     tags$div(id = "final_wgbstt", 
              h4("Final ranking of the tools")),
-    p("The plot shows performance scores or individual metrics (meanAUC, RMSE, SCC, or Score) for each deconvolution tool (colored by DMR tool) under selected conditions, with tools sorted top-to-bottom by their average performance across DMR tools, where higher is better (except for RMSE, which is reversed)."
-      ),
+    withMathJax(
+      p("To get a unique aggregated metric per combination, individual metrics (RMSE, AUC, SCC, and LoD) are min–max scaled across deconvolution tools at each combination analysed and aggregated into a final score, and then min–max scaled again across tools: ",
+        tags$span("\\(\\small \\text{Score} = \\text{RMSE} + \\text{AUC} + \\text{SCC} + \\text{LoD}\\)")
+      )
+    ),
     sidebarLayout(
       sidebarPanel(width = 3,
                    selectInput(
@@ -417,8 +439,8 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
                    ),
                    selectInput(
                      ns("rank_metric_select"), 
-                     label = "Metric",
-                     choices = c("meanAUC", "RMSE", "SCC", "Score"),
+                     label = "Normalized metric",
+                     choices = c("AUC", "RMSE", "SCC", "LoD", "Score"),
                      selected = "Score"
                    ),
                    checkboxGroupInput(
@@ -442,47 +464,42 @@ wgbsttTabUI <- function(id, label = "WGBS-TT") {
                 br(), br(), br()
       ) 
     )
-        
-    ## End
-    
-    #) #Close fluidPage  
-    
-  ) #Close tabPanel 
+    ) # end tabPanel 
 
-} #Close TabUI
+} # end wgbsttTabUI
 
 
-
-
-
-# Optionally define server logic for this module (if needed)
+# wgbstab server
 wgbsttTabServer <- function(id) {
   moduleServer(id, function(input, output, session) {
   
-    ## 1. Filter dataset
+    #### 1. Filter dataset and basic setup #####
     bench <- subset(tot_bench,
                     seq_method == "wgbs")
     
-    # Sort the levels of depth
+    # Sort the levels of depth (e.g. 5M, 10M, 20M, ...)
     bench$seq_depth <- factor(
       bench$seq_depth,
       levels = unique(bench$seq_depth)[order(as.numeric(sub("M", "", unique(bench$seq_depth))))]
     )
     
+    # Download full RRBS-CL benchmark data
     output$download_wgbstt_df <- downloadHandler(
       filename = function() {
         paste0("wgbs_tt", "_", Sys.Date(), ".csv", sep = "")
       },
       content = function(file) {
-        write.csv(bench, file, row.names = FALSE)
+        utils::write.csv(bench, file, row.names = FALSE)
       }
     )
     
-    ## 2. Visualizations
+    #### 2. Visualizations #####
     
-    ############################################################################
-    ## Boxplot predictions for each tumoral fraction
-    # Dropdowns and checkboxes boxplot 
+    # -----------------------------------------------------------------------
+    ## Boxplot: predictions for each tumoral fraction
+    # -----------------------------------------------------------------------
+    
+    # Initial inputs
     updateSelectInput(session, "boxplot_tumortype_select", 
                       choices = sort(unique(bench$tumor_type)), 
                       selected = if ("BRCA" %in% bench$tumor_type) "BRCA" else sort(unique(bench$tumor_type))[1] )
@@ -496,53 +513,56 @@ wgbsttTabServer <- function(id) {
                              choices = sort(unique(bench$dmr_tool)), 
                              selected = sort(unique(bench$dmr_tool)))
     
+    # Select all / none for deconv tools
     observe({
-      current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
-      
-      # Update the checkbox group based on select all/none toggle
+      current_choices <- sort(unique(bench$deconv_tool)) 
       updateCheckboxGroupInput(
         session, "boxplot_deconvtools_select",
         choices = current_choices,
-        selected = if (input$boxplot_deconvtools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
-      )
+        selected = if (input$boxplot_deconvtools_select_all) current_choices else character(0) 
+        )
     })
     
-    # Reactive expression for filtered data boxplot
+    # Filter data for boxplot
     filtered_data_boxplot <- reactive({
-      req(input$boxplot_tumortype_select, input$boxplot_seqdepth_select, input$boxplot_exptf_select,
-          input$boxplot_deconvtools_select, input$boxplot_dmrtools_select)
+      req(input$boxplot_tumortype_select, 
+          input$boxplot_seqdepth_select, 
+          input$boxplot_exptf_select,
+          input$boxplot_deconvtools_select, 
+          input$boxplot_dmrtools_select)
       
       bench %>%
-        filter(tumor_type == input$boxplot_tumortype_select,                # Filter by tumor type
-               seq_depth == input$boxplot_seqdepth_select,                # Filter by depth
-               expected_tf == as.numeric(input$boxplot_exptf_select),  # Filter by fraction
-               deconv_tool %in% input$boxplot_deconvtools_select,                   # Filter by deconv_tools
-               dmr_tool %in% input$boxplot_dmrtools_select,             # Filter by dmr_tools
-               expected_tf != 0) # Exclude expected_tf == 0
+        dplyr::filter(tumor_type == input$boxplot_tumortype_select,
+               seq_depth == input$boxplot_seqdepth_select,
+               expected_tf == as.numeric(input$boxplot_exptf_select),
+               deconv_tool %in% input$boxplot_deconvtools_select,
+               dmr_tool %in% input$boxplot_dmrtools_select, 
+               expected_tf != 0)
     })
     
-    # Function to create the boxplot
+    # Boxplot function
     create_boxplot_TF <- function(data, seq_depth, expected_tf ) {
+      
       # Rank the tools by median difference
       median_diff <- data %>%
-        group_by(deconv_tool, dmr_tool) %>%
-        summarise(Diff = abs(median(expected_tf) - median(predicted_tf)), .groups = 'drop') %>%
-        group_by(deconv_tool) %>%
-        summarise(Mean = mean(Diff, na.rm = TRUE), .groups = 'drop') %>%
-        arrange(Mean)
-      # Tools with the smallest mean difference (more accurate) are placed first.
+        dplyr::group_by(deconv_tool, dmr_tool) %>%
+        dplyr::summarise(Diff = abs(median(expected_tf) - median(predicted_tf)), .groups = 'drop') %>%
+        dplyr::group_by(deconv_tool) %>%
+        dplyr::summarise(Mean = mean(Diff, na.rm = TRUE), .groups = 'drop') %>%
+        dplyr::arrange(Mean)
+      # Tools with the smallest mean difference (more accurate: predictions closest to expected) are placed first.
       # Tools with the largest mean difference (less accurate) are placed last.
       
       # Reorder the tools globally
       data <- data %>%
-        mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool))
+        dplyr::mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool))
       
       # Boxplot
-      ggplot(data, aes(x = deconv_tool, y = predicted_tf, fill = dmr_tool, color = dmr_tool)) +
+      ggplot2::ggplot(data, aes(x = deconv_tool, y = predicted_tf, fill = dmr_tool, color = dmr_tool)) +
         geom_boxplot(position = position_dodge(width = 0.75), alpha = 0.6) +
         geom_jitter(position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.75), size = 0.8, alpha = 0.5) +
         geom_hline(yintercept = expected_tf, color = "red", linetype = "dashed") +
-        scale_x_discrete(labels = function(x) str_replace_all(x, "_", " ")) +
+        scale_x_discrete(labels = function(x) stringr::str_replace_all(x, "_", " ")) +
         labs(
           x = "",
           y = "Predicted Tumoral Fraction"
@@ -551,43 +571,43 @@ wgbsttTabServer <- function(id) {
         custom_color_manual + custom_fill_manual
     }
     
-    # Render the boxplot in UI using the function
-    output$boxplot_TF <- renderPlotly({
+    # Render boxplot
+    output$boxplot_TF <- plotly::renderPlotly({
       data <- filtered_data_boxplot()
       req(nrow(data) > 0)
       plot <- create_boxplot_TF(data, input$boxplot_seqdepth_select, as.numeric(input$boxplot_exptf_select))
-      ggplotly(plot) %>% 
-        layout(
+      
+      plotly::ggplotly(plot) %>% 
+        plotly::layout(
           legend = list(
             orientation = "h",   # horizontal
             y = 1.1,            # move above the plot
             x = 0.5,             # center horizontally
-            xanchor = "center"
-          ),
-          boxmode = "group"
-        ) %>% 
-        config(toImageButtonOptions = list(format = "svg",
-                                           filename = paste0("boxplot_",input$boxplot_tumortype_select, "_", input$boxplot_seqdepth_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date())
+            xanchor = "center",
+            yanchor = "bottom"
+          ), boxmode = "group")  %>% 
+        plotly::config(toImageButtonOptions = list(format = "png",
+                                                   filename = paste0("boxplot_",input$boxplot_tumortype_select, "_", input$boxplot_seqdepth_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date())
         ))
     })
     
-    # Save dataframe boxplot as csv
+    # Download boxplot data
     output$download_boxplot_TF_df <- downloadHandler(
       filename = function() {
-        paste0("boxplot_",input$boxplot_tumortype_select, "_", input$boxplot_seqdepth_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date(), ".csv", sep = "")
+        paste0("boxplot_",input$boxplot_tumortype_select,"_", input$boxplot_seqdepth_select,"_fraction_", input$boxplot_exptf_select, "_", Sys.Date(), ".csv", sep = "")
       },
       content = function(file) {
         data <- filtered_data_boxplot()
         req(nrow(data) > 0)  
-        write.csv(data, file, row.names = FALSE)
+        utils::write.csv(data, file, row.names = FALSE)
       }
     )
     
-    
-    
-    ############################################################################ 
+    # -----------------------------------------------------------------------
     ## NRMSE plot
-    # Dropdowns and checkboxes nRMSE plot 
+    # -----------------------------------------------------------------------
+    
+    # Initial inputs
     updateSelectInput(session, "nrmse_tumortype_select", 
                       choices = sort(unique(bench$tumor_type)), 
                       selected = if ("BRCA" %in% bench$tumor_type) "BRCA" else sort(unique(bench$tumor_type))[1] )
@@ -601,39 +621,41 @@ wgbsttTabServer <- function(id) {
                              choices = sort(unique(bench$dmr_tool)), 
                              selected = sort(unique(bench$dmr_tool)))
     
-    # RMSE Data Filtering
+    # Filter data for NRMSE
     filtered_data_nrmse <- reactive({
       req(input$nrmse_tumortype_select, input$nrmse_seqdepth_select,input$nrmse_deconvtool_select, input$nrmse_dmrtools_select)
       data <- bench %>%
-        filter(tumor_type == input$nrmse_tumortype_select,
+        dplyr::filter(tumor_type == input$nrmse_tumortype_select,
                seq_depth == input$nrmse_seqdepth_select, 
                deconv_tool == input$nrmse_deconvtool_select, 
                dmr_tool %in% input$nrmse_dmrtools_select,
-               expected_tf != 0) # Exclude expected_tf == 0
+               expected_tf != 0)
       return(data)
     })    
     
+    # Compute NRMSE
     compute_nrmse_data <- function(data) {
       nrmse_data <- data %>%
-        group_by(dmr_tool, expected_tf, tumor_type) %>%
-        summarize(NRMSE = rmse(expected_tf, predicted_tf) / mean(expected_tf), .groups = "drop") # Calculate mean RMSE
+        # Calculate mean RMSE
+        dplyr::group_by(dmr_tool, expected_tf, tumor_type) %>%
+        dplyr::summarize(NRMSE = rmse(expected_tf, predicted_tf) / mean(expected_tf), 
+                         .groups = "drop") 
       return(nrmse_data)
     }
     
-    # Create a function to generate the RMSE plot
+    # NRMSE plot function
     create_plot_nrmse <- function(data) {
       
       data <- data %>%
-        mutate(tooltip_text = paste0("dmr_tool: ", dmr_tool, 
-                                    "<br>Expected Fraction: ", expected_tf, 
-                                    "<br>NRMSE: ", round(NRMSE, 4),
-                                    "<br>tumor_type: ", tumor_type))
+        dplyr::mutate(tooltip_text = paste0("dmr_tool: ", dmr_tool, 
+                                            "<br>Expected Fraction: ", expected_tf, 
+                                            "<br>NRMSE: ", round(NRMSE, 4),
+                                            "<br>tumor_type: ", tumor_type))
       
-      # Plot 
-      ggplot(data, aes(x = factor(expected_tf), y = NRMSE, color = dmr_tool, text = tooltip_text)) +
+      ggplot2::ggplot(data, aes(x = factor(expected_tf), y = NRMSE, color = dmr_tool, text = tooltip_text)) +
         geom_point(size = 3, alpha = 0.8,  position = position_jitter(width = 0, height = 0)) +
         labs(
-          x = "Expected Tumoral Fraction",
+          x = "Expected fraction",
           y = "NRMSE",
           color = "dmr_tool",
           shape = "dmr_tool"
@@ -642,14 +664,14 @@ wgbsttTabServer <- function(id) {
         custom_color_manual
     }
     
-    #Render the RMSE plot in UI using the function
-    output$nrmse_plot <- renderPlotly({
+    # Render NRMSE plot
+    output$nrmse_plot <- plotly::renderPlotly({
       data <- filtered_data_nrmse()
       req(nrow(data) > 0)
       nrmse_data <- compute_nrmse_data(data)
       plot <- create_plot_nrmse(nrmse_data)
-      ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
-        layout(
+      plotly::ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
+        plotly::layout(
           legend = list(
             orientation = "h",    # horizontal
             y = 1.1,              # move above the plot
@@ -657,27 +679,29 @@ wgbsttTabServer <- function(id) {
             xanchor = "center",
             yanchor = "bottom"    # anchor from bottom edge of legend box
           )) %>%
-        config(toImageButtonOptions = list(format = c("svg"),
-                                           filename = paste0("NRMSE_",input$nrmse_deconvtool_select,"_", input$nrmse_tumortype_select, "_depth_",input$nrmse_seqdepth_select,"_", Sys.Date()))
+        plotly::config(toImageButtonOptions = list(format = c("svg"),
+                                                   filename = paste0("NRMSE_",input$nrmse_deconvtool_select, "_", input$nrmse_tumortype_select, "_depth_",input$nrmse_seqdepth_select,"_", Sys.Date()))
         )
     })
     
-    # Save dataframe nrmse plot as csv
+    # Download NRMSE data
     output$download_nrmse_plot_df <- downloadHandler(
       filename = function() {
-        paste0("NRMSE_",input$nrmse_deconvtool_select,"_", input$nrmse_tumortype_select, "_depth_",input$nrmse_seqdepth_select,"_", Sys.Date(),".csv", sep = "")
+        paste0("NRMSE_",input$nrmse_deconvtool_select, "_", input$nrmse_tumortype_select, "_depth_",input$nrmse_seqdepth_select,"_", Sys.Date(),".csv", sep = "")
       },
       content = function(file) {
         data <- filtered_data_nrmse()
         req(nrow(data) > 0)  
         nrmse_data <- compute_nrmse_data(data)
-        write.csv(nrmse_data, file, row.names = FALSE)
+        utils::write.csv(nrmse_data, file, row.names = FALSE)
       }
     )
     
-    ############################################################################ 
+    # -----------------------------------------------------------------------
     ## Heatmap
-    # Dropdowns and checkboxes heatmap
+    # -----------------------------------------------------------------------
+    
+    # Initial inputs
     updateSelectInput(session, "heatmap_tumortype_select", 
                       choices = sort(unique(bench$tumor_type)), 
                       selected = if ("BRCA" %in% bench$tumor_type) "BRCA" else sort(unique(bench$tumor_type))[1] )
@@ -685,18 +709,17 @@ wgbsttTabServer <- function(id) {
                       choices = sort(unique(bench$seq_depth)),
                       selected = if ("620M" %in% bench$seq_depth) "620M" else sort(unique(bench$seq_depth))[1] ) 
   
+    # Select all / none deconv tools
     observe({
-      current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
-      
-      # Update the checkbox group based on select all/none toggle
+      current_choices <- sort(unique(bench$deconv_tool)) 
       updateCheckboxGroupInput(
         session, "heatmap_deconvtools_select",
         choices = current_choices,
-        selected = if (input$heatmap_deconvtools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+        selected = if (input$heatmap_deconvtools_select_all) current_choices else character(0)
       )
     })
     
-    # Filter data for heatmap
+    # Filter data heatmap
     create_heatmap_data <- reactive({
       req(input$heatmap_tumortype_select,
           input$heatmap_seqdepth_select, 
@@ -704,46 +727,45 @@ wgbsttTabServer <- function(id) {
           input$heatmap_dmrtool_select)
       
       data <- bench %>%
-        filter(tumor_type == input$heatmap_tumortype_select,
-               dmr_tool == input$heatmap_dmrtool_select,
-               expected_tf != 0, 
-               deconv_tool %in% input$heatmap_deconvtools_select,
-               seq_depth == input$heatmap_seqdepth_select) %>%
-        group_by(deconv_tool,expected_tf, tumor_type) %>%  # Group by tool and tumoral fraction
-        summarize(RMSE = rmse(expected_tf, predicted_tf),
-                  NRMSE = RMSE / mean(expected_tf),
-                  .groups = "drop")
+        dplyr::filter(tumor_type == input$heatmap_tumortype_select,
+                      dmr_tool == input$heatmap_dmrtool_select,
+                      expected_tf != 0, 
+                      deconv_tool %in% input$heatmap_deconvtools_select,
+                      seq_depth == input$heatmap_seqdepth_select) %>%
+        dplyr::group_by(deconv_tool,expected_tf, tumor_type) %>%  
+        dplyr::summarize(RMSE = rmse(expected_tf, predicted_tf),
+                         NRMSE = RMSE / mean(expected_tf),
+                         .groups = "drop")
       return(data)
     })
     
-    # Create a function to generate the heatmap
+    # Heatmap plot function
     create_heatmap_plot <- function(plot_data) {
       
-      # Optional: Handle NRMSE == 0
+      # Handle NRMSE == 0
       plot_data$NRMSE <- ifelse(plot_data$NRMSE == 0, 1e-6, plot_data$NRMSE)
       
       # Rank tools by median RMSE
       median_diff <- plot_data %>%
-        group_by(deconv_tool) %>%
-        filter(expected_tf==0.0001) %>%
-        arrange(NRMSE)
+        dplyr::group_by(deconv_tool) %>%
+        dplyr::filter(expected_tf==0.0001) %>%
+        dplyr::arrange(NRMSE)
       
       plot_data$NRMSE <- as.numeric(plot_data$NRMSE)
       
       # Reorder tools globally
       plot_data <- plot_data %>%
-        mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool),
-               expected_tf = factor(expected_tf, levels = sort(unique(expected_tf))),
-               label = ifelse(is.na(NRMSE), "NA", formatC(NRMSE, format = "e", digits = 2))
+        dplyr::mutate(deconv_tool = factor(deconv_tool, levels = median_diff$deconv_tool),
+                      expected_tf = factor(expected_tf, levels = sort(unique(expected_tf))),
+                      label = ifelse(is.na(NRMSE), "NA", formatC(NRMSE, format = "e", digits = 2))
         )
       
       # Define max value for scaling
       max_val <- max(plot_data$NRMSE, na.rm = TRUE)
       
       # Create and return the heatmap plot
-      ggplot(plot_data, aes(x = deconv_tool, y = expected_tf, fill = NRMSE)) +
+      ggplot2::ggplot(plot_data, aes(x = deconv_tool, y = expected_tf, fill = NRMSE)) +
         geom_tile(color = "gray10") + 
-        #geom_text(aes(label = label), color = "black", size = 4) +
         scale_fill_gradient(
           low = "white", high = "#9c080d",
           limits = c(1e-6, max_val),
@@ -752,7 +774,7 @@ wgbsttTabServer <- function(id) {
           labels = scales::label_scientific(digits = 2),
           name = "log2(NRMSE)"
         ) +
-        scale_x_discrete(labels = function(x) str_replace_all(x, "_", " ")) +
+        scale_x_discrete(labels = function(x) stringr::str_replace_all(x, "_", " ")) +
         scale_y_discrete(labels = function(x) format(as.numeric(as.character(x)), scientific = FALSE, digits = 3)) +
         labs(
           x = "",
@@ -767,8 +789,8 @@ wgbsttTabServer <- function(id) {
           legend.text  = element_text(color = "gray10"),
           legend.position = "top",           
           legend.direction = "horizontal",  
-          legend.key.width = unit(1.5, "cm"),   # wider legend boxes
-          legend.key.height = unit(0.5, "cm"),  # taller legend boxes
+          legend.key.width = grid::unit(1.5, "cm"),   # wider legend boxes
+          legend.key.height = grid::unit(0.5, "cm"),  # taller legend boxes
           panel.background = element_blank(),
           panel.border     = element_blank(),
           axis.ticks       = element_blank()
@@ -779,26 +801,24 @@ wgbsttTabServer <- function(id) {
           y = 0.5, yend = length(unique(plot_data$expected_tf)) + 0.5,
           color = "black")
     }
+    # Lower NRMSE = better performance (whiter)
+    # Higher NRMSE = worse performance (dark red)
     
-    # Darker colors for higher NRMSE (bad)
-    # Whiter/lighter colors for low NRMSE (good)
-    
-    
-    # Render heatmap
+    # Render heatmap plot
     output$heatmap <- renderPlot({
       plot_data <- create_heatmap_data()
       create_heatmap_plot(plot_data)
     })
     # tools on the left side of the x-axis are considered better (i.e., lower RMSE), but only at expected_tf == 0.0001.
     
-    # Save heatmap using the function
+    # Save heatmap plot
     download_heatmap_plot <- function(ext) {
       downloadHandler(
-        filename = function() paste0("heatmap_tools_",input$heatmap_tumortype_select, "_", input$heatmap_dmrtool_select, "_depth_", input$heatmap_seqdepth_select, "_",Sys.Date(), ".", ext, sep = ""),
+        filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_", input$heatmap_tumortype_select, "_depth_", input$heatmap_seqdepth_select,"_",Sys.Date(), ".", ext, sep = ""),
         content = function(file) {
           plot_data <- create_heatmap_data()
           plot <- create_heatmap_plot(plot_data)
-          ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = ext)
+          ggplot2::ggsave(file, plot = plot, width = 10, height = 6, dpi = 300, device = ext)
           
         }
       )
@@ -808,18 +828,18 @@ wgbsttTabServer <- function(id) {
     
     # Save dataframe heatmap as csv
     output$download_heatmap_df <- downloadHandler(
-      filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_", input$heatmap_tumortype_select, "_depth_", input$heatmap_seqdepth_select, "_", Sys.Date(), ".csv", sep = ""),
+      filename = function() paste0("heatmap_tools_", input$heatmap_dmrtool_select, "_", input$heatmap_tumortype_select, "_depth_", input$heatmap_seqdepth_select,"_", Sys.Date(), ".csv", sep = ""),
       content = function(file) {
         plot_data <- create_heatmap_data()
-        write.csv(plot_data, file, row.names = FALSE)
-        
-        
+        utils::write.csv(plot_data, file, row.names = FALSE)
       }
     )
     
-    ############################################################################     
+    # -----------------------------------------------------------------------
     # AUCROC complete plot
-    # Dropdowns and checkboxes AUCROC complete plot
+    # -----------------------------------------------------------------------
+    
+    # Initial inputs
     updateSelectInput(session, "aucroc_complete_tumortype_select", 
                       choices = sort(unique(bench$tumor_type)), 
                       selected = if ("BRCA" %in% bench$tumor_type) "BRCA" else sort(unique(bench$tumor_type))[1] )
@@ -827,29 +847,30 @@ wgbsttTabServer <- function(id) {
                       choices = sort(unique(bench$seq_depth)), 
                       selected = if ("620M" %in% bench$seq_depth) "620M" else sort(unique(bench$seq_depth))[1] )
 
+    # Select all / none deconv tools
     observe({
-      current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
+      current_choices <- sort(unique(bench$deconv_tool))
+      current_choices <- current_choices[current_choices != 0]
       
-      # Update the checkbox group based on select all/none toggle
       updateCheckboxGroupInput(
         session, "aucroc_complete_deconvtools_select",
         choices = current_choices,
-        selected = if (input$aucroc_complete_deconvtools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+        selected = if (input$aucroc_complete_deconvtools_select_all) current_choices else character(0)
       )
     })
     
-    
+    # Generate AUCROC data
     create_aucroc_complete_data <- reactive({
       req(input$aucroc_complete_tumortype_select,
           input$aucroc_complete_seqdepth_select,
           input$aucroc_complete_deconvtools_select,
           input$aucroc_complete_dmrtool_select)
       
-      # Pre-filter the dataset once
+      # Pre-filter dataset
       filtered_bench <- bench %>%
-        filter(tumor_type == input$aucroc_complete_tumortype_select,
-               seq_depth == input$aucroc_complete_seqdepth_select,
-               dmr_tool == input$aucroc_complete_dmrtool_select)
+        dplyr::filter(tumor_type ==input$aucroc_complete_tumortype_select,
+                      seq_depth == input$aucroc_complete_seqdepth_select,
+                      dmr_tool == input$aucroc_complete_dmrtool_select)
       
       # Define all combinations of tools × fractions
       fractions <- c(0.0001, 0.001, 0.01, 0.05)
@@ -859,49 +880,50 @@ wgbsttTabServer <- function(id) {
         stringsAsFactors = FALSE
       )
       
-      # Function to compute ROC curve for each tool-fraction pair
       get_auc_data <- function(deconv_tool, fraction) {
         filt_df <- filtered_bench %>%
-          filter(expected_tf %in% c(0, fraction),
-                 deconv_tool == !!deconv_tool)
+          dplyr::filter(expected_tf %in% c(0, fraction),
+                        deconv_tool == !!deconv_tool)
         
-        if (length(unique(filt_df$expected_tf)) != 2 || nrow(filt_df) == 0) return(NULL)
+        if (length(unique(filt_df$expected_tf)) != 2 || nrow(filt_df) == 0) {
+          # Return an empty data frame instead of NULL
+          return(data.frame())
+        }
         
         roc_curve <- suppressMessages(
-          roc(filt_df$expected_tf, filt_df$predicted_tf)
+          roc.obj(true_labels = filt_df$expected_tf, predicted_scores = filt_df$predicted_tf)
         )
         
         data.frame(
-          fpr = 1 - rev(roc_curve$specificities),
-          tpr = rev(roc_curve$sensitivities),
-          thresholds = rev(roc_curve$thresholds),
-          auc = rev(roc_curve$auc),
-          fraction = fraction,
-          deconv_tool = deconv_tool,
-          tumor_type = input$aucroc_complete_tumortype_select
+          fpr = 1 - rev(roc_curve$specificities), # False Positive Rate (1 - specificity), reversed to match increasing thresholds
+          tpr = rev(roc_curve$sensitivities),     # True Positive Rate (sensitivity), reversed for increasing thresholds
+          thresholds = rev(roc_curve$thresholds), # Thresholds used to compute TPR and FPR, reversed
+          auc = rev(roc_curve$auc),               # Area Under the Curve, repeated/reversed to match thresholds
+          fraction = fraction,                    # Tumor fraction for this evaluation
+          deconv_tool = deconv_tool,              # Name of the deconvolution tool
+          dmr_tool = input$aucroc_complete_dmrtool_select, # Name of the DMR tool
+          seq_depth = input$aucroc_complete_seqdepth_select,                  # Sequencing depth analysed
+          tumor_type = input$aucroc_complete_dmrtool_select,                # Tumor type analysed
+          stringsAsFactors = FALSE
         )
       }
       
-      # Run the AUC calculation in parallel
-      future_pmap_dfr(
-        list(combinations$deconv_tool, combinations$fraction),
-        get_auc_data,
-        .options = furrr_options(seed = TRUE)
+      # Run the AUC calculation 
+      purrr::map2_dfr(
+        combinations$deconv_tool,
+        combinations$fraction,
+        get_auc_data
       )
+      
     })
     
-    # Function to generate AUC-ROC plot with facet_wrap
+    # Generate AUCROC plot with facet_wrap
     create_aucroc_complete_plot <- function(aucroc_complete_data) {
       aucroc_complete_data$deconv_tool <- gsub("_", " ", aucroc_complete_data$deconv_tool)
       
-      ggplot(aucroc_complete_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
-        # ROC Curve Lines
-        geom_line(size = 1) +
-        
-        # AUC Points (only at x=0)
-        geom_point(aes(x = 0, y = auc), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
-        
-        # Labels and theme
+      ggplot2::ggplot(aucroc_complete_data, aes(x = fpr, y = tpr, color = as.factor(fraction), group = fraction)) + 
+        geom_line(size = 1) + # ROC Curve Lines
+        geom_point(aes(x = 0, y = auc), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) + # AUC Points (only at x=0)
         labs(
           x = "FPR",
           y = "TPR",
@@ -911,11 +933,11 @@ wgbsttTabServer <- function(id) {
         facet_wrap(~ deconv_tool, ncol = 4)+ # Adjust ncol to control the number of columns
         theme(
           legend.position = "bottom",
-          panel.spacing = unit(1,"lines")
+          panel.spacing = grid::unit(1,"lines")
         )
     }
     
-    # Render output AUCROC plot
+    # Render AUCROC plot
     output$aucroc_complete_plot <- renderPlot({
       aucroc_complete_data <- create_aucroc_complete_data()
       req(nrow(aucroc_complete_data) > 0)  
@@ -925,13 +947,13 @@ wgbsttTabServer <- function(id) {
     # Save AUCROC using the function
     download_aucroc_complete_plot <- function(ext) {
       downloadHandler(
-        filename = function() paste0("auc_", input$aucroc_complete_tumortype_select ,"_depth_",input$aucroc_complete_seqdepth_select, "_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".", ext, sep=""),
+        filename = function() paste0("auc_", input$aucroc_complete_tumortype_select, "_depth_",input$aucroc_complete_seqdepth_select,"_",input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".", ext, sep=""),
         content = function(file) {
           req(input$aucroc_complete_deconvtools_select, input$aucroc_complete_dmrtool_select)
           aucroc_complete_data <- create_aucroc_complete_data()
           req(nrow(aucroc_complete_data) > 0)  
           plot <- create_aucroc_complete_plot(aucroc_complete_data)
-          ggsave(file, plot = plot, width = 9, height = 10, dpi = 300, device = ext)
+          ggplot2::ggsave(file, plot = plot, width = 9, height = 10, dpi = 300, device = ext)
         }
       )
     }
@@ -941,21 +963,21 @@ wgbsttTabServer <- function(id) {
     # Save dataframe AUCROC plot as csv
     output$download_aucroc_complete_df <- downloadHandler(
       filename = function() {
-        paste0("auc_", input$aucroc_complete_tumortype_select ,"_depth_",input$aucroc_complete_seqdepth_select, "_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".csv", sep="")
+        paste0("auc_", input$aucroc_complete_tumortype_select, "_depth_",input$aucroc_complete_seqdepth_select,"_", input$aucroc_complete_dmrtool_select,"_" ,Sys.Date(), ".csv", sep="")
       },
       content = function(file) {
         req(input$aucroc_complete_deconvtools_select, input$aucroc_complete_dmrtool_select)
         aucroc_complete_data <- create_aucroc_complete_data()
         req(nrow(aucroc_complete_data) > 0)  
-        write.csv(aucroc_complete_data, file, row.names = FALSE)
-
+        utils::write.csv(aucroc_complete_data, file, row.names = FALSE)
       }
     )
     
-    
-    ############################################################################ 
+    # -----------------------------------------------------------------------
     ## Interactive AUCROC plot
-    # Dropdowns and checkboxes AUCROC
+    # -----------------------------------------------------------------------
+    
+    # Initial inputs
     updateSelectInput(session, "aucroc_tumortype_select", 
                       choices = sort(unique(bench$tumor_type)), 
                       selected = if ("BRCA" %in% bench$tumor_type) "BRCA" else sort(unique(bench$tumor_type))[1] )
@@ -966,19 +988,18 @@ wgbsttTabServer <- function(id) {
                       choices = sort(unique(bench$deconv_tool)), 
                       selected = sort(unique(bench$deconv_tool))[1])
 
+    # Select all / none expected tfs
     observe({
-      current_choices <- sort(unique(bench$expected_tf))  # Get all available tools
+      current_choices <- sort(unique(bench$expected_tf)) 
       current_choices <- current_choices[current_choices != 0]
-      
-      # Update the checkbox group based on select all/none toggle
       updateCheckboxGroupInput(
         session, "aucroc_exptfs_select",
         choices = current_choices,
-        selected = if (input$aucroc_exptfs_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+        selected = if (input$aucroc_exptfs_select_all) current_choices else character(0) 
       )
     })
     
-    # Create a reactive function for AUCROC data
+    # Generate AUCROC data
     create_aucroc_data <- reactive({
       req(input$aucroc_tumortype_select,
           input$aucroc_seqdepth_select, 
@@ -989,15 +1010,13 @@ wgbsttTabServer <- function(id) {
       aucroc_data <- data.frame()
       fractions <- input$aucroc_exptfs_select
       
-      #fractions <- c(0.0001, 0.001, 0.01, 0.05)
-      
       for (fraction in unique(fractions)) {
         filt_df <- bench %>%
-          filter(tumor_type == input$aucroc_tumortype_select,
-                 seq_depth == input$aucroc_seqdepth_select,
-                 expected_tf %in% c(0, fraction),
-                 dmr_tool == input$aucroc_dmrtool_select,
-                 deconv_tool == input$aucroc_deconvtool_select)
+          dplyr::filter(tumor_type == input$aucroc_tumortype_select,
+                        seq_depth == input$aucroc_seqdepth_select,
+                        expected_tf %in% c(0, fraction),
+                        dmr_tool == input$aucroc_dmrtool_select,
+                        deconv_tool == input$aucroc_deconvtool_select)
         
         # Ensure both 0 and fraction are present before running ROC analysis
         if (length(unique(filt_df$expected_tf)) != 2) {
@@ -1007,14 +1026,19 @@ wgbsttTabServer <- function(id) {
         if (nrow(filt_df) > 0) {
           roc_curve <- roc.obj(filt_df$expected_tf, filt_df$predicted_tf)
           tmp <- data.frame(
-            fpr = 1 - rev(roc_curve$specificities),
-            tpr = rev(roc_curve$sensitivities),
-            thresholds = rev(roc_curve$thresholds),
-            auc = rev(roc_curve$auc),
-            fraction = fraction,
-            deconv_tool = input$aucroc_deconvtool_select,
-            tumor_type = input$aucroc_tumortype_select
+            fpr = 1 - rev(roc_curve$specificities), # False Positive Rate (1 - specificity), reversed to match increasing thresholds
+            tpr = rev(roc_curve$sensitivities),     # True Positive Rate (sensitivity), reversed for increasing thresholds
+            thresholds = rev(roc_curve$thresholds), # Thresholds used to compute TPR and FPR, reversed
+            auc = rev(roc_curve$auc),               # Area Under the Curve, repeated/reversed to match thresholds
+            fraction = fraction,                    # Tumor fraction for this evaluation
+            deconv_tool = input$aucroc_deconvtool_select,              # Name of the deconvolution tool
+            dmr_tool = input$aucroc_dmrtool_select, # Name of the DMR tool
+            seq_depth = input$aucroc_seqdepth_select,                  # Sequencing depth analysed
+            tumor_type = input$aucroc_tumortype_select,                # Tumor type analysed
+            stringsAsFactors = FALSE
           )
+          
+          
           aucroc_data <- rbind(aucroc_data, tmp)
         }
       }
@@ -1023,10 +1047,10 @@ wgbsttTabServer <- function(id) {
     
     # Function to generate AUC-ROC plot
     create_aucroc_plot <- function(aucroc_data) {
-
+      
       # Ensure correct numeric sorting and scientific labeling of fractions
       aucroc_data <- aucroc_data %>%
-        mutate(
+        dplyr::mutate(
           fraction = as.numeric(as.character(fraction)),  # ensure numeric
           fraction_label = factor(
             as.character(fraction),  # preserve original display (e.g., "1e-04", "0.001")
@@ -1039,14 +1063,9 @@ wgbsttTabServer <- function(id) {
         )
       
       
-      ggplot(aucroc_data, aes(x = fpr, y = tpr, color = fraction_label, group = fraction_label)) + 
-        # ROC Curve Lines
-        geom_line(aes(text = tooltip_line), size = 1) +
-        
-        # AUC Points (only at x=0)
-        geom_point(aes(x = 0, y = auc, text = tooltip_point), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) +
-        
-        # Labels and theme
+      ggplot2::ggplot(aucroc_data, aes(x = fpr, y = tpr, color = fraction_label, group = fraction_label)) + 
+        geom_line(aes(text = tooltip_line), size = 1) +       # ROC Curve Lines
+        geom_point(aes(x = 0, y = auc, text = tooltip_point), shape = 1, stroke = 1.5, size = 2, show.legend = FALSE) + # AUC Points (only at x=0)
         labs(
           x = "FPR",
           y = "TPR",
@@ -1054,23 +1073,23 @@ wgbsttTabServer <- function(id) {
         ) + theme_benchmarking
     }
     
-    # Render output AUCROC plot
-    output$aucroc_plot <- renderPlotly({
+    # Render AUCROC plot
+    output$aucroc_plot <- plotly::renderPlotly({
       aucroc_data <- create_aucroc_data()
       req(nrow(aucroc_data) > 0)  
       plot <- create_aucroc_plot(aucroc_data)
-      ggplotly(plot, tooltip = "text") %>%
-        layout(
+      plotly::ggplotly(plot, tooltip = "text") %>%
+        plotly::layout(
           legend = list(
             orientation = "h",   # horizontal
-            y = -0.2,            # move above the plot
+            y = -0.5,            # move above the plot
             x = 0.5,             # center horizontally
-            xanchor = "center"
-          ),
-          boxmode = "group"
+            xanchor = "center",
+            yanchor = "bottom"
+          )
         ) %>%
-        config(toImageButtonOptions = list(format = "svg",
-                                           filename = paste0("auc_", input$aucroc_tumortype_select, "_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
+        plotly::config(toImageButtonOptions = list(format = "svg",
+                                                   filename = paste0("auc_", input$aucroc_tumortype_select, "_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date())
         ))
     })
     
@@ -1081,14 +1100,14 @@ wgbsttTabServer <- function(id) {
       
       # Create display and numeric versions of the fraction
       auc_summary <- aucroc_data %>%
-        mutate(
+        dplyr::mutate(
           fraction_numeric = as.numeric(as.character(fraction)),
-          fraction_label = as.character(fraction)  # keep original display format
+          fraction_label = as.character(fraction) 
         ) %>%
-        group_by(fraction_numeric, fraction_label) %>%
-        summarise(AUC = round(mean(auc), 4), .groups = "drop") %>%
-        arrange(fraction_numeric) %>%
-        select(`Tumoral Fraction` = fraction_label, AUC)
+        dplyr::group_by(fraction_numeric, fraction_label) %>%
+        dplyr::summarise(AUC = round(mean(auc), 4), .groups = "drop") %>%
+        dplyr::arrange(fraction_numeric) %>%
+        dplyr::select(`Tumoral Fraction` = fraction_label, AUC)
       
       DT::datatable(
         auc_summary,
@@ -1097,28 +1116,29 @@ wgbsttTabServer <- function(id) {
           dom = 't',
           pageLength = 10,
           autoWidth = TRUE,
-          ordering = FALSE  # disable sorting, we already pre-sorted correctly
+          ordering = FALSE
         ),
         class = 'compact'
       )
     })
     
-    # Save dataframe AUCROC plot as csv
+    # Export AUCROC data
     output$download_aucroc_df <- downloadHandler(
       filename = function() {
-        paste0("auc_",input$aucroc_tumortype_select,"_depth_",input$aucroc_seqdepth_select, "_",  input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
+        paste0("auc_",  input$aucroc_tumortype_select, "_depth_",input$aucroc_seqdepth_select, "_", input$aucroc_deconvtool_select, "_", input$aucroc_dmrtool_select, "_", Sys.Date(), ".csv", sep="")
       },
       content = function(file) {
         aucroc_data <- create_aucroc_data()
         req(nrow(aucroc_data) > 0)  
-        write.csv(aucroc_data, file, row.names = FALSE)
+        utils::write.csv(aucroc_data, file, row.names = FALSE)
       }
     )
     
-    
-    ############################################################################ 
+    # -----------------------------------------------------------------------
     ## RMSE comparison Plot
-    # Dropdowns and checkboxes RMSE comparison plot 
+    # -----------------------------------------------------------------------
+    
+    # Initial inputs
     updateSelectInput(session, "rmse_comparison_tumortype_select", 
                       choices = sort(unique(bench$tumor_type)), 
                       selected = if ("BRCA" %in% bench$tumor_type) "BRCA" else sort(unique(bench$tumor_type))[1] )
@@ -1133,69 +1153,67 @@ wgbsttTabServer <- function(id) {
                              choices = sort(unique(bench$dmr_tool)), 
                              selected = sort(unique(bench$dmr_tool)))
     
+    # Select all / none deconvtools
     observe({
-      current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
-      
-      # Update the checkbox group based on select all/none toggle
+      current_choices <- sort(unique(bench$deconv_tool)) 
       updateCheckboxGroupInput(
         session, "rmse_comparison_deconvtools_select",
         choices = current_choices,
-        selected = if (input$rmse_comparison_deconvtools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+        selected = if (input$rmse_comparison_deconvtools_select_all) current_choices else character(0)
       )
     })
     
-    # RMSE tool comparison Data Filtering
+    # RMSE comparison filter data
     filtered_data_rmse_comparison <- reactive({
-      req(input$rmse_comparison_tumortype_select, 
+      req(input$rmse_comparison_tumortype_select,
           input$rmse_comparison_seqdepth_select,
           input$rmse_comparison_expectedtf_select, 
           input$rmse_comparison_deconvtools_select, 
           input$rmse_comparison_dmrtools_select)
       
       bench %>%
-        filter(tumor_type == input$rmse_comparison_tumortype_select,
-               seq_depth == input$rmse_comparison_seqdepth_select,
-               expected_tf == input$rmse_comparison_expectedtf_select,
-               expected_tf != 0, # Exclude expected_tf == 0
-               dmr_tool %in% input$rmse_comparison_dmrtools_select,
-               deconv_tool %in% input$rmse_comparison_deconvtools_select
+        dplyr::filter(tumor_type == input$rmse_comparison_tumortype_select,
+                      seq_depth == input$rmse_comparison_seqdepth_select,
+                      expected_tf == input$rmse_comparison_expectedtf_select,
+                      expected_tf != 0, 
+                      dmr_tool %in% input$rmse_comparison_dmrtools_select,
+                      deconv_tool %in% input$rmse_comparison_deconvtools_select
         )
     })
     
-    # Create a function to generate the RMSE comparison plot
+    # Generate RMSE comparison plot
     create_rmse_comparison_plot <- function(data) {
       
       # Calculate RMSE
       plot_data <- data %>%
-        group_by(deconv_tool, dmr_tool) %>%
-        summarise(RMSE = rmse(expected_tf, predicted_tf), .groups = "drop")
+        dplyr::group_by(deconv_tool, dmr_tool) %>%
+        dplyr::summarise(RMSE = rmse(expected_tf, predicted_tf), .groups = "drop")
       
       # Rank the tools by mean RMSE
       ranked_tools <- plot_data %>%
-        group_by(deconv_tool) %>%
-        summarise(MeanRMSE = mean(RMSE, na.rm = TRUE)) %>%
-        arrange(desc(MeanRMSE)) %>%
-        pull(deconv_tool)  # Extract ordered deconv_tool names
+        dplyr::group_by(deconv_tool) %>%
+        dplyr::summarise(MeanRMSE = mean(RMSE, na.rm = TRUE)) %>%
+        dplyr::arrange(desc(MeanRMSE)) %>%
+        dplyr::pull(deconv_tool)  # Extract ordered deconv_tool names
       
       # Reorder tools based on calculated ranking
       plot_data <- plot_data %>%
-        mutate(deconv_tool = factor(deconv_tool, levels = ranked_tools)) 
+        dplyr::mutate(deconv_tool = factor(deconv_tool, levels = ranked_tools)) 
       
       # The tools with lower RMSE (better performance) will appear at the top of the y-axis.
       # The tools with higher RMSE (worse performance) will appear at the bottom of the y-axis.
       
       # Reorder the tools globally
       plot_data <- plot_data %>%
-        mutate(tooltip_text = paste0("dmr_tool: ", dmr_tool, 
-                                    "<br>deconv_tool: ", deconv_tool,
-                                    "<br>RMSE: ", round(RMSE, 4)))
+        dplyr::mutate(tooltip_text = paste0("dmr_tool: ", dmr_tool, 
+                                            "<br>deconv_tool: ", deconv_tool,
+                                            "<br>RMSE: ", round(RMSE, 4)))
       
       # Generate the plot
-      ggplot(plot_data, aes(x = RMSE, y = deconv_tool, color = dmr_tool, text = tooltip_text)) +
+      ggplot2::ggplot(plot_data, aes(x = RMSE, y = deconv_tool, color = dmr_tool, text = tooltip_text)) +
         geom_point(size = 3, alpha = 0.8, position = position_jitter(width = 0, height = 0) ) +
-        scale_y_discrete(labels = function(y) str_replace_all(y, "_", " ")) +
+        scale_y_discrete(labels = function(y) stringr::str_replace_all(y, "_", " ")) +
         labs(
-          #title = paste0("RMSE vs Tool (Expected Fraction: ", fraction, ")"),
           x = "RMSE",
           y = "",
           color = "dmr_tool",
@@ -1211,45 +1229,45 @@ wgbsttTabServer <- function(id) {
         custom_color_manual
     }
     
-    # Render the RMSE comparison plot in UI using the function
-    output$rmse_comparison <- renderPlotly({
+    # Render RMSE comparison plot 
+    output$rmse_comparison <- plotly::renderPlotly({
       data <- filtered_data_rmse_comparison()
       req(nrow(data) > 0)
       plot <- create_rmse_comparison_plot(data)
-      ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
-        layout(
+      plotly::ggplotly(plot, tooltip = "text") %>% 
+        plotly::layout(
           legend = list(
             orientation = "h",    # horizontal
             y = 1.1,              # move above the plot
             x = 0.5,              # center horizontally
             xanchor = "center",
             yanchor = "bottom"    # anchor from bottom edge of legend box
-          ),
-          boxmode = "group"
+          )
         ) %>%
-        config(toImageButtonOptions = list(format = "svg",
-                                           filename = paste0("ranking_deconvtools_",input$rmse_comparison_tumortype_select, "_fraction_", as.numeric(input$rmse_comparison_expectedtf_select),"_depth_",input$rmse_comparison_seqdepth_select,"_", Sys.Date())
+        plotly::config(toImageButtonOptions = list(format = c("svg","pdf"),
+                                                   filename = paste0("ranking_deconvtools_", input$rmse_comparison_tumortype_select, "_fraction_", as.numeric(input$rmse_comparison_expectedtf_select),"_depth_",input$rmse_comparison_seqdepth_select,"_", Sys.Date())
         ))
     })
     
-    # Save dataframe rmse comparison plot as csv
+    # Export RMSE comparison data
     output$download_rmse_comparison_df <- downloadHandler(
-      filename = function() paste0("ranking_deconvtools_",input$rmse_comparison_tumortype_select, "_fraction_", as.numeric(input$rmse_comparison_expectedtf_select), "_depth_", input$rmse_comparison_seqdepth_select,"_", Sys.Date(), ".csv", sep = ""),
+      filename = function() paste0("ranking_deconvtools_", input$rmse_comparison_tumortype_select, "_fraction_", as.numeric(input$rmse_comparison_expectedtf_select), "_depth_", input$rmse_comparison_seqdepth_select,"_", Sys.Date(), ".csv", sep = ""),
       content = function(file) {
         data <- filtered_data_rmse_comparison() %>%
-          group_by(deconv_tool, dmr_tool) %>%
-          summarise(RMSE = rmse(expected_tf, predicted_tf), .groups = "drop") %>%
-          mutate(tumor_type = input$rmse_comparison_tumortype_select) %>%
-          select(tumor_type, deconv_tool, dmr_tool, RMSE)
+          dplyr::group_by(deconv_tool, dmr_tool) %>%
+          dplyr::summarise(RMSE = rmse(expected_tf, predicted_tf), .groups = "drop") %>%
+          dplyr::mutate(tumor_type = input$rmse_comparison_tumortype_select) %>%
+          dplyr::select(tumor_type, deconv_tool, dmr_tool, RMSE)
         req(nrow(data) > 0)
-        write.csv(data, file, row.names = FALSE)
+        utils::write.csv(data, file, row.names = FALSE)
       }
     )
     
+    # -----------------------------------------------------------------------
+    ## Limit of Detection (LoD)
+    # -----------------------------------------------------------------------
     
-    ############################################################################ 
-    ## LoD
-    # Dropdowns and checkboxes LoD    
+    # Initial inputs
     updateSelectInput(session, "lod_tumortype_select", 
                       choices = sort(unique(bench$tumor_type)), 
                       selected = if ("BRCA" %in% bench$tumor_type) "BRCA" else sort(unique(bench$tumor_type))[1] )
@@ -1284,21 +1302,22 @@ wgbsttTabServer <- function(id) {
       # correction.method: method for p.adjust (e.g., "BH", "bonferroni", etc.)
       stats <- data.frame()
       for (comp in comparisons) {
-        data.filt <- data[data$expected_tf %in% comp, ]
-        test <- wilcox.test(predicted_tf ~ expected_tf, data = data.filt, alternative = "less")
+        data.filt <- data %>%
+          dplyr::filter(expected_tf %in% comp)
+        test <- stats::wilcox.test(predicted_tf ~ expected_tf, data = data.filt, alternative = "less")
         stats <- rbind(stats, data.frame(
           group1 = comp[1],
           group2 = comp[2],
           p = test$p.value
         ))
       }
-      stats$p.adj <- p.adjust(stats$p, method = correction.method)
+      stats$p.adj <- stats::p.adjust(stats$p, method = correction.method)
       max_val <- max(data$predicted_tf, na.rm = TRUE)
       stats <- stats %>%
-        arrange(as.numeric(group2)) %>%
-        mutate(
+        dplyr::arrange(as.numeric(group2)) %>%
+        dplyr::mutate(
           y.position = seq(from = max_val *1, to = max_val *1.5, length.out = nrow(stats)),
-          p.adj.stars = case_when(
+          p.adj.stars = dplyr::case_when(
             p.adj <= 0.0001 ~ "****",
             p.adj <= 0.001 ~ "***",
             p.adj <= 0.01 ~ "**",
@@ -1312,7 +1331,7 @@ wgbsttTabServer <- function(id) {
     }
     
     
-    # Filter data for LoD
+    # Filter LoD data 
     create_lod_data <- reactive({
       req(input$lod_tumortype_select,
           input$lod_seqdepth_select, 
@@ -1320,10 +1339,10 @@ wgbsttTabServer <- function(id) {
           input$lod_dmrtool_select)
       
       data <- bench %>%
-        filter(tumor_type == input$lod_tumortype_select,
-               dmr_tool == input$lod_dmrtool_select,
-               seq_depth == input$lod_seqdepth_select,
-               deconv_tool == input$lod_deconvtool_select)
+        dplyr::filter(tumor_type == input$lod_tumortype_select,
+                      dmr_tool == input$lod_dmrtool_select,
+                      seq_depth == input$lod_seqdepth_select,
+                      deconv_tool == input$lod_deconvtool_select)
       return(data)
     })
     
@@ -1331,15 +1350,15 @@ wgbsttTabServer <- function(id) {
     # Create a function to generate the lod plot
     create_lod_plot <- function(data) {
       stats <- perform_custom_wilcox_tests(data, my_comparisons)
-      ggplot(data, aes(x = as.factor(expected_tf), y = predicted_tf)) +
+      ggplot2::ggplot(data, aes(x = as.factor(expected_tf), y = predicted_tf)) +
         geom_boxplot() +
         labs(
           x = "Expected Tumoral Fraction",
-          y = "Estimated Tumoral Fraction (%)"
+          y = "Estimated Tumoral Fraction"
         ) +
         theme_benchmarking +
         theme(axis.ticks.x = element_blank()) +
-        stat_pvalue_manual(stats, label = input$lod_plabel_select)
+        ggpubr::stat_pvalue_manual(stats, label = input$lod_plabel_select)
     }
     
     # Output plot 
@@ -1352,13 +1371,13 @@ wgbsttTabServer <- function(id) {
     # Save lod plot as svg and pdf
     download_lod <- function(ext) {
       downloadHandler(
-        filename = function() paste0("LoD_",input$lod_tumortype_select, "_", input$lod_deconvtool_select, "_depth_", input$lod_seqdepth_select, "_", input$lod_dmrtool_select, "_" , Sys.Date(), ".", ext, sep = ""),
+        filename = function() paste0("LoD_", input$lod_tumortype_select, "_", input$lod_deconvtool_select, "_depth_", input$lod_seqdepth_select, "_", input$lod_dmrtool_select, "_" , Sys.Date(), ".", ext, sep = ""),
         content = function(file) {
           data <- create_lod_data()
           req(nrow(data) > 0)
           plot <- create_lod_plot(data)
           
-          ggsave(file, plot = plot, width = 10, height = 8, dpi = 300, device = ext)
+          ggplot2::ggsave(file, plot = plot, width = 10, height = 8, dpi = 300, device = ext)
         }
       )
     }
@@ -1372,13 +1391,335 @@ wgbsttTabServer <- function(id) {
       content = function(file) {
         data <- create_lod_data()
         stats <- perform_custom_wilcox_tests(data, my_comparisons)
-        write.csv(stats, file, row.names = FALSE)
+        utils::write.csv(stats, file, row.names = FALSE)
       }
     )
   
-    ############################################################################ 
+    # -----------------------------------------------------------------------
     ## Final ranking of the tools 
-    # Dropdowns and checkboxes Rank tools
+    # -----------------------------------------------------------------------
+    
+    ## Helpers: AUC, LoD, min-max, metrics and plotting
+    
+    # AUC helper ------------------------------------------------------------
+    compute_auc <- function(df, fraction, deconv_name) {
+      roc_obj <- roc.obj(df$expected_tf, df$predicted_tf)
+      data.frame(
+        deconv_tool = deconv_name,
+        dmr_tool    = unique(df$dmr_tool),
+        seq_depth   = unique(df$seq_depth),
+        tumor_type  = unique(df$tumor_type),
+        expected_tf = fraction,
+        auc         = as.numeric(pROC::auc(roc_obj))
+      )
+    }
+    
+    # LoD helper ------------------------------------------------------------
+    compute_lod <- function(data, comparisons, correction.method = "BH") {
+      results <- list()
+      
+      for (comp in comparisons) {
+        group1 <- comp[1]
+        group2 <- comp[2]
+        
+        subset_data <- data %>%
+          dplyr::filter(expected_tf %in% comp)
+        if (nrow(subset_data) == 0) next
+        
+        test <- stats::wilcox.test(predicted_tf ~ expected_tf,
+                                   data = subset_data,
+                                   alternative = "less",
+                                   exact       = FALSE   # <- avoid "cannot compute exact p-value with ties"
+        )
+        
+        results[[length(results) + 1]] <- data.frame(
+          group1 = group1,
+          group2 = group2,
+          p      = test$p.value
+        )
+      }
+      
+      if (length(results) == 0) return(NULL)
+      
+      stats <- do.call(rbind, results)
+      stats$p.adj <- stats::p.adjust(stats$p, method = correction.method)
+      
+      max_val <- max(data$predicted_tf, na.rm = TRUE)
+      
+      stats <- stats %>%
+        dplyr::arrange(as.numeric(group2)) %>%
+        dplyr::mutate(
+          y.position = seq(from = max_val * 1.1,
+                           to   = max_val * 1.8,
+                           length.out = nrow(stats)),
+          star = dplyr::case_when(
+            p.adj <= 0.0001 ~ "****",
+            p.adj <= 0.001  ~ "***",
+            p.adj <= 0.01   ~ "**",
+            TRUE            ~ "ns"
+          ),
+          p     = formatC(p,     format = "e", digits = 1),
+          p.adj = formatC(p.adj, format = "e", digits = 1)
+        )
+      
+      return(stats)
+    }
+    
+    # Simple scale01 helper -------------------------------------------------
+    scale01 <- function(x) {
+      if (all(is.na(x))) return(x)
+      rng <- range(x, na.rm = TRUE)
+      if (rng[1] == rng[2]) {
+        return(rep(0, length(x)))
+      } else {
+        (x - rng[1]) / (rng[2] - rng[1])
+      }
+    }
+    
+    # Filter data helper ----------------------------------------------------
+    filter_bench <- function(bench_df,
+                             tumor_type_sel,
+                             seq_depth_sel,
+                             dmrtools_sel,
+                             deconvtools_sel) {
+      bench_df %>%
+        dplyr::filter(
+          tumor_type  == tumor_type_sel,
+          seq_depth   == seq_depth_sel,
+          dmr_tool    %in% dmrtools_sel,
+          deconv_tool %in% deconvtools_sel
+        )
+    }
+    
+    
+    # Compute metrics helper ------------------------------------------------
+    compute_metrics <- function(df) {
+      if (is.null(df) || nrow(df) == 0) {
+        return(list(rmse = NULL, auc = NULL, lod = NULL, scc = NULL))
+      }
+      
+      # Compute RMSE 
+      rmse_df <- df %>%
+        dplyr::filter(expected_tf != 0) %>%
+        dplyr::group_by(deconv_tool, dmr_tool, seq_depth, tumor_type, expected_tf) %>%
+        dplyr::summarise(RMSE = rmse(expected_tf, predicted_tf), .groups = "drop") %>%
+        dplyr::group_by(dmr_tool, seq_depth, tumor_type, expected_tf) %>%
+        dplyr::mutate(
+          RMSE_min    = min(RMSE),
+          RMSE_max    = max(RMSE),
+          RMSE_minmax = ifelse(
+            RMSE_max > RMSE_min,
+            (RMSE - RMSE_min) / (RMSE_max - RMSE_min),
+            0
+          )
+        ) %>%
+        dplyr::group_by(deconv_tool, dmr_tool, seq_depth, tumor_type) %>%
+        dplyr::summarise(RMSE = 1 - mean(RMSE_minmax), .groups = "drop")
+      
+      # Compute AUC
+      auc_list <- list()
+      unique_fractions <- unique(df$expected_tf)
+      unique_fractions <- unique_fractions[unique_fractions != 0]
+      
+      for (dmrtool in unique(df$dmr_tool)) {
+        for (deconv in unique(df$deconv_tool)) {
+          
+          # Loop over tumoral fractions
+          for (fraction in unique_fractions) {
+            filt_df <- df %>%
+              dplyr::filter(
+                expected_tf %in% c(0, fraction),
+                dmr_tool    == dmrtool,
+                deconv_tool == deconv
+              )
+            
+            # We only skip completely empty combos (to avoid errors),
+            if (nrow(filt_df) == 0) {
+              next
+            }
+            auc_list[[length(auc_list) + 1]] <-
+              compute_auc(filt_df, fraction, deconv)
+          }
+        }
+      }
+      
+      auc_df <- if (length(auc_list) > 0) {
+        dplyr::bind_rows(auc_list) %>%
+          dplyr::group_by(deconv_tool, dmr_tool, seq_depth, tumor_type, expected_tf) %>%
+          dplyr::summarise(AUC = mean(auc), .groups = "drop") %>%
+          dplyr::group_by(deconv_tool, dmr_tool, seq_depth, tumor_type) %>%
+          dplyr::summarise(AUC = mean(AUC), .groups = "drop")
+      } else {
+        NULL
+      }
+      
+      # Compute LoD
+      lod_rows <- list()
+      
+      for (type in unique(df$tumor_type)) {
+        filt_tum <- df %>%
+          dplyr::filter(tumor_type == type) 
+        
+        for (seqdepth in unique(filt_tum$seq_depth)) {
+          filt_depth <- filt_tum %>%
+            dplyr::filter(seq_depth == seqdepth)
+          
+          for (dmrtool in unique(filt_depth$dmr_tool)) {
+            filt_dmr <- filt_depth %>%
+              dplyr::filter(dmr_tool == dmrtool)
+            
+            for (deconv in unique(filt_dmr$deconv_tool)) {
+              filt_deconv <- filt_dmr %>%
+                dplyr::filter(deconv_tool == deconv)
+              if (nrow(filt_deconv) == 0) next
+              
+              stats <- compute_lod(filt_deconv, my_comparisons, correction.method = "BH")
+              if (is.null(stats)) next
+              
+              lod_val <- stats %>%
+                dplyr::arrange(as.numeric(group2)) %>%
+                dplyr::filter(as.numeric(p.adj) < 0.01) %>%
+                dplyr::slice(1) %>%
+                dplyr::pull(group2)
+              
+              if (length(lod_val) == 0 || is.na(lod_val)) {
+                lod_val <- 1
+              }
+              
+              lod_rows[[length(lod_rows) + 1]] <- data.frame(
+                deconv_tool = deconv,
+                dmr_tool    = dmrtool,
+                tumor_type  = type,
+                seq_depth   = seqdepth,
+                LoD         = as.numeric(lod_val)
+              )
+            }
+          }
+        }
+      }
+      
+      lod_df <- if (length(lod_rows) > 0) {
+        dplyr::bind_rows(lod_rows) %>%
+          dplyr::group_by(deconv_tool, dmr_tool, seq_depth, tumor_type) %>%
+          dplyr::summarise(LoD = mean(LoD, na.rm = TRUE), .groups = "drop")
+      } else {
+        NULL
+      }
+      
+      # Compute SCC
+      scc_df <- df %>%
+        dplyr::group_by(deconv_tool, dmr_tool, seq_depth, tumor_type) %>%
+        dplyr::summarise(SCC = scc(expected_tf, predicted_tf), .groups = "drop")
+      
+      list(
+        rmse = rmse_df,
+        auc  = auc_df,
+        lod  = lod_df,
+        scc  = scc_df
+      )
+    }
+    
+    # Merge to one dataframe helper -----------------------------------------
+    merge_metrics_df <- function(metric_list) {
+      rmse_df <- metric_list$rmse
+      auc_df  <- metric_list$auc
+      lod_df  <- metric_list$lod
+      scc_df  <- metric_list$scc
+      
+      if (is.null(rmse_df) || is.null(auc_df) || is.null(lod_df) || is.null(scc_df)) {
+        return(NULL)
+      }
+      
+      merged <- rmse_df %>%
+        dplyr::left_join(scc_df,
+                         by = c("deconv_tool", "dmr_tool", "seq_depth", "tumor_type")) %>%
+        dplyr::left_join(auc_df,
+                         by = c("deconv_tool", "dmr_tool", "seq_depth", "tumor_type")) %>%
+        dplyr::left_join(lod_df,
+                         by = c("deconv_tool", "dmr_tool", "seq_depth", "tumor_type"))
+      
+      merged
+    }
+    
+    # Normalize helper ------------------------------------------------------
+    normalize_metrics_df <- function(merged_df) {
+      if (is.null(merged_df) || nrow(merged_df) == 0) return(merged_df)
+      
+      merged_df %>%
+        dplyr::group_by(dmr_tool, seq_depth, tumor_type) %>%
+        dplyr::mutate(
+          normSCC   = scale01(SCC),
+          normAUC   = scale01(AUC),
+          normRMSE  = scale01(RMSE),
+          normLoD   = scale01(LoD),
+          Score     = normSCC + normAUC + normRMSE + normLoD,
+          normScore = scale01(Score)
+        ) %>%
+        dplyr::ungroup()
+    }
+    
+    # Plot helper -----------------------------------------------------------
+    create_rank_plot <- function(data, metric, tumor_type, seq_depth) {
+      if (is.null(data) || nrow(data) == 0) return(NULL)
+      
+      # Map UI metric -> column name in data
+      plot_var <- switch(
+        metric,
+        "RMSE"  = "normRMSE",
+        "SCC"   = "normSCC",
+        "AUC"   = "normAUC",
+        "LoD"   = "normLoD",
+        "Score" = "normScore",
+        metric  # fallback (in case you ever pass a norm* directly)
+      )
+      
+      # Nice x-axis label
+      x_lab <- if (grepl("^norm", plot_var)) {
+        paste0("normalized ", metric)
+      } else {
+        metric
+      }
+      
+      # Rank tools by mean of the *normalized* metric
+      mean_score <- data %>%
+        dplyr::group_by(deconv_tool) %>%
+        dplyr::summarise(
+          Mean = mean(.data[[plot_var]], na.rm = TRUE),
+          .groups = "drop"
+        ) %>%
+        dplyr::arrange(Mean)
+      
+      data <- data %>%
+        dplyr::mutate(
+          deconv_tool = factor(deconv_tool, levels = mean_score$deconv_tool)
+        )
+      
+      ggplot2::ggplot(
+        data,
+        aes(y = deconv_tool, x = .data[[plot_var]], color = dmr_tool
+        )
+      ) +
+        geom_point(size = 3, alpha = 0.8, position = position_jitter(width = 0, height = 0)) +
+        scale_y_discrete(labels = function(y) stringr::str_replace_all(y, "_", " ")) +
+        labs(
+          title = "",
+          x     = x_lab,
+          y     = ""
+        ) +
+        theme_benchmarking +
+        theme(
+          axis.ticks.y = element_blank(),
+          axis.line.y = element_blank(),
+          panel.grid.major.y = element_line(color = "lightgrey", linewidth = 0.4),
+          panel.grid.minor.y = element_blank()
+        )+
+        custom_color_manual
+      
+    }
+    
+    ## Reactive pipeline for final plot
+    
+    # Initial inputs
     updateSelectInput(session, "rank_tumortype_select", 
                       choices = sort(unique(bench$tumor_type)), 
                       selected = if ("BRCA" %in% bench$tumor_type) "BRCA" else sort(unique(bench$tumor_type))[1] )
@@ -1389,229 +1730,114 @@ wgbsttTabServer <- function(id) {
                              choices = sort(unique(bench$dmr_tool)), 
                              selected = sort(unique(bench$dmr_tool)))
     updateSelectInput(session, "rank_metric_select", 
-                      choices =  c("meanAUC", "RMSE", "SCC", "Score"), 
-                      selected = c("meanAUC", "RMSE", "SCC", "Score")[1])
+                      choices =  c("AUC", "RMSE", "SCC", "LoD", "Score"), 
+                      selected = "Score")
     
+    # Select all / none deconvtools
     observe({
-      current_choices <- sort(unique(bench$deconv_tool))  # Get all available tools
-      
-      # Update the checkbox group based on select all/none toggle
+      current_choices <- sort(unique(bench$deconv_tool))
       updateCheckboxGroupInput(
         session, "rank_deconvtools_select",
         choices = current_choices,
-        selected = if (input$rank_deconvtools_select_all) current_choices else character(0) # Select all if TRUE, else deselect all
+        selected = if (input$rank_deconvtools_select_all) current_choices else character(0) 
       )
     })
     
+    my_comparisons <- list(
+      c("0", "1e-04"), 
+      c("0", "0.001"), 
+      c("0", "0.003"), 
+      c("0", "0.007"),
+      c("0", "0.01"),
+      c("0", "0.025"),
+      c("0", "0.05"),
+      c("0", "0.1"),
+      c("0", "0.25"),
+      c("0", "0.5")
+    )
     
-    # Merge AUC-ROC, RMSE, SCC
-    merge_metrics_rank <- reactive({
+    # 1) filtered data reactive
+    filtered_bench_reactive <- reactive({
       req(input$rank_tumortype_select,
-          input$rank_seqdepth_select, 
+          input$rank_seqdepth_select,
           input$rank_dmrtools_select,
           input$rank_deconvtools_select)
       
-      # Initialize an empty dataframe
-      aucroc_data <- data.frame()
-      fractions_auc <- unique(bench[bench$expected_tf != 0, "expected_tf"])
-      miss <- c() # Initialize missing tool tracker
-      
-      filt_df <- bench %>%
-        filter(tumor_type == input$rank_tumortype_select,
-               seq_depth == input$rank_seqdepth_select,
-               dmr_tool %in% input$rank_dmrtools_select,
-               deconv_tool %in% input$rank_deconvtools_select)
-      
-      # Loop only through selected user inputs
-      for (dmr_tool in input$rank_dmrtools_select) {
-        for (deconv_tool in input$rank_deconvtools_select) {
-          for (fraction in fractions_auc) {
-            
-            filt_df2 <- filt_df %>%
-              filter(expected_tf %in% c(0, fraction),
-                     dmr_tool == !!dmr_tool,
-                     deconv_tool == !!deconv_tool)
-            
-            if (length(unique(filt_df2$expected_tf)) != 2) {
-              miss <- c(miss, deconv_tool)
-              next
-            }
-            
-            roc_curve <- suppressMessages(
-              roc(filt_df2$expected_tf, filt_df2$predicted_tf)
-            )
-            
-            aucroc_data <- rbind(aucroc_data, data.frame(                
-              auc = roc_curve$auc,                                       
-              fraction = fraction,                                       
-              deconv_tool = deconv_tool,                                 
-              dmr_tool = dmr_tool,                                       
-              seq_depth = input$rank_seqdepth_select
-            ))                                                           
-          }
-        }
-      }
-      
-      # Compute mean AUC Grouped Performance
-      classif_performance_auc <- aucroc_data %>%                        
-        group_by(deconv_tool, dmr_tool, seq_depth) %>%  
-        summarize(meanAUC = mean(auc), .groups = 'drop')                
-      
-      
-      
-      # Compute RMSE for fractions > 0
-      nonzero_fraction <- filt_df %>%
-        filter(expected_tf != 0) %>%
-        group_by(deconv_tool, dmr_tool, seq_depth) %>%
-        summarize(RMSE = rmse(expected_tf, predicted_tf), .groups = 'drop')
-      
-      # Compute Spearman's rank correlation coefficient (SCC) on all fractions
-      all_fractions <- filt_df %>%
-        group_by(deconv_tool, dmr_tool, seq_depth) %>%
-        summarize(SCC = scc(expected_tf, predicted_tf), .groups = 'drop')
-      
-      # Merge all computed metrics
-      merged_metrics <- merge(all_fractions, nonzero_fraction, by = c("deconv_tool", "dmr_tool", "seq_depth"))
-      merged_metrics <- merge(merged_metrics, classif_performance_auc, by = c("deconv_tool", "dmr_tool", "seq_depth"))
-      return(merged_metrics)
+      filter_bench(
+        bench_df         = bench,
+        tumor_type_sel   = input$rank_tumortype_select,
+        seq_depth_sel    = input$rank_seqdepth_select,
+        dmrtools_sel     = input$rank_dmrtools_select,
+        deconvtools_sel  = input$rank_deconvtools_select
+      )
     })
     
-    normalize_metrics <- reactive({ 
-      # Retrieve merged metrics from reactive function
-      merged_metrics <- merge_metrics_rank()
-      
-      # Normalize all the metrics based on user-selected inputs
-      normalized_list <- list()
-      miss <- list()
-      
-      for (dmr_tool in input$rank_dmrtools_select) {
-        tmp <- merged_metrics %>%
-          filter(dmr_tool == dmr_tool,
-                 seq_depth == input$rank_seqdepth_select)
-        
-        # Skip if df is empty
-        if (dim(tmp)[1] == 0) {
-          miss <- c(miss, dmr_tool)
-          next
-        }
-        
-        tmp <- tmp %>%
-          mutate(
-            SCC = ifelse(is.na(SCC), 0, SCC),  # Replace NAs in SCC with 0
-            RMSE = ifelse(is.na(RMSE), 1, RMSE),   # Replace NAs in RMSE with 1
-            AUC = ifelse(is.na(meanAUC), 0, meanAUC)
-          )
-        
-        tmp$normSCC <- (tmp$SCC - min(tmp$SCC)) / (max(tmp$SCC) - min(tmp$SCC))
-        tmp$normRMSE <- 1 - (tmp$RMSE - min(tmp$RMSE)) / (max(tmp$RMSE) - min(tmp$RMSE))
-        tmp$normAUC <- (tmp$meanAUC - min(tmp$meanAUC)) / (max(tmp$meanAUC) - min(tmp$meanAUC))
-        
-        
-        # Append the normalized subset to the list
-        key <- paste0(dmr_tool, input$rank_seqdepth_select, sep = "_")
-        normalized_list[[key]] <- tmp[, c("deconv_tool", "dmr_tool", "seq_depth", 
-                                          "meanAUC", "RMSE", "SCC", "normAUC", "normSCC", "normRMSE" )]
-      }
-      
-      # Combine all normalized subsets into a single data frame
-      normalized_df <- do.call(rbind, normalized_list)
-      
-      # Create a combined metric score
-      filt_df <- bench %>%
-        filter(tumor_type == input$rank_tumortype_select,
-               seq_depth == input$rank_seqdepth_select,
-               dmr_tool %in% input$rank_dmrtools_select, 
-               deconv_tool %in% input$rank_deconvtools_select)
-      
-      nzeros <- nrow(filt_df[filt_df$expected_tf == 0,])
-      nnonzeros <- nrow(filt_df[filt_df$expected_tf != 0,])
-      tot <- nzeros + nnonzeros
-      
-      normalized_df$Score <- 
-        normalized_df$normAUC +
-        (nnonzeros / tot) * (normalized_df$normRMSE) + 
-        normalized_df$normSCC
-      
-      normalized_df$tumor_type <- input$rank_tumortype_select
-      
-      return(normalized_df)
+    #  2) compute metrics
+    metrics_reactive <- reactive({
+      df <- filtered_bench_reactive()
+      compute_metrics(df)
     })
     
-    # Create a function to generate rank plots
-    create_plot_ranking <- function(metric) {
-      merged_metrics <- merge_metrics_rank()
-      normalized_df <- normalize_metrics()
-      
-      data <- normalized_df %>%
-        mutate(tooltip_text = paste0(metric,": ", round(.data[[metric]], 3), 
-                                     "<br>deconv_tool: ", deconv_tool, 
-                                     "<br>dmr_tool: ", dmr_tool))
-      
-      # Calculate mean score if not already available (or use from existing data)
-      mean_score <- data %>%
-        group_by(deconv_tool) %>%
-        summarise(Mean=sum(.data[[metric]])/length(input$rank_dmrtools_select)) %>%
-        arrange(if (metric == "RMSE") desc(Mean) else Mean)  # Reverse order for RMSE
-      
-      # Reorder the tools globally without adding 'meanScore' column to the dataframe
-      data <- data %>%
-        mutate(deconv_tool = factor(deconv_tool, levels = mean_score$deconv_tool))
-      
-      # Tools with best performance are placed on top.
-      # Tools with worst performance are placed at the bottom. 
-      
-      ggplot(data, aes(y = as.factor(deconv_tool), x = .data[[metric]], color = dmr_tool, text = tooltip_text)) +
-        geom_point(size = 3, alpha = 0.8) +
-        labs(
-          x = metric,
-          y = ""
-        ) +
-        scale_x_continuous(breaks = scales::pretty_breaks(n = 5)) +  
-        theme_benchmarking +  
-        theme(
-          axis.ticks.y = element_blank(),
-          axis.line.y = element_blank(),
-          panel.grid.major.y = element_line(color = "lightgrey", linewidth = 0.4),
-          panel.grid.minor.y = element_blank()
-        ) +
-        scale_y_discrete(labels = function(x) str_replace_all(x, "_", " ")) +
-        custom_color_manual
-    }
+    # 3) merge metrics
+    merged_metrics_reactive <- reactive({
+      metric_list <- metrics_reactive()
+      merge_metrics_df(metric_list)
+    })
     
+    # 4) normalize metrics
+    norm_metrics_reactive <- reactive({
+      merged_df <- merged_metrics_reactive()
+      normalize_metrics_df(merged_df)
+    })
     
-    # Render ggplotly rank plots
-    output$rank <- renderPlotly({
-      plot <- create_plot_ranking(input$rank_metric_select)
-      ggplotly(plot, tooltip = "text") %>% # Convert ggplot to interactive plotly
-        layout(
+    # 5) plot
+    output$rank <- plotly::renderPlotly({
+      df <- norm_metrics_reactive()
+      req(!is.null(df), nrow(df) > 0)
+      p <- create_rank_plot(
+        data       = df,
+        metric     = input$rank_metric_select,
+        tumor_type = input$rank_tumortype_select,
+        seq_depth  = input$rank_seqdepth_select
+      )
+      req(!is.null(p))
+      plotly::ggplotly(p) %>%
+        plotly::layout(
           legend = list(
             orientation = "h",    # horizontal
             y = 1.1,              # move above the plot
             x = 0.5,              # center horizontally
             xanchor = "center",
             yanchor = "bottom"    # anchor from bottom edge of legend box
-          ),
-          boxmode = "group"
+          )
         ) %>%
-        config(toImageButtonOptions = list(format = "svg",
-                                           filename = paste0("rank_",input$rank_tumortype_select, "_", input$rank_metric_select,"_depth_",input$rank_seqdepth_select,"_",Sys.Date())
+        plotly::config(toImageButtonOptions = list(format = c("svg","pdf"),
+                                                   filename = paste0("final_ranking_", input$rank_metric_select, 
+                                                                     "_tumortype_", input$rank_tumortype_select,
+                                                                     "_depth_",input$rank_seqdepth_select,"_", Sys.Date())
         ))
     })
     
-    # Download data of rank plots
+    # 6) Download data
     output$download_rank_df <- downloadHandler(
       filename = function() {
-        paste0("rank_",input$rank_tumortype_select, "_", input$rank_metric_select,"_depth_",input$rank_seqdepth_select, "_",Sys.Date(), ".csv", sep = "")
+        paste0(
+          "Ranking_",
+          input$rank_metric_select, "_",
+          input$rank_tumortype_select, "_depth_",
+          input$rank_seqdepth_select, "_",
+          Sys.Date(), ".csv"
+        )
       },
       content = function(file) {
-        merged_metrics <- merge_metrics_rank()
-        normalized_df <- normalize_metrics()
-        df <- normalized_df %>% select(tumor_type, everything(), -normAUC, -normSCC, -normRMSE)
-        write.csv(df, file, row.names = FALSE)
-      }
-    )
-    
-    ## end 
-    
-  })
-}
+        df <- norm_metrics_reactive()
+        if (is.null(df) || nrow(df) == 0) {
+          utils::write.csv(data.frame(), file, row.names = FALSE)
+        } else {
+          utils::write.csv(df, file, row.names = FALSE)
+        }
+        
+      })
+  }) # end moduleServer
+}  # end rrbsclTabServer
+
