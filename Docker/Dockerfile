@@ -5,33 +5,20 @@ FROM rocker/r-ver:4.4.3
 LABEL maintainer="Sofie Van de Velde <sofvdvel.vandevelde@ugent.be>"
 LABEL description="DNAm Benchmarking Shiny App"
 LABEL version="1.0"
+LABEL name="rshiny-dnambenchmarking"
+
 # Set Shiny app directory
 ENV SHINY_APP_DIR=/home/app
 
-# Install only missing system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libgsl-dev && \
-    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/*
-
+# Set CRAN mirror globally BEFORE installing packages
+RUN mkdir -p /etc/R && \
+    echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' \
+    > /etc/R/Rprofile.site
 # Install R packages required for the Shiny app
-RUN Rscript -e " \
-    if (!requireNamespace('remotes', quietly = TRUE)) install.packages('remotes'); \
-    remotes::install_github('daattali/shinycssloaders'); \
-    remotes::install_github('drostlab/philentropy'); \
-    install.packages(c( \
-      'askpass', 'backports', 'base64enc', 'brew', 'brio', 'broom', 'bslib', \
-      'cachem', 'callr', 'car', 'conflicted', 'crayon', 'data.table', \
-      'evaluate', 'fontawesome', 'forcats', 'furrr', 'future', 'future.apply', \
-      'ggplot2', 'nloptr', 'ggpubr','ggsignif', 'glue', 'hms', 'LaplacesDemon', 'later', \
-      'lifecycle', 'magrittr', 'Metrics', 'Matrix', 'patchwork', 'plotly', \
-      'processx', 'ps', 'purrr', 'quarto', 'readr', 'reshape2', 'rstatix', \
-      'rstudioapi', 'scales', 'sever', 'shiny', 'shinythemes', 'shinyWidgets', \
-      'spsComps', 'stringr', 'tibble', 'tidyr', 'viridisLite', 'xfun' \
-    ), dependencies = TRUE) \
-  "
-
-# Set CRAN mirror globally
-RUN mkdir -p /etc/R && echo 'options(repos = c(CRAN = "https://cloud.r-project.org"))' > /etc/R/Rprofile.site
+RUN Rscript -e "install.packages( \
+  c('shiny','shinycssloaders', 'bslib','spsComps','ggplot2','plotly', \
+  'ggpubr','DT', 'dplyr','purrr','stringr','readr', 'scales','pROC' \
+  ), dependencies = TRUE )"
 
 # Copy Shiny app source code
 COPY . ${SHINY_APP_DIR}

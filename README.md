@@ -56,12 +56,12 @@ For more information, please refer to the [docs/](./docs).
 ```bash
 docker run -p 3838:3838 \
   -v "$(pwd)/results/benchmarking_dataset.csv":/home/app/results/benchmarking_dataset.csv \
-  sofvdvel/rshiny-dnambenchmarking_amd:v1
+  sofvdvel/rshiny-dnambenchmarking:v1
 ```
 
 #### ▶️ Singularity
 ```bash
-singularity pull docker://sofvdvel/rshiny-dnambenchmarking_amd:v1
+singularity pull docker://sofvdvel/rshiny-dnambenchmarking:v1
 singularity run \
   --bind "$(pwd)/results":/home/app/results \
   rshiny-dnambenchmarking_amd_v1.sif
