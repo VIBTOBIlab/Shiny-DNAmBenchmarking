@@ -63,8 +63,8 @@ docker run -p 3838:3838 \
 ```bash
 singularity pull docker://sofvdvel/rshiny-dnambenchmarking:v1
 singularity run \
-  --bind "$(pwd)/results":/home/app/results \
-  rshiny-dnambenchmarking_amd_v1.sif
+  --bind "$(pwd)/results/benchmarking_dataset.csv":/home/app/results/benchmarking_dataset.csv \
+  rshiny-dnambenchmarking_v1.sif
 ```
 
 ### 4. Open the app
