@@ -3,6 +3,25 @@
 # More information on the pipeline: https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/
 #########################################################################################
 
+# -----------------------------------------------------------------------
+# Packages used in this script (loaded in global.R)
+# -----------------------------------------------------------------------
+# shiny            : Shiny app framework (UI + server, inputs/outputs, reactivity)
+# shinycssloaders  : withSpinner() to show loaders around plots
+# plotly           : Interactive plots via plotlyOutput(), renderPlotly(), ggplotly()
+# ggplot2          : Static plotting backend for all ggplot-based figures
+# DT               : Interactive tables (DT::datatable, DT::renderDataTable)
+# dplyr            : Data manipulation (filter, mutate, group_by, summarise, arrange, etc.)
+# purrr            : Functional helpers, e.g. map2_dfr() for combining AUC-ROC results
+# stringr          : String helpers, e.g. str_replace_all() for nicer labels
+# scales           : Labelling and scaling helpers, e.g. label_scientific() for legends
+# pROC             : ROC/AUC calculations used in AUC-ROC plots
+# ggpubr           : Plot annotations, e.g. stat_pvalue_manual() for LoD p-values
+# stats (base)     : Statistical tests and p.adjust(), e.g. wilcox.test()
+# utils (base)     : I/O helpers, e.g. write.csv() in download handlers
+# grid (base)      : Low-level graphics utilities, e.g. unit() for legend sizing
+
+
 #### 1. Source Application Files ####
 
 # Load UI/server module components
@@ -15,10 +34,11 @@ source("modules/contact.R")
 source("global.R")
 
 #### 2. UI Definition ####
+
 ui <- fluidPage(
   class = "app-body",
   
-  # Good mobile viewport
+  # Good mobile viewpoint
   tags$head(tags$meta(name = "viewport", content = "width=device-width, initial-scale=1")),
   # App stylesheet
   tags$head(includeCSS("www/styles.css")),
@@ -45,7 +65,7 @@ ui <- fluidPage(
         informationTabUI("information"),
         contactTabUI("contact"),
         
-        # Right side icons (groups)
+        # Right side icons
         nav_spacer(),
         nav_item(
           div(class = "navbar-icons",
@@ -67,7 +87,7 @@ ui <- fluidPage(
         )
       )
     ),
-    # Footer area (conditionally rendered via uiOutput)
+    # Footer area 
     uiOutput("conditionalFooter")
   )
 )
