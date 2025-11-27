@@ -2,13 +2,6 @@
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
 [![run with Singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
 
-## Paper
-> **XXX**
->
-> XXX,XXX,XXX
->
-> doi: XXXX 
-
 
 ## Overview
 This [Shiny application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/) allows users to visualize and analyze the results of the benchmarking study, providing an intuitive interface for exploring the data.
