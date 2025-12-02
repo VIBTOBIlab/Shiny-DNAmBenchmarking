@@ -24,25 +24,30 @@ homeTabUI <- function(id) {
           )
         )
       ),
-    br(), #h3("Citation"),
+    br(), 
+    #h3("Citation"),
 
-    # tags$blockquote(class = "paper-cite",
-    #                 tags$p(
-    #                   class = "title",
-    #                   "XXX"
-    #                 ),
-    #                 tags$p(
-    #                   class = "authors",
-    #                   paste(
-    #                     "XXX"
-    #                   )
-    #                 ),
-    #                 tags$p(
-    #                   class = "doi",
-    #                   "doi: ",
-    #                   tags$a(href = "XXX", target = "_blank", rel = "noopener", "XXXX")
-    #                 )
-    # )
+    tags$blockquote(class = "paper-cite",
+                    tags$p(
+                      class = "title",
+                      "A benchmark of DNA methylation deconvolution methods for tumoral fraction estimation using DecoNFlow"
+                    ),
+                    tags$p(
+                      class = "authors",
+                      paste(
+                        "Edoardo Giuili, Sofie Van de Velde, Sam Kint, Maísa R Ferro dos Santos, Lotte Cornelli, Sofie Roelandt, Kathleen Schoofs, Renske Imschoot, Ruben Van Paemel, Leander Meuris, Celine Everaert, Katleen De Preter"
+                      )
+                    ),
+                    tags$p(
+                      class = "doi",
+                      "bioRxiv 2025 Nov 27. doi: ",
+                      tags$a(
+                        href = "https://www.biorxiv.org/content/10.1101/2025.11.27.688590v1", 
+                        target = "_blank", 
+                        rel = "noopener", 
+                        "10.1101/2025.11.27.688590")
+                    )
+    )
     
   )
 } # end homeTabUI
