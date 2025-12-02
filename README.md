@@ -2,9 +2,9 @@
 [![run with docker](https://img.shields.io/badge/run%20with-docker-0db7ed?labelColor=000000&logo=docker)](https://www.docker.com/)
 [![run with Singularity](https://img.shields.io/badge/run%20with-singularity-1d355c.svg?labelColor=000000)](https://sylabs.io/docs/)
 
-
 ## Overview
 This [Shiny application](https://sunny.cmb.ugent.be/3fy5CTR4gXjcKMHj0zz1bxsGEEkHVsOnC8BjXYT5miRB0QGwid/) allows users to visualize and analyze the results of the benchmarking study, providing an intuitive interface for exploring the data.
+
 
 ## Background
 **DecoNFlow** is a bioinformatics pipeline for computational deconvolution of DNA methylation data, supporting both reference-based and reference-free tools. Learn more: [VIBTOBIlab/DecoNFlow](https://github.com/VIBTOBIlab/DecoNFlow).
@@ -65,6 +65,14 @@ After the container starts, open: [http://localhost:3838](http://localhost:3838)
 
 ## Credits
 The scripts and containers have been written and built by [Sofie Van de Velde](https://github.com/sofvdvel), who is also the maintainer.
+
+## Citation
+> **A benchmark of DNA methylation deconvolution methods for tumoral fraction estimation using DecoNFlow**
+>
+> Edoardo Giuili, Sofie Van de Velde, Sam Kint, Maísa R Ferro dos Santos, Lotte Cornelli, Sofie Roelandt, Kathleen Schoofs, Renske Imschoot, Ruben Van Paemel, Leander Meuris, Celine Everaert, Katleen De Preter.
+>
+> bioRxiv 2025 Nov 27. doi: [10.1101/2025.11.27.688590](https://www.biorxiv.org/content/10.1101/2025.11.27.688590v1)
+
 
 ## Support
 If you encounter any issues or have questions, please:
