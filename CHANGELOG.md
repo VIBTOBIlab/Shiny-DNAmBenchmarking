@@ -1,7 +1,7 @@
 # CHANGELOG
 
 ## [v1.1.0](https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/tree/v1.1.0) Diancie Sprite - 2026-10-12
-- Updated [`benchmarking_dataset.csv`](./results/benchmarking_dataset.csv) with new benchmarking results.
+- Updated [`benchmarking_dataset.csv`](./results/benchmarking_dataset.csv).
 
 <a href="https://pokemondb.net/pokedex/diancie">
   <img src="https://img.pokemondb.net/sprites/x-y/normal/diancie.png"
