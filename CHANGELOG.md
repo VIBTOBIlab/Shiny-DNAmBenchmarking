@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## [v1.1.0](https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/tree/v1.1.0) Diancie Sprite - 2026-10-12
+- Updated [`benchmarking_dataset.csv`](./results/benchmarking_dataset.csv) with new benchmarking results.
+
+<a href="https://pokemondb.net/pokedex/diancie">
+  <img src="https://img.pokemondb.net/sprites/x-y/normal/diancie.png"
+       alt="Diancie"
+       width="100">
+</a>
+
 ## [v1.0.0](https://github.com/VIBTOBIlab/Shiny-DNAmBenchmarking/tree/v1.0.0) Jellicent Sprite - 2025-11-27 
 - Initial release of **Shiny DNAmBenchmarking** application.
 - Interactive Shiny app for visualizing and analyzing DNA methylation benchmarking results.
